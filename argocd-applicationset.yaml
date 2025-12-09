@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: k8s-workloads
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+        revision: main
+        directories:
+          - path: "*/*"
+            exclude: false
+  
+  template:
+    metadata:
+      name: '{{path.basename}}'
+      labels:
+        namespace: '{{path[0]}}'
+        workload: '{{path.basename}}'
+        managed-by: applicationset
+    
+    spec:
+      project: default
+      
+      source:
+        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+        targetRevision: main
+        path: '{{path}}'
+      
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path[0]}}'
+      
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: namespaces
+  namespace: argocd
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+    targetRevision: main
+    path: .
+    directory:
+      recurse: false
+      include: namespaces.yaml
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
