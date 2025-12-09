@@ -6,7 +6,7 @@ metadata:
 spec:
   generators:
     - git:
-        repoURL: https://github.com/Hoangvu75/LearnK8S.git
+        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
         revision: master
         directories:
           - path: "k8s_manifest/*/*"
@@ -24,7 +24,7 @@ spec:
       project: default
       
       source:
-        repoURL: https://github.com/Hoangvu75/LearnK8S.git
+        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
         targetRevision: master
         path: '{{path}}'
       
@@ -47,7 +47,7 @@ spec:
   project: default
   
   source:
-    repoURL: https://github.com/Hoangvu75/LearnK8S.git
+    repoURL: https://github.com/Hoangvu75/k8s_manifest.git
     targetRevision: master
     path: k8s_manifest
     directory:
