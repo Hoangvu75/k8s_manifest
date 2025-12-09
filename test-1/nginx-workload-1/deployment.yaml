@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-deployment
+  name: nginx-workload-1
   namespace: test-1
   labels:
     app: nginx
-    workload: nginx-workload
+    workload: nginx-workload-1
 spec:
   replicas: 2
   selector:
