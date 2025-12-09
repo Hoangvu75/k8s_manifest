@@ -6,17 +6,17 @@ metadata:
 spec:
   generators:
     - git:
-        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+        repoURL: https://github.com/Hoangvu75/LearnK8S.git
         revision: main
         directories:
-          - path: "*/*"
+          - path: "k8s_manifest/*/*"
             exclude: false
   
   template:
     metadata:
       name: '{{path.basename}}'
       labels:
-        namespace: '{{path[0]}}'
+        namespace: '{{path[1]}}'
         workload: '{{path.basename}}'
         managed-by: applicationset
     
@@ -24,13 +24,13 @@ spec:
       project: default
       
       source:
-        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+        repoURL: https://github.com/Hoangvu75/LearnK8S.git
         targetRevision: main
         path: '{{path}}'
       
       destination:
         server: https://kubernetes.default.svc
-        namespace: '{{path[0]}}'
+        namespace: '{{path[1]}}'
       
       syncPolicy:
         automated:
@@ -47,9 +47,9 @@ spec:
   project: default
   
   source:
-    repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+    repoURL: https://github.com/Hoangvu75/LearnK8S.git
     targetRevision: main
-    path: .
+    path: k8s_manifest
     directory:
       recurse: false
       include: namespaces.yaml
