@@ -7,7 +7,7 @@ metadata:
     app: nginx
     workload: nginx-workload-2
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: nginx
