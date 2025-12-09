@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-deployment
-  namespace: test1
+  namespace: test-1
   labels:
     app: nginx
     workload: nginx-workload
