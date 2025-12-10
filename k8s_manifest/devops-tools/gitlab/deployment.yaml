@@ -35,18 +35,26 @@ spec:
             httpGet:
               path: /-/readiness
               port: 80
-            initialDelaySeconds: 300
+            initialDelaySeconds: 600
             timeoutSeconds: 10
             periodSeconds: 30
-            failureThreshold: 10
+            failureThreshold: 20
           livenessProbe:
             httpGet:
               path: /-/liveness
               port: 80
-            initialDelaySeconds: 420
+            initialDelaySeconds: 900
             timeoutSeconds: 10
             periodSeconds: 30
-            failureThreshold: 10
+            failureThreshold: 20
+          startupProbe:
+            httpGet:
+              path: /-/readiness
+              port: 80
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 60  # ~30 minutes max startup window
           resources:
             requests:
               cpu: "2"
