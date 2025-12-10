@@ -9,14 +9,6 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: test-2
-  labels:
-    environment: staging
-    managed-by: argocd
----
-apiVersion: v1
-kind: Namespace
-metadata:
   name: devops-tools
   labels:
     environment: infrastructure
