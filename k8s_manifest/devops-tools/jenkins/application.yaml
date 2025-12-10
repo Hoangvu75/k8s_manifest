@@ -10,7 +10,7 @@ spec:
     # Helm chart official của Jenkins
     repoURL: https://charts.jenkins.io
     chart: jenkins
-    targetRevision: 5.7.15  # Hoặc version mới nhất
+    targetRevision: "*"  # Sử dụng version mới nhất
     
     helm:
       # Custom values cho Jenkins
