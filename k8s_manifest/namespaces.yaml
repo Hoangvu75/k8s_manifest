@@ -13,4 +13,12 @@ metadata:
   labels:
     environment: staging
     managed-by: argocd
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: devops-tools
+  labels:
+    environment: staging
+    managed-by: argocd
 
