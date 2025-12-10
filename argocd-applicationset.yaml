@@ -38,11 +38,10 @@ spec:
           selfHeal: true
           allowEmpty: false
 ---
-# Application 1: Rancher Projects (MANUAL SYNC - Sync đầu tiên)
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: rancher-projects
+  name: namespaces
   namespace: argocd
 spec:
   project: default
@@ -53,39 +52,15 @@ spec:
     path: k8s_manifest
     directory:
       recurse: false
-      include: 'projects.yaml'
-  
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: local  # Rancher Projects được tạo trong namespace 'local'
-  
-  syncPolicy:
-    # KHÔNG auto sync - bạn sẽ sync thủ công
-    syncOptions:
-      - CreateNamespace=true
----
-# Application 2: Namespaces (MANUAL SYNC - Sync sau khi projects đã ready)
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: cluster-namespaces
-  namespace: argocd
-spec:
-  project: default
-  
-  source:
-    repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-    targetRevision: master
-    path: k8s_manifest
-    directory:
-      recurse: false
-      include: 'namespaces.yaml'
+      include: namespaces.yaml
   
   destination:
     server: https://kubernetes.default.svc
     namespace: default
   
   syncPolicy:
-    # KHÔNG auto sync - bạn sẽ sync thủ công sau khi projects ready
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
