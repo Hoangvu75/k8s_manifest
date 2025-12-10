@@ -28,9 +28,10 @@ spec:
               cpu: "2000m"
               memory: "2Gi"
           
-          # Admin user
-          adminUser: "admin"
-          # Password sẽ được generate tự động, lấy từ Secret
+          # Admin user (new format)
+          admin:
+            username: "admin"
+            # Password sẽ được generate tự động, lấy từ Secret
           
           # Service type
           serviceType: ClusterIP
