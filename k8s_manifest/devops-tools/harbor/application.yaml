@@ -1,0 +1,61 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: harbor
+  namespace: argocd
+  labels:
+    app: harbor
+    managed-by: argocd
+spec:
+  project: default
+  
+  source:
+    # Harbor Helm Chart từ repo chính thức
+    repoURL: https://helm.goharbor.io
+    chart: harbor
+    targetRevision: 1.16.1  # Phiên bản stable, có thể dùng "*" cho latest
+    
+    helm:
+      # Sử dụng values.yaml từ Git repo
+      valueFiles:
+        - $values/k8s_manifest/devops-tools/harbor/values.yaml
+  
+  # Source thứ 2: Git repo chứa values.yaml
+  sources:
+    - repoURL: https://helm.goharbor.io
+      chart: harbor
+      targetRevision: 1.16.1
+      helm:
+        valueFiles:
+          - $values/k8s_manifest/devops-tools/harbor/values.yaml
+    
+    - repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+      targetRevision: master
+      ref: values
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: devops-tools
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  # Ignore differences cho các trường động
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+
