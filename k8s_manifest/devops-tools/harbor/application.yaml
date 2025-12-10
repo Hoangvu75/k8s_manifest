@@ -1,52 +1,81 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: harbor
+  name: harbor-helm
   namespace: argocd
   labels:
-    app: harbor
-    managed-by: argocd
+    app.kubernetes.io/name: harbor
+    app.kubernetes.io/part-of: devops-tools
 spec:
   project: default
-  
-  # Sử dụng multiple sources (ArgoCD 2.6+)
-  sources:
-    # Source 1: Harbor Helm Chart
-    - repoURL: https://helm.goharbor.io
-      chart: harbor
-      targetRevision: 1.16.1
-      helm:
-        valueFiles:
-          - $values/k8s_manifest/devops-tools/harbor/values.yaml
-    
-    # Source 2: Git repo chứa values.yaml
-    - repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-      targetRevision: master
-      ref: values
-  
+  source:
+    repoURL: https://helm.goharbor.io
+    chart: harbor
+    targetRevision: 1.14.1
+    helm:
+      releaseName: harbor
+      values: |
+        expose:
+          type: nodePort
+          tls:
+            enabled: false
+          nodePort:
+            name: harbor
+            ports:
+              http:
+                nodePort: 30080
+              https:
+                nodePort: 30081
+              notary:
+                nodePort: 30082
+        externalURL: http://harbor.local
+        harborAdminPassword: "Harbor12345"
+        persistence:
+          enabled: true
+          resourcePolicy: keep
+          persistentVolumeClaim:
+            registry:
+              accessMode: ReadWriteOnce
+              size: 50Gi
+              storageClass: ""
+            chartmuseum:
+              accessMode: ReadWriteOnce
+              size: 10Gi
+              storageClass: ""
+            jobservice:
+              accessMode: ReadWriteOnce
+              size: 5Gi
+              storageClass: ""
+            database:
+              accessMode: ReadWriteOnce
+              size: 20Gi
+              storageClass: ""
+            redis:
+              accessMode: ReadWriteOnce
+              size: 5Gi
+              storageClass: ""
+            trivy:
+              accessMode: ReadWriteOnce
+              size: 10Gi
+              storageClass: ""
+        chartmuseum:
+          enabled: true
+        notary:
+          enabled: false
+        trivy:
+          enabled: true
+          replicas: 1
+        metrics:
+          enabled: false
+        updateStrategy:
+          type: RollingUpdate
   destination:
     server: https://kubernetes.default.svc
     namespace: devops-tools
-  
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-      allowEmpty: false
     syncOptions:
       - CreateNamespace=true
-      - ServerSideApply=true
-    retry:
-      limit: 5
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 3m
-  
-  # Ignore differences cho các trường động
-  ignoreDifferences:
-    - group: apps
-      kind: Deployment
-      jsonPointers:
-        - /spec/replicas
 
