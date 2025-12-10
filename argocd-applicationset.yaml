@@ -38,10 +38,11 @@ spec:
           selfHeal: true
           allowEmpty: false
 ---
+# Application cho cả Projects và Namespaces (sync waves sẽ đảm bảo thứ tự)
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: namespaces
+  name: cluster-bootstrap
   namespace: argocd
 spec:
   project: default
@@ -52,7 +53,7 @@ spec:
     path: k8s_manifest
     directory:
       recurse: false
-      include: namespaces.yaml
+      include: '{projects,namespaces}.yaml'  # Include cả 2 files
   
   destination:
     server: https://kubernetes.default.svc
@@ -64,3 +65,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - RespectIgnoreDifferences=true
