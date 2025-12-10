@@ -31,30 +31,16 @@ spec:
               containerPort: 80
             - name: ssh
               containerPort: 22
+          # Đơn giản hóa probe để tránh restart trong lúc bootstrap dài của GitLab CE
           readinessProbe:
             httpGet:
               path: /-/readiness
               port: 80
-            initialDelaySeconds: 600
-            timeoutSeconds: 10
-            periodSeconds: 30
-            failureThreshold: 20
-          livenessProbe:
-            httpGet:
-              path: /-/liveness
-              port: 80
-            initialDelaySeconds: 900
-            timeoutSeconds: 10
-            periodSeconds: 30
-            failureThreshold: 20
-          startupProbe:
-            httpGet:
-              path: /-/readiness
-              port: 80
-            initialDelaySeconds: 120
+            initialDelaySeconds: 900   # chờ 15 phút trước probe đầu tiên
             periodSeconds: 30
             timeoutSeconds: 10
-            failureThreshold: 60  # ~30 minutes max startup window
+            failureThreshold: 40       # thêm ~20 phút margin
+          # Tạm thời bỏ liveness/startup để không kill pod trong lúc bootstrap
           resources:
             requests:
               cpu: "2"
