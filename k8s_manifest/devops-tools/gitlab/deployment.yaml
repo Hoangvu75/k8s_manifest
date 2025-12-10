@@ -31,16 +31,22 @@ spec:
               containerPort: 80
             - name: ssh
               containerPort: 22
-          # Đơn giản hóa probe để tránh restart trong lúc bootstrap dài của GitLab CE
+          # Probe tối giản, trỏ vào cổng 8080 (workhorse) để tránh 404 trong khi bootstrap
           readinessProbe:
             httpGet:
               path: /-/readiness
-              port: 80
-            initialDelaySeconds: 900   # chờ 15 phút trước probe đầu tiên
+              port: 8080
+            initialDelaySeconds: 1200  # 20 phút trước probe đầu tiên
             periodSeconds: 30
             timeoutSeconds: 10
-            failureThreshold: 40       # thêm ~20 phút margin
-          # Tạm thời bỏ liveness/startup để không kill pod trong lúc bootstrap
+            failureThreshold: 60       # thêm ~30 phút margin
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 120   # 2 phút
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 60       # ~30 phút cửa sổ startup
           resources:
             requests:
               cpu: "2"
