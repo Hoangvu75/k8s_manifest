@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab
+  namespace: devops-tools
+  labels:
+    app: gitlab
+    workload: gitlab
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: gitlab
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      containers:
+        - name: gitlab
+          image: gitlab/gitlab-ce:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GITLAB_OMNIBUS_CONFIG
+              value: |
+                external_url 'http://gitlab.devops-tools.svc.cluster.local'
+                gitlab_rails['gitlab_shell_ssh_port'] = 22
+          ports:
+            - name: http
+              containerPort: 80
+            - name: ssh
+              containerPort: 22
+          readinessProbe:
+            httpGet:
+              path: /-/readiness
+              port: 80
+            initialDelaySeconds: 60
+            timeoutSeconds: 5
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /-/liveness
+              port: 80
+            initialDelaySeconds: 120
+            timeoutSeconds: 5
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: 1
+              memory: 4Gi
+          volumeMounts:
+            - name: gitlab-data
+              mountPath: /var/opt/gitlab
+            - name: gitlab-config
+              mountPath: /etc/gitlab
+            - name: gitlab-logs
+              mountPath: /var/log/gitlab
+      volumes:
+        - name: gitlab-data
+          emptyDir: {}
+        - name: gitlab-config
+          emptyDir: {}
+        - name: gitlab-logs
+          emptyDir: {}
+
