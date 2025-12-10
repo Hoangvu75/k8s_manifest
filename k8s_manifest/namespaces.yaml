@@ -26,12 +26,13 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: devops-tools
+  name: rancher-installer
   labels:
-    environment: staging
+    environment: infrastructure
     managed-by: argocd
   annotations:
-    # Gán vào project DevOps Tools
-    field.cattle.io/projectId: "local:p-devops"
+    # Namespace cho pod cài đặt Rancher
+    # Không gán vào project nào (infrastructure namespace)
     argocd.argoproj.io/sync-wave: "0"
+
 

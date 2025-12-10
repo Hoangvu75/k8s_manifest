@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: rancher-installer
-  namespace: default
+  namespace: rancher-installer
   labels:
     app: rancher-installer
 spec:

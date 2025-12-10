@@ -11,13 +11,13 @@ kubectl apply -f k8s_manifest/rancher-installer/
 ## Bước 2: Kiểm tra Pod đã chạy
 
 ```bash
-kubectl get pod rancher-installer
+kubectl get pod rancher-installer -n rancher-installer
 ```
 
 ## Bước 3: Exec vào Pod
 
 ```bash
-kubectl exec -it rancher-installer -- /bin/sh
+kubectl exec -it rancher-installer -n rancher-installer -- /bin/sh
 ```
 
 ## Bước 4: Cài Cert-Manager (Bắt buộc cho Rancher)
