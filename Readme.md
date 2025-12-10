@@ -1,6 +1,8 @@
 Để kết nối k8s tới rancher, cần thay đổi server-url thành
 https://host.docker.internal
 
+Nếu bị lỗi curl -> Remove-item alias:curl
+
 Cài ArgoCD
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
