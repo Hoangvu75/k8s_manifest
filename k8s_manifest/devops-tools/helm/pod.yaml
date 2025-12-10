@@ -7,7 +7,8 @@ spec:
   serviceAccountName: helm-admin
   containers:
     - name: helm
-      image: alpine/helm:latest
+      # Image này có sẵn: kubectl, helm, và các tool k8s khác
+      image: alpine/k8s:1.28.3
       # Giữ container chạy liên tục để ta exec vào
       command: ["/bin/sh", "-c", "sleep 36000"]
 
