@@ -5,11 +5,6 @@ metadata:
   labels:
     environment: development
     managed-by: argocd
-  annotations:
-    # Gán vào project Development
-    field.cattle.io/projectId: "local:p-development"
-    # ArgoCD sync wave: tạo sau projects (wave 0)
-    argocd.argoproj.io/sync-wave: "0"
 ---
 apiVersion: v1
 kind: Namespace
@@ -18,10 +13,6 @@ metadata:
   labels:
     environment: staging
     managed-by: argocd
-  annotations:
-    # Gán vào project Staging
-    field.cattle.io/projectId: "local:p-staging"
-    argocd.argoproj.io/sync-wave: "0"
 ---
 apiVersion: v1
 kind: Namespace
@@ -30,9 +21,4 @@ metadata:
   labels:
     environment: infrastructure
     managed-by: argocd
-  annotations:
-    # Namespace cho pod cài đặt Rancher
-    # Không gán vào project nào (infrastructure namespace)
-    argocd.argoproj.io/sync-wave: "0"
-
 
