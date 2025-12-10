@@ -9,19 +9,9 @@ metadata:
 spec:
   project: default
   
-  source:
-    # Harbor Helm Chart từ repo chính thức
-    repoURL: https://helm.goharbor.io
-    chart: harbor
-    targetRevision: 1.16.1  # Phiên bản stable, có thể dùng "*" cho latest
-    
-    helm:
-      # Sử dụng values.yaml từ Git repo
-      valueFiles:
-        - $values/k8s_manifest/devops-tools/harbor/values.yaml
-  
-  # Source thứ 2: Git repo chứa values.yaml
+  # Sử dụng multiple sources (ArgoCD 2.6+)
   sources:
+    # Source 1: Harbor Helm Chart
     - repoURL: https://helm.goharbor.io
       chart: harbor
       targetRevision: 1.16.1
@@ -29,6 +19,7 @@ spec:
         valueFiles:
           - $values/k8s_manifest/devops-tools/harbor/values.yaml
     
+    # Source 2: Git repo chứa values.yaml
     - repoURL: https://github.com/Hoangvu75/k8s_manifest.git
       targetRevision: master
       ref: values
