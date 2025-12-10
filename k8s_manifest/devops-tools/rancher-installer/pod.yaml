@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: rancher-installer
-  namespace: rancher-installer
+  namespace: devops-tools
   labels:
     app: rancher-installer
 spec:
