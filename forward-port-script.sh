@@ -11,16 +11,17 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443 > /dev/null 2>&1 &
 ARGOCD_PID=$!
 
 # Forward Jenkins  
-echo "📡 Forwarding Jenkins to http://localhost:9090"
-kubectl port-forward -n devops-tools svc/jenkins 9090:8080 > /dev/null 2>&1 &
+echo "📡 Forwarding Jenkins to http://localhost:8082"
+kubectl port-forward -n devops-tools svc/jenkins 8082:8080 > /dev/null 2>&1 &
 JENKINS_PID=$!
+
+# Forward Harbor
+echo "📡 Forwarding Harbor to http://localhost:8083"
+kubectl -n devops-tools port-forward svc/harbor 8083:80 > /dev/null 2>&1 &
+HARBOR_PID=$!
 
 echo ""
 echo "✅ Port-forwarding started!"
-echo ""
-echo "📋 Access URLs:"
-echo "  ArgoCD:  http://localhost:8080"
-echo "  Jenkins: http://localhost:9090"
 echo ""
 echo "🔑 Get credentials:"
 echo "  ArgoCD password:"
