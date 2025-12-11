@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: gitlab
-        image: quay.io/gitlab/gitlab-ce:17.2.1-ce.0
-        imagePullPolicy: IfNotPresent
+        image: gitlab/gitlab-ce:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
           name: http
