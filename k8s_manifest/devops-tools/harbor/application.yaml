@@ -67,6 +67,7 @@ spec:
           replicas: 1
         metrics:
           enabled: false
+        imagePullPolicy: IfNotPresent
         updateStrategy:
           type: RollingUpdate
   destination:

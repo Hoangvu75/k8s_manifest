@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
       - name: gitlab
-        image: gitlab/gitlab-ce:latest
+        image: gitlab/gitlab-ce:17.2.1-ce.0
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
           name: http
@@ -36,6 +37,22 @@ spec:
           limits:
             memory: "4Gi"
             cpu: "2000m"
+        readinessProbe:
+          httpGet:
+            path: /-/health
+            port: 80
+          initialDelaySeconds: 300
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /-/health
+            port: 80
+          initialDelaySeconds: 600
+          periodSeconds: 60
+          timeoutSeconds: 10
+          failureThreshold: 3
         volumeMounts:
         - name: gitlab-config
           mountPath: /etc/gitlab
