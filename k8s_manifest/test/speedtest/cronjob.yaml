@@ -21,7 +21,20 @@ spec:
               echo "=== Network Speed Test ==="
               echo "Testing download speed with 10MB file..."
               START_TIME=$(date +%s.%3N)
-              curl -s -o /dev/null -w "Download Speed: %{speed_download} bytes/sec (%{speed_download}/8 Mbps)\nTotal Time: %{time_total}s\nFile Size: %{size_download} bytes\n" http://speedtest.tele2.net/10MB.zip
+              # Get all metrics in one curl call
+              OUTPUT=$(curl -s -o /dev/null -w "%{speed_download}|%{time_total}|%{size_download}" http://speedtest.tele2.net/10MB.zip)
+              SPEED_BYTES=$(echo "$OUTPUT" | cut -d'|' -f1)
+              TIME_TOTAL=$(echo "$OUTPUT" | cut -d'|' -f2)
+              SIZE_BYTES=$(echo "$OUTPUT" | cut -d'|' -f3)
+
+              # Convert to MB/s (bytes/sec to MB/s)
+              SPEED_MBPS=$(echo "scale=2; $SPEED_BYTES / 1048576" | bc -l 2>/dev/null || echo "N/A")
+              # Format to remove leading zero if it's less than 1
+              SPEED_MBPS_FORMATTED=$(echo "$SPEED_MBPS" | sed 's/^\./0./')
+
+              echo "Download Speed: ${SPEED_MBPS_FORMATTED} MB/s"
+              echo "Total Time: ${TIME_TOTAL}s"
+              echo "File Size: ${SIZE_BYTES} bytes"
               END_TIME=$(date +%s.%3N)
               DURATION=$(echo "$END_TIME - $START_TIME" | bc -l 2>/dev/null || echo "N/A")
               echo "Test Duration: ${DURATION}s"
