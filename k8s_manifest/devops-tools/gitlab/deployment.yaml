@@ -34,6 +34,12 @@ spec:
             postgresql['usermap'] = ["gitlab gitlab : root"]
             package['modify_kernel_parameters'] = false
             logrotate['enable'] = false
+            redis['bind'] = '0.0.0.0'
+            redis['port'] = 6379
+            gitlab_rails['redis_host'] = '127.0.0.1'
+            gitlab_rails['redis_port'] = 6379
+            sidekiq['redis_host'] = '127.0.0.1'
+            sidekiq['redis_port'] = 6379
         resources:
           requests:
             memory: "4Gi"
