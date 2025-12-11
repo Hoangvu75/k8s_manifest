@@ -28,7 +28,7 @@ spec:
         env:
         - name: GITLAB_OMNIBUS_CONFIG
           value: |
-            external_url 'http://gitlab.devops-tools.svc.cluster.local'
+            external_url 'http://localhost:8084'
             gitlab_rails['initial_root_password'] = 'password123'
             gitlab_rails['gitlab_shell_ssh_port'] = 22
             postgresql['pg_hba'] = ["local all all peer map=gitlab", "host all all 127.0.0.1/32 md5"]
