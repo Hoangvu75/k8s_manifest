@@ -20,6 +20,10 @@ kubectl port-forward -n devops-tools svc/jenkins 8082:8080 > /dev/null 2>&1 &
 echo "📡 Forwarding Harbor to http://localhost:8083"
 kubectl -n devops-tools port-forward svc/harbor 8083:80 > /dev/null 2>&1 &
 
+# Forward GitLab
+echo "📡 Forwarding GitLab to http://localhost:8084"
+kubectl -n devops-tools port-forward svc/gitlab 8084:80 > /dev/null 2>&1 &
+
 echo ""
 echo "✅ Port-forwarding started!"
 echo ""
