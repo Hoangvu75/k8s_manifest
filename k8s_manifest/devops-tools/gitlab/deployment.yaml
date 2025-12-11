@@ -30,6 +30,8 @@ spec:
             external_url 'http://gitlab.devops-tools.svc.cluster.local'
             gitlab_rails['initial_root_password'] = 'password123'
             gitlab_rails['gitlab_shell_ssh_port'] = 22
+            postgresql['pg_hba'] = ["local all all peer map=gitlab", "host all all 127.0.0.1/32 md5"]
+            postgresql['usermap'] = ["gitlab gitlab : root"]
         resources:
           requests:
             memory: "1Gi"
@@ -39,19 +41,19 @@ spec:
             cpu: "2000m"
         readinessProbe:
           httpGet:
-            path: /-/health
+            path: /-/readiness
             port: 80
           initialDelaySeconds: 300
           periodSeconds: 30
           timeoutSeconds: 10
-          failureThreshold: 3
+          failureThreshold: 10
         livenessProbe:
           httpGet:
-            path: /-/health
+            path: /-/liveness
             port: 80
-          initialDelaySeconds: 600
+          initialDelaySeconds: 900
           periodSeconds: 60
-          timeoutSeconds: 10
+          timeoutSeconds: 30
           failureThreshold: 3
         volumeMounts:
         - name: gitlab-config
