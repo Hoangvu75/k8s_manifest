@@ -6,6 +6,7 @@ services:
     privileged: true
     ports:
       - "8081:443"
+      - "8082:80"
     volumes:
       - rancher-data:/var/lib/rancher
       - rancher-log:/var/log/auditlog
