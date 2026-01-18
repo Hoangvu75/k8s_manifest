@@ -6,19 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://kubernetes.github.io/ingress-nginx
-    chart: ingress-nginx
-    targetRevision: 4.11.3
-    helm:
-      values: |
-        controller:
-          service:
-            type: NodePort
-            nodePorts:
-              http: 30080
-              https: 30443
-          admissionWebhooks:
-            enabled: false
+    repoURL: https://github.com/kubernetes/ingress-nginx.git
+    targetRevision: controller-v1.9.4
+    path: deploy/static/provider/baremetal
   destination:
     server: https://kubernetes.default.svc
     namespace: ingress-nginx
