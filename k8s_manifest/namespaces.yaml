@@ -13,3 +13,19 @@ metadata:
   labels:
     environment: infrastructure
     managed-by: argocd
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cattle-system
+  labels:
+    environment: infrastructure
+    managed-by: argocd
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    environment: infrastructure
+    managed-by: argocd
