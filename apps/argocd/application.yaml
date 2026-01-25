@@ -1,0 +1,18 @@
+app:
+  name: argocd
+  namespace: argocd
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argo-cd
+    targetRevision: 5.51.6
+  values: |
+    server:
+      ingress:
+        enabled: true
+        ingressClassName: nginx
+        hosts:
+          - argocd.192.168.56.200.nip.io
+        paths:
+          - /
+        tls: []
+

@@ -1,8 +1,0 @@
-ingress-nginx:
-  controller:
-    service:
-      type: NodePort 
-    hostNetwork: true
-    dnsPolicy: ClusterFirstWithHostNet
-    config:
-      use-forwarded-headers: "true"

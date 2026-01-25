@@ -1,27 +1,31 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: business-apps
+  name: infrastructure-apps
   namespace: argocd
 spec:
   generators:
   - git:
-      repoURL: https://github.com/Hoangvu75/k8s_manifest.git # UPDATE THIS
+      repoURL: https://github.com/Hoangvu75/k8s_manifest.git
       revision: HEAD
-      directories:
-      - path: apps/*
+      files:
+      - path: apps/*/application.yaml
   template:
     metadata:
-      name: '{{path.basename}}'
+      name: '{{app.name}}'
     spec:
       project: default
       source:
-        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-        targetRevision: HEAD
-        path: '{{path}}'
+        repoURL: '{{app.source.repoURL}}'
+        targetRevision: '{{app.source.targetRevision}}'
+        chart: '{{app.source.chart}}'
+        helm:
+          releaseName: '{{app.name}}'
+          values: |
+            {{app.values}}
       destination:
         server: https://kubernetes.default.svc
-        namespace: '{{path.basename}}'
+        namespace: '{{app.namespace}}'
       syncPolicy:
         automated:
           prune: true

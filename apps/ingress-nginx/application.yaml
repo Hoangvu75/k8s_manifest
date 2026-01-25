@@ -1,0 +1,16 @@
+app:
+  name: ingress-nginx
+  namespace: ingress-nginx
+  source:
+    repoURL: https://kubernetes.github.io/ingress-nginx
+    chart: ingress-nginx
+    targetRevision: 4.9.0
+  values: |
+    controller:
+      service:
+        type: NodePort 
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      config:
+        use-forwarded-headers: "true"
+
