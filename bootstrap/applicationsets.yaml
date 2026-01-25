@@ -6,7 +6,7 @@ metadata:
 spec:
   generators:
   - git:
-      repoURL: https://github.com/hieulab-pro/k8s_manifest.git # UPDATE THIS
+      repoURL: https://github.com/Hoangvu75/k8s_manifest.git # UPDATE THIS
       revision: HEAD
       directories:
       - path: k8s_manifest/apps/*
@@ -16,7 +16,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: https://github.com/hieulab-pro/k8s_manifest.git
+        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
         targetRevision: HEAD
         path: '{{path}}'
       destination:
