@@ -1,0 +1,14 @@
+argo-cd:
+  server:
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      # Configure dynamic hostname or catch-all here
+      hosts:
+        - argocd.192.168.56.200.nip.io
+      paths:
+        - /
+      tls: []
+      #  - secretName: argocd-tls
+      #    hosts:
+      #      - argocd.192.168.56.200.nip.io

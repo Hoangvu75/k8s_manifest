@@ -1,0 +1,8 @@
+ingress-nginx:
+  controller:
+    service:
+      type: LoadBalancer 
+      # type: NodePort # Use NodePort if no MetalLB yet, switch to LoadBalancer later
+      externalTrafficPolicy: Local
+    config:
+      use-forwarded-headers: "true"
