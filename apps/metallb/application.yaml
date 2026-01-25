@@ -1,0 +1,12 @@
+app:
+  name: metallb
+  namespace: metallb-system
+  source:
+    repoURL: https://metallb.github.io/metallb
+    chart: metallb
+    targetRevision: 0.14.3
+  values: |
+    speaker:
+      frr:
+        enabled: false
+
