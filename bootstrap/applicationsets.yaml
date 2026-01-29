@@ -1,30 +1,32 @@
 ---
-# ApplicationSet cho Git-based apps (Helm charts trong Git repo)
+# ApplicationSet for Git-based apps
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: git-based-apps
+  name: git-apps
   namespace: argocd
 spec:
   generators:
-  - git:
-      repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-      revision: master
-      files:
-      - path: "apps/git-based/*/app.yaml"
+  - list:
+      elements:
+      - name: n8n
+        namespace: n8n
+        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+        targetRevision: master
+        path: apps/git-based/n8n
   template:
     metadata:
-      name: '{{app.name}}'
+      name: '{{name}}'
       namespace: argocd
     spec:
       project: default
       source:
-        repoURL: '{{app.source.repoURL}}'
-        targetRevision: '{{app.source.targetRevision}}'
-        path: '{{app.source.path}}'
+        repoURL: '{{repoURL}}'
+        targetRevision: '{{targetRevision}}'
+        path: '{{path}}'
       destination:
         server: https://kubernetes.default.svc
-        namespace: '{{app.namespace}}'
+        namespace: '{{namespace}}'
       syncPolicy:
         automated:
           prune: true
@@ -32,35 +34,80 @@ spec:
         syncOptions:
           - CreateNamespace=true
 ---
-# ApplicationSet cho Helm-based apps (Public Helm repos)
+# ApplicationSet for Helm-based apps (ingress-nginx)
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: helm-based-apps
+  name: helm-app-ingress-nginx
   namespace: argocd
 spec:
   generators:
-  - git:
-      repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-      revision: master
-      files:
-      - path: "apps/helm-based/*/app.yaml"
+  - list:
+      elements:
+      - name: ingress-nginx
+        namespace: ingress-nginx
   template:
     metadata:
-      name: '{{app.name}}'
+      name: ingress-nginx
       namespace: argocd
     spec:
       project: default
       source:
-        repoURL: '{{app.source.repoURL}}'
-        targetRevision: '{{app.source.targetRevision}}'
-        chart: '{{app.source.chart}}'
+        repoURL: https://kubernetes.github.io/ingress-nginx
+        targetRevision: 4.11.3
+        chart: ingress-nginx
         helm:
-          releaseName: '{{app.name}}'
-          values: '{{app.values}}'
+          releaseName: ingress-nginx
+          values: |
+            controller:
+              service:
+                type: LoadBalancer
+                loadBalancerIP: 192.168.56.200
+              config:
+                use-forwarded-headers: "true"
+              metrics:
+                enabled: true
       destination:
         server: https://kubernetes.default.svc
-        namespace: '{{app.namespace}}'
+        namespace: ingress-nginx
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+---
+# ApplicationSet for Helm-based apps (metallb)
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: helm-app-metallb
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - name: metallb
+        namespace: metallb-system
+  template:
+    metadata:
+      name: metallb
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://metallb.github.io/metallb
+        targetRevision: 0.14.8
+        chart: metallb
+        helm:
+          releaseName: metallb
+          values: |
+            speaker:
+              frr:
+                enabled: false
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: metallb-system
       syncPolicy:
         automated:
           prune: true

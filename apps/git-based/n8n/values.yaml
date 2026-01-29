@@ -17,7 +17,7 @@ config:
     user: admin
     password: changeme
   # Webhook URL (cập nhật với domain của bạn)
-  webhookUrl: https://n8n.192.168.56.200.nip.io
+  webhookUrl: http://n8n.localhost
   # Encryption key (generate random string cho production)
   encryptionKey: "n8n-encryption-key-change-me"
 
@@ -35,7 +35,7 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
   hosts:
-    - host: n8n.192.168.56.200.nip.io
+    - host: n8n.localhost
       paths:
         - path: /
           pathType: Prefix
