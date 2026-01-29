@@ -4,5 +4,5 @@ app:
   source:
     repoURL: https://github.com/Hoangvu75/k8s_manifest.git
     targetRevision: master
-    path: apps/n8n
+    path: apps/git-based/n8n
   values: ""

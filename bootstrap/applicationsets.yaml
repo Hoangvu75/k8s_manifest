@@ -1,30 +1,66 @@
+---
+# ApplicationSet cho Git-based apps (Helm charts trong Git repo)
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: apps-from-git
+  name: git-based-apps
   namespace: argocd
 spec:
-  goTemplate: true
-  goTemplateOptions: ["missingkey=error"]
   generators:
   - git:
       repoURL: https://github.com/Hoangvu75/k8s_manifest.git
       revision: master
       files:
-      - path: "apps/*/application.yaml"
+      - path: "apps/git-based/*/app.yaml"
   template:
     metadata:
-      name: '{{.app.name}}'
+      name: '{{app.name}}'
       namespace: argocd
     spec:
       project: default
       source:
-        repoURL: '{{.app.source.repoURL}}'
-        targetRevision: '{{.app.source.targetRevision}}'
-        path: '{{.app.source.path}}'
+        repoURL: '{{app.source.repoURL}}'
+        targetRevision: '{{app.source.targetRevision}}'
+        path: '{{app.source.path}}'
       destination:
         server: https://kubernetes.default.svc
-        namespace: '{{.app.namespace}}'
+        namespace: '{{app.namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+---
+# ApplicationSet cho Helm-based apps (Public Helm repos)
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: helm-based-apps
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+      revision: master
+      files:
+      - path: "apps/helm-based/*/app.yaml"
+  template:
+    metadata:
+      name: '{{app.name}}'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: '{{app.source.repoURL}}'
+        targetRevision: '{{app.source.targetRevision}}'
+        chart: '{{app.source.chart}}'
+        helm:
+          releaseName: '{{app.name}}'
+          values: '{{app.values}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{app.namespace}}'
       syncPolicy:
         automated:
           prune: true
