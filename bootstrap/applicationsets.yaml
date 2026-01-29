@@ -1,31 +1,30 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: infrastructure-apps
+  name: apps-from-git
   namespace: argocd
 spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
   generators:
   - git:
       repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-      revision: HEAD
+      revision: master
       files:
-      - path: apps/*/application.yaml
+      - path: "apps/*/application.yaml"
   template:
     metadata:
-      name: '{{app.name}}'
+      name: '{{.app.name}}'
+      namespace: argocd
     spec:
       project: default
       source:
-        repoURL: '{{app.source.repoURL}}'
-        targetRevision: '{{app.source.targetRevision}}'
-        chart: '{{app.source.chart}}'
-        helm:
-          releaseName: '{{app.name}}'
-          values: |
-            {{app.values}}
+        repoURL: '{{.app.source.repoURL}}'
+        targetRevision: '{{.app.source.targetRevision}}'
+        path: '{{.app.source.path}}'
       destination:
         server: https://kubernetes.default.svc
-        namespace: '{{app.namespace}}'
+        namespace: '{{.app.namespace}}'
       syncPolicy:
         automated:
           prune: true

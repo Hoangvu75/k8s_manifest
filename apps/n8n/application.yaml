@@ -1,0 +1,8 @@
+app:
+  name: n8n
+  namespace: n8n
+  source:
+    repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+    targetRevision: master
+    path: apps/n8n
+  values: ""

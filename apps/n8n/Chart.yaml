@@ -1,0 +1,15 @@
+apiVersion: v2
+name: n8n
+description: n8n - Workflow Automation Tool
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - n8n
+  - workflow
+  - automation
+home: https://n8n.io
+sources:
+  - https://github.com/n8n-io/n8n
+maintainers:
+  - name: Your Name
