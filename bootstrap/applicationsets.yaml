@@ -48,6 +48,11 @@ spec:
         repoURL: https://github.com/Hoangvu75/k8s_manifest.git
         targetRevision: master
         path: apps/git-based/n8n
+      - name: jenkins
+        namespace: jenkins
+        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+        targetRevision: master
+        path: apps/git-based/jenkins
   template:
     metadata:
       name: '{{name}}'

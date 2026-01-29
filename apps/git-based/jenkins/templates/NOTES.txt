@@ -1,0 +1,21 @@
+1. Jenkins đã được deploy qua GitOps (ArgoCD).
+
+2. Truy cập Jenkins:
+{{- if .Values.ingress.enabled }}
+   URL: https://{{ (index .Values.ingress.hosts 0).host }}
+{{- else if contains "LoadBalancer" .Values.service.type }}
+   NOTE: Đợi vài phút để LoadBalancer IP sẵn sàng.
+   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "jenkins.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+   echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else if contains "NodePort" .Values.service.type }}
+   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "jenkins.fullname" . }})
+   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+   echo http://$NODE_IP:$NODE_PORT
+{{- else }}
+   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "jenkins.fullname" . }} 8080:{{ .Values.service.port }}
+   Truy cập: http://127.0.0.1:8080
+{{- end }}
+
+3. Lần đầu unlock Jenkins: lấy mật khẩu từ log pod
+   kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name=jenkins -c jenkins | grep -A1 "password"
+   Hoặc dùng config.adminPassword trong values (sau khi tạo admin user).

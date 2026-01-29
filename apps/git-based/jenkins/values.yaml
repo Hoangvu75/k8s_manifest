@@ -1,0 +1,65 @@
+## Jenkins configuration
+replicaCount: 1
+
+image:
+  registry: docker.io
+  repository: jenkins/jenkins
+  tag: lts
+  pullPolicy: IfNotPresent
+
+## Jenkins admin (password lưu trong Secret, đổi cho production)
+config:
+  adminPassword: changeme
+  # Java opts cho memory (optional)
+  javaOpts: "-Xmx1024m -Xms512m"
+
+## Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+  # Port cho Jenkins agent (optional)
+  agentPort: 50000
+
+## Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: jenkins.localhost
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - jenkins.localhost
+      secretName: jenkins-tls
+
+## Persistence for Jenkins home
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  mountPath: /var/jenkins_home
+
+## Resources
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+## Node selector
+nodeSelector: {}
+
+## Tolerations
+tolerations: []
+
+## Affinity
+affinity: {}
