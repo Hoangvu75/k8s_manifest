@@ -1,4 +1,38 @@
 ---
+# ApplicationSet: MetalLB config (raw YAML từ Git - chỉ cần apply applicationsets)
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: bootstrap-metallb-config
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      - name: metallb-config
+        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+        targetRevision: master
+        path: bootstrap/metallb-config
+  template:
+    metadata:
+      name: '{{name}}'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: '{{repoURL}}'
+        targetRevision: '{{targetRevision}}'
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: metallb-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+---
 # ApplicationSet for Git-based apps
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet

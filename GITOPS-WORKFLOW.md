@@ -27,17 +27,10 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 kubectl apply -f https://raw.githubusercontent.com/Hoangvu75/k8s_manifest/master/bootstrap/applicationsets.yaml
 ```
 
-### Bước 3: Apply MetalLB Config (1 lần duy nhất)
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/Hoangvu75/k8s_manifest/master/bootstrap/metallb-config.yaml
-```
-
-**Done!** ApplicationSets sẽ tự động:
-1. Scan Git repo
-2. Tìm tất cả apps trong `apps/git-based/*/app.yaml` và `apps/helm-based/*/app.yaml`
-3. Tự động tạo ArgoCD Applications
-4. Deploy tất cả lên cluster
+**Done!** Chỉ cần apply applicationsets. ArgoCD sẽ tự động:
+1. Scan Git repo và tạo các Applications (git-apps, helm-app-ingress-nginx, helm-app-metallb, **metallb-config**)
+2. Sync MetalLB config (IPAddressPool + L2Advertisement) từ `bootstrap/metallb-config/`
+3. Deploy tất cả apps lên cluster
 
 ## 📁 Cấu trúc Repo
 
@@ -45,7 +38,8 @@ kubectl apply -f https://raw.githubusercontent.com/Hoangvu75/k8s_manifest/master
 k8s_manifest/
 ├── bootstrap/
 │   ├── applicationsets.yaml      # ApplicationSets definitions
-│   └── metallb-config.yaml       # MetalLB IPAddressPool & L2Advertisement
+│   └── metallb-config/           # MetalLB IPAddressPool & L2Advertisement (ArgoCD sync từ Git)
+│       └── metallb-config.yaml
 │
 └── apps/
     ├── git-based/                # Apps với Helm charts trong Git
