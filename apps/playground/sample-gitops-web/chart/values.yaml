@@ -1,0 +1,72 @@
+# Values cho chart standalone-app (merge với values-secret.yaml)
+applicationName: sample-gitops-web
+
+deployment:
+  enabled: true
+  replicas: 1
+  image:
+    repository: harbor-core.harbor.svc.cluster.local/library/sample_gitops_web
+    tag: "9fbea76"
+    pullPolicy: IfNotPresent
+  ports:
+    - containerPort: 3000
+      name: http
+      protocol: TCP
+  env:
+    NODE_ENV:
+      value: production
+    PORT:
+      value: "3000"
+    HOSTNAME:
+      value: "0.0.0.0"
+  containerSecurityContext:
+    readOnlyRootFilesystem: false
+    runAsNonRoot: false
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 5
+    periodSeconds: 5
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+persistence:
+  enabled: false
+
+service:
+  enabled: true
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      name: http
+      protocol: TCP
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  hosts:
+    - host: sample-gitops-web.localhost
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - sample-gitops-web.localhost
+      secretName: sample-gitops-web-tls
