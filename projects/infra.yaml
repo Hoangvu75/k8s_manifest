@@ -57,11 +57,24 @@ spec:
         path: '{{ default ( trimSuffix "/config.yaml" .values.app_path ) .srcPath }}'
         kustomize:
           buildOptions: "--enable-helm"
+      # Tránh OutOfSync do tracking-id (namespace từ cluster-resources) và metadata do Argo/cluster thêm (Secret)
+      ignoreDifferences:
+      - group: ""
+        kind: Namespace
+        jqPathExpressions:
+        - .metadata.annotations["argocd.argoproj.io/tracking-id"]
+      - group: ""
+        kind: Secret
+        jqPathExpressions:
+        - .metadata.annotations["argocd.argoproj.io/tracking-id"]
+        - .metadata.managedFields
+        - .metadata.resourceVersion
+        - .metadata.uid
       syncPolicy:
-        # automated:
-        #   allowEmpty: false
-        #   prune: false
-        #   selfHeal: false
+        automated:
+          allowEmpty: true
+          prune: true
+          selfHeal: true
         retry:
           limit: 30
           backoff:
