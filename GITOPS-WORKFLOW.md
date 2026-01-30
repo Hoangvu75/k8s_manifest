@@ -5,6 +5,9 @@
 ```bash
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# Bật Helm cho Kustomize (bắt buộc vì app dùng helmCharts trong kustomization) — 1 lần sau khi cài Argo CD
+kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"kustomize.buildOptions":"--enable-helm"}}'
+kubectl rollout restart deployment argocd-repo-server -n argocd
 kubectl apply -f https://raw.githubusercontent.com/Hoangvu75/k8s_manifest/master/bootstrap.yaml
 ```
 
@@ -49,6 +52,21 @@ ApplicationSet dùng **directories** generator (`apps/playground/*`, `apps/infra
 3. **Hard refresh root**: Argo CD UI → **root** → **REFRESH** → **HARD REFRESH**.
 
 Sau vài phút sẽ thấy **playground-n8n**, **playground-jenkins**, **playground-ingress-nginx**, **playground-metallb**, **infra-metallb-system**.
+
+### App không load / ComparisonError "must specify --enable-helm"
+
+Kustomize có `helmCharts` cần Argo CD build với `--enable-helm`. Cấu hình toàn cục (1 lần):
+
+```bash
+kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"kustomize.buildOptions":"--enable-helm"}}'
+kubectl rollout restart deployment argocd-repo-server -n argocd
+```
+
+Sau đó Hard refresh từng app (hoặc REFRESH APP) trong UI.
+
+### infra-metallb-system Sync failed / Missing (IPAddressPool, L2Advertisement)
+
+CRD MetalLB chưa có trên cluster. Cần **playground-metallb** (Helm chart MetalLB) sync thành công trước để cài CRD. Thứ tự: fix "must specify --enable-helm" → sync playground-metallb → sync lại infra-metallb-system.
 
 ### Lệnh chung
 

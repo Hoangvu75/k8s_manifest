@@ -55,6 +55,8 @@ spec:
         repoURL: '{{ default "https://github.com/Hoangvu75/k8s_manifest.git" .repoURL }}'
         targetRevision: "master"
         path: '{{ default ( trimSuffix "/config.yaml" .values.app_path ) .srcPath }}'
+        kustomize:
+          buildOptions: "--enable-helm"
       syncPolicy:
         # automated:
         #   allowEmpty: false
