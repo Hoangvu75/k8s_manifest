@@ -95,9 +95,18 @@ Lưu. Hoặc dùng CLI (cài argocd):
 
 Sau khi thêm repo hoặc đổi sang public, **Hard refresh** lại app (playground-jenkins, playground-n8n).
 
-### infra-metallb-system Sync failed / Missing (IPAddressPool, L2Advertisement)
+### playground-metallb: "namespace metallb not found"
 
-CRD MetalLB chưa có trên cluster. Cần **playground-metallb** (Helm chart MetalLB) sync thành công trước để cài CRD. Thứ tự: fix "must specify --enable-helm" → sync playground-metallb → sync lại infra-metallb-system.
+Helm chart MetalLB tạo RBAC trong namespace `metallb`. Thêm namespace `metallb` vào `cluster-resources/default/namespace.yaml` (sync-wave "-1") rồi sync **cluster-resources-default** trước, sau đó sync **playground-metallb**.
+
+### infra-metallb-system: webhook "connection refused" / SyncFailed (IPAddressPool, L2Advertisement)
+
+- **CRD chưa có:** Cần **playground-metallb** sync thành công trước (cài CRD + controller + webhook).
+- **Webhook connection refused:** Nghĩa là service `metallb-webhook-service.metallb-system` chưa sẵn sàng. Đợi **playground-metallb** Synced & Healthy (pod webhook chạy), rồi **Sync** lại **infra-metallb-system**. Có thể cần sync vài lần hoặc đợi 1–2 phút sau khi playground-metallb xanh.
+
+### root luôn OutOfSync
+
+root sync thư mục `projects/`; trạng thái OutOfSync thường do con (playground-*, infra-*) chưa sync xong hoặc Git có thay đổi chưa apply. Sau khi sửa **cluster-resources** (namespace), **playground-metallb**, **infra-metallb-system** và các app khác sync ổn, **Sync** hoặc **Hard refresh** **root** — khi desired = live thì root sẽ Synced.
 
 ### Lệnh chung
 
