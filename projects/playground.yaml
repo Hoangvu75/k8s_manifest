@@ -57,6 +57,12 @@ spec:
         path: '{{ default ( trimSuffix "/config.yaml" .values.app_path ) .srcPath }}'
         kustomize:
           buildOptions: "--enable-helm"
+      # CRD conversion webhook caBundle do cluster tạo khi cài Helm, không ghi đè từ Git → tránh OutOfSync (vd. MetalLB bgppeers.metallb.io)
+      ignoreDifferences:
+      - group: apiextensions.k8s.io
+        kind: CustomResourceDefinition
+        jqPathExpressions:
+        - .spec.conversion.webhook.clientConfig.caBundle
       syncPolicy:
         # automated:
         #   allowEmpty: false
