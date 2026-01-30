@@ -1,4 +1,12 @@
 # Values cho Helm chart metallb
+# Workaround controller crashloop (probe 7472: connection refused — lỗi đã biết 0.14.x với kube-rbac-proxy).
+# Tắt probe để pod không bị kill; webhook vẫn chạy, infra-metallb-system sync được.
+controller:
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+
 speaker:
   frr:
     enabled: false
