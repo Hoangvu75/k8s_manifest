@@ -1,0 +1,32 @@
+# Service Account cho Jenkins Kubernetes plugin — dùng khi chạy agent (Kaniko) trong cluster.
+# Token: kubectl create token jenkins-sa -n jenkins --duration=8760h
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins-sa
+  namespace: jenkins
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins-agent-role
+  namespace: jenkins
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log", "pods/exec", "pods/attach"]
+  verbs: ["create", "delete", "get", "list", "watch", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-agent-rolebinding
+  namespace: jenkins
+subjects:
+- kind: ServiceAccount
+  name: jenkins-sa
+  namespace: jenkins
+roleRef:
+  kind: Role
+  name: jenkins-agent-role
+  apiGroup: rbac.authorization.k8s.io

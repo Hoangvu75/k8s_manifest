@@ -1,6 +1,9 @@
-# Chart từ Docker Hub OCI: hoangvu753/standalone-app
+# Chart từ Docker Hub OCI: hoangvu753/standalone-app + ServiceAccount cho K8s plugin
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
+resources:
+  - jenkins-sa.yaml
 
 helmCharts:
 - name: standalone-app
