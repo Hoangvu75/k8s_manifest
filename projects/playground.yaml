@@ -36,7 +36,7 @@ spec:
         revision: master
         requeueAfterSeconds: 20
         files:
-          - path: "apps/playground/**/config.yaml"
+          - path: "apps/playground/*/config.yaml"
         values:
           project: playground
           app_path: "{{.path.path}}"

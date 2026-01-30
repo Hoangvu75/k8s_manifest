@@ -36,7 +36,7 @@ spec:
         revision: master
         requeueAfterSeconds: 20
         files:
-          - path: "apps/infra/**/config.yaml"
+          - path: "apps/infra/*/config.yaml"
         values:
           project: infra
           app_path: "{{.path.path}}"
