@@ -1,0 +1,8 @@
+# Kubernetes Dashboard — Helm chart chính thức
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kubernetes-dashboard
+
+resources:
+  - chart

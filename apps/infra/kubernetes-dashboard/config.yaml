@@ -1,0 +1,3 @@
+# Metadata cho Argo CD (Git file generator discover apps/infra/**/config.yaml)
+# appName: kubernetes-dashboard
+# destNamespace: kubernetes-dashboard
