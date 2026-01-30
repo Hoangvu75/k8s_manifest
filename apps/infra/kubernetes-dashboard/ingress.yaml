@@ -1,4 +1,4 @@
-# Ingress cho Kubernetes Dashboard — truy cập qua kubedashboard.local (giống jenkins.localhost / n8n.localhost)
+# Ingress cho Kubernetes Dashboard — dùng kubedashboard.localhost (như n8n/jenkins) để không cần sửa file hosts
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -13,7 +13,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: kubedashboard.local
+    - host: kubedashboard.localhost
       http:
         paths:
           - path: /
@@ -25,5 +25,5 @@ spec:
                   number: 443
   tls:
     - hosts:
-        - kubedashboard.local
+        - kubedashboard.localhost
       secretName: kubedashboard-tls
