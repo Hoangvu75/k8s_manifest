@@ -8,16 +8,16 @@ metadata:
   namespace: argocd
 spec:
   clusterResourceWhitelist:
-    - group: '*'
-      kind: '*'
+  - group: '*'
+    kind: '*'
   destinations:
-    - namespace: '*'
-      server: '*'
+  - namespace: '*'
+    server: '*'
   namespaceResourceWhitelist:
-    - group: '*'
-      kind: '*'
+  - group: '*'
+    kind: '*'
   sourceRepos:
-    - '*'
+  - '*'
 
 ---
 apiVersion: argoproj.io/v1alpha1
@@ -33,35 +33,50 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-        revision: master
+        revision: "master"
         requeueAfterSeconds: 20
         files:
-          - path: "apps/infra/*/config.yaml"
+          - path: "apps/infra/**/config.yaml"
         values:
-          project: infra
+          cluster: "{{index .path.segments 1}}"
+          project: "{{index .path.segments 1}}"
           app_path: "{{.path.path}}"
+          name: "{{.path.basename}}"
   template:
     metadata:
-      name: '{{ .values.project }}-{{ base (dir .values.app_path) }}'
+      name: '{{ default ( printf "%s-%s" .values.project ( index .path.segments 2 ) ) .appName }}'
       namespace: argocd
     spec:
       destination:
-        namespace: '{{ base (dir .values.app_path) }}'
+        namespace: '{{ default ( index .path.segments 2 ) .destNamespace }}'
         server: https://kubernetes.default.svc
       project: '{{.values.project}}'
       source:
-        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-        targetRevision: master
-        path: '{{ dir .values.app_path }}'
+        repoURL: '{{ default "https://github.com/Hoangvu75/k8s_manifest.git" .repoURL }}'
+        targetRevision: "master"
+        path: '{{ default ( trimSuffix "/config.yaml" .values.app_path ) .srcPath }}'
       syncPolicy:
+        # automated:
+        #   allowEmpty: false
+        #   prune: false
+        #   selfHeal: false
         retry:
           limit: 30
           backoff:
             duration: 20s
             factor: 1
             maxDuration: 20s
+        # syncOptions:
+        # - CreateNamespace=true
   templatePatch: |
     metadata:
       labels:
-        app.kubernetes.io/name: '{{ base (dir .values.app_path) }}'
+        app.kubernetes.io/name: '{{ index .path.segments 2 }}'
+        {{- range $key, $value := .labels }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+      annotations:
+        {{- range $key, $value := .annotations }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
   syncPolicy: {}
