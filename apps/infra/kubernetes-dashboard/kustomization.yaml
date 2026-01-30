@@ -1,8 +1,8 @@
-# Kubernetes Dashboard — Helm chart chính thức
+# Kubernetes Dashboard — manifest chính thức (Helm repo đã 404, dùng recommended.yaml)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: kubernetes-dashboard
 
 resources:
-  - chart
+  - https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml

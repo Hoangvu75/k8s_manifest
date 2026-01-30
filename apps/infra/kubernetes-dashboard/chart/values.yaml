@@ -1,5 +1,0 @@
-# Override tối thiểu; chart mặc định dùng Bearer Token auth.
-# Có thể bật NodePort / Ingress nếu cần truy cập từ ngoài.
-# service:
-#   type: NodePort
-#   nodePort: 30443
