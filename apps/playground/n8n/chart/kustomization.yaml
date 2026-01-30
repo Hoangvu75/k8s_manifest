@@ -4,7 +4,7 @@ kind: Kustomization
 
 helmCharts:
 - name: standalone-app
-  repo: oci://registry-1.docker.io/hoangvu753/standalone-app
+  repo: oci://registry-1.docker.io/hoangvu753
   releaseName: n8n
   namespace: n8n
   version: 1.1.0

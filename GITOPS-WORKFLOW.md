@@ -78,6 +78,23 @@ kubectl rollout restart deployment argocd-repo-server -n argocd
 
 Chart **không nằm trong repo k8s_manifest** (nằm repo khác). Bạn đóng gói chart đó, **push lên OCI registry**, rồi trong `chart/kustomization.yaml` khai báo `repo: oci://YOUR_OCI_REGISTRY/charts/standalone-app` (thay bằng registry thật). Argo CD / Kustomize sẽ `helm pull` từ URL đó khi build — dùng được bình thường. Format: `helmCharts` với `name`, `repo`, `version`, `valuesFile`, `additionalValuesFiles` (không dùng helmGlobals/chartHome). Hướng dẫn đóng gói và push: `k8s_setup/helm_chart_registry.md`.
 
+### 401 unauthorized khi pull chart OCI (Docker Hub)
+
+Repo-server Argo CD chạy trong cluster, không có credential Docker Hub của bạn → `helm pull` bị 401. Chọn một trong hai cách:
+
+**Cách 1 — Cho repo Docker Hub thành Public (đơn giản nhất):**  
+Vào https://hub.docker.com/repository/docker/hoangvu753/standalone-app/general → **Settings** → **Make public**. Sau đó Argo CD pull không cần đăng nhập.
+
+**Cách 2 — Thêm credential OCI trong Argo CD:**  
+Trong Argo CD UI: **Settings** → **Repositories** → **Connect Repo** → chọn **VIA HELM** (hoặc **Connect repo using URL**). Điền:
+- **Repository URL:** `oci://registry-1.docker.io/hoangvu753/standalone-app`
+- **Username:** Docker Hub username (vd. `hoangvu753`)
+- **Password:** Docker Hub Personal Access Token  
+Lưu. Hoặc dùng CLI (cài argocd):  
+`argocd repo add oci://registry-1.docker.io/hoangvu753/standalone-app --type helm --username hoangvu753 --password YOUR_TOKEN --enable-oci`
+
+Sau khi thêm repo hoặc đổi sang public, **Hard refresh** lại app (playground-jenkins, playground-n8n).
+
 ### infra-metallb-system Sync failed / Missing (IPAddressPool, L2Advertisement)
 
 CRD MetalLB chưa có trên cluster. Cần **playground-metallb** (Helm chart MetalLB) sync thành công trước để cài CRD. Thứ tự: fix "must specify --enable-helm" → sync playground-metallb → sync lại infra-metallb-system.
