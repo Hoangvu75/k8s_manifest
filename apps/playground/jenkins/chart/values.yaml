@@ -1,0 +1,101 @@
+# Values cho chart standalone-app (merge với values-secret.yaml)
+applicationName: jenkins
+
+deployment:
+  enabled: true
+  replicas: 1
+  image:
+    repository: docker.io/jenkins/jenkins
+    tag: lts
+    pullPolicy: IfNotPresent
+  ports:
+    - containerPort: 8080
+      name: http
+      protocol: TCP
+    - containerPort: 50000
+      name: agent
+      protocol: TCP
+  env:
+    JAVA_OPTS:
+      value: "-Xmx1024m -Xms512m"
+    JENKINS_OPTS:
+      value: "--prefix="
+    JENKINS_ADMIN_PASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: jenkins-app-env
+          key: jenkins-admin-password
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  containerSecurityContext:
+    readOnlyRootFilesystem: false
+    runAsNonRoot: false
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /login
+      port: 8080
+    initialDelaySeconds: 90
+    periodSeconds: 10
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /login
+      port: 8080
+    initialDelaySeconds: 60
+    periodSeconds: 10
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+persistence:
+  enabled: true
+  mountPVC: true
+  mountPath: /var/jenkins_home
+  storageSize: "10Gi"
+  accessMode: ReadWriteOnce
+  storageClass: null
+
+service:
+  enabled: true
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+      protocol: TCP
+    - port: 50000
+      targetPort: 50000
+      name: agent
+      protocol: TCP
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "300"
+  hosts:
+    - host: jenkins.localhost
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - jenkins.localhost
+      secretName: jenkins-tls
+
+secret:
+  enabled: true
+  files:
+    app-env:
+      stringData: {}  # override trong values-secret.yaml

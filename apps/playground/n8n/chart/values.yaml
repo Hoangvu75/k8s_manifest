@@ -1,0 +1,101 @@
+# Values cho chart standalone-app (merge với values-secret.yaml)
+applicationName: n8n
+
+deployment:
+  enabled: true
+  replicas: 1
+  image:
+    repository: docker.io/n8nio/n8n
+    tag: latest
+    pullPolicy: IfNotPresent
+  ports:
+    - containerPort: 5678
+      name: http
+      protocol: TCP
+  env:
+    N8N_PORT:
+      value: "5678"
+    GENERIC_TIMEZONE:
+      value: "Asia/Ho_Chi_Minh"
+    WEBHOOK_URL:
+      value: "https://n8n.localhost"
+    N8N_BASIC_AUTH_ACTIVE:
+      value: "true"
+    N8N_BASIC_AUTH_USER:
+      value: "admin"
+    N8N_BASIC_AUTH_PASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: n8n-app-env
+          key: basicAuthPassword
+    N8N_ENCRYPTION_KEY:
+      valueFrom:
+        secretKeyRef:
+          name: n8n-app-env
+          key: encryptionKey
+  containerSecurityContext:
+    readOnlyRootFilesystem: false
+    runAsNonRoot: false
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: 5678
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: 5678
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+persistence:
+  enabled: true
+  mountPVC: true
+  mountPath: /home/node/.n8n
+  storageSize: "5Gi"
+  accessMode: ReadWriteOnce
+  storageClass: null
+
+service:
+  enabled: true
+  type: ClusterIP
+  ports:
+    - port: 5678
+      targetPort: 5678
+      name: http
+      protocol: TCP
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: n8n.localhost
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - n8n.localhost
+      secretName: n8n-tls
+
+secret:
+  enabled: true
+  files:
+    app-env:
+      stringData: {}  # override trong values-secret.yaml

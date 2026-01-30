@@ -1,8 +1,0 @@
-app:
-  name: jenkins
-  namespace: jenkins
-  source:
-    repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-    targetRevision: master
-    path: apps/git-based/jenkins
-  values: ""

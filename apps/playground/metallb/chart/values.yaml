@@ -1,0 +1,4 @@
+# Values cho Helm chart metallb
+speaker:
+  frr:
+    enabled: false

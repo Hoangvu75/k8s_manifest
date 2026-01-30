@@ -1,0 +1,5 @@
+# Metadata cho Argo CD (optional)
+# appName: jenkins
+# destNamespace: jenkins
+# repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+# srcPath: apps/playground/jenkins

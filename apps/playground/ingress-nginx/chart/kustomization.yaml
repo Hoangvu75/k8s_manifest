@@ -1,0 +1,11 @@
+# Helm chart từ repo công khai (cùng pattern: helmCharts + valuesFile)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+  - name: ingress-nginx
+    repo: https://kubernetes.github.io/ingress-nginx
+    version: "4.11.3"
+    releaseName: ingress-nginx
+    namespace: ingress-nginx
+    valuesFile: values.yaml

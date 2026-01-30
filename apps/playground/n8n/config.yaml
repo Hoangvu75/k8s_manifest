@@ -1,0 +1,5 @@
+# Metadata cho Argo CD (optional - dùng khi dùng Git file generator)
+# appName: n8n
+# destNamespace: n8n
+# repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+# srcPath: apps/playground/n8n

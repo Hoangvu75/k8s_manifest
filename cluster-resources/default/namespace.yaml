@@ -1,0 +1,31 @@
+# cluster-resources/<cluster>/namespace.yaml — quy hoạch tạo namespace (giống công ty). Sync-wave -1 để tạo trước app.
+# Project: Playground
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: n8n
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jenkins
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+# Project: Infra (metallb-system dùng chung playground + infra)

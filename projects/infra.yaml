@@ -1,0 +1,67 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: PruneLast=true
+    argocd.argoproj.io/sync-wave: "-2"
+  name: infra
+  namespace: argocd
+spec:
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  destinations:
+    - namespace: '*'
+      server: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  sourceRepos:
+    - '*'
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  name: infra
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=default"]
+  generators:
+    - git:
+        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+        revision: master
+        requeueAfterSeconds: 20
+        files:
+          - path: "apps/infra/**/config.yaml"
+        values:
+          project: infra
+          app_path: "{{.path.path}}"
+  template:
+    metadata:
+      name: '{{ .values.project }}-{{ base (dir .values.app_path) }}'
+      namespace: argocd
+    spec:
+      destination:
+        namespace: '{{ base (dir .values.app_path) }}'
+        server: https://kubernetes.default.svc
+      project: '{{.values.project}}'
+      source:
+        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+        targetRevision: master
+        path: '{{ dir .values.app_path }}'
+      syncPolicy:
+        retry:
+          limit: 30
+          backoff:
+            duration: 20s
+            factor: 1
+            maxDuration: 20s
+  templatePatch: |
+    metadata:
+      labels:
+        app.kubernetes.io/name: '{{ base (dir .values.app_path) }}'
+  syncPolicy: {}
