@@ -1,0 +1,8 @@
+# Harbor — Helm chart chính thức (goharbor)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: harbor
+
+resources:
+  - chart

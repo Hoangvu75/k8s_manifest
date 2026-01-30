@@ -1,0 +1,27 @@
+# Harbor — playground: ingress harbor.localhost (giống jenkins/n8n)
+expose:
+  type: ingress
+  tls:
+    enabled: true
+    certSource: auto
+  ingress:
+    hosts:
+      core: harbor.localhost
+    controller: default
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+externalURL: https://harbor.localhost
+
+# Đổi mật khẩu admin sau lần đăng nhập đầu
+harborAdminPassword: "Harbor12345"
+
+# Persistence mặc định (PVC); có thể chỉnh storageClass nếu cần
+persistence:
+  enabled: true
+
+# Trivy scanner (CVE) — tắt nếu cluster không cần hoặc tiết kiệm tài nguyên
+trivy:
+  enabled: false
