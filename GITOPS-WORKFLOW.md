@@ -27,6 +27,7 @@ apps/playground/<app>/, apps/infra/<app>/
 ## Thêm app playground
 
 - Tạo `apps/playground/<app>/config.yaml`, `kustomization.yaml`, `chart/kustomization.yaml` (+ values). ApplicationSet playground tự discover.
+- **Template công ty:** App dùng chart chung (standalone-app) qua OCI: `chart/kustomization.yaml` chỉ có `helmCharts` (name, repo oci://YOUR_OCI_REGISTRY/..., version, valuesFile, additionalValuesFiles); dùng OCI registry của bạn, không dùng registry/image công ty; không thêm chart hay thư mục chart khác trong app.
 
 ## Thêm app Helm từ repo công khai
 
@@ -62,7 +63,20 @@ kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"kustomize
 kubectl rollout restart deployment argocd-repo-server -n argocd
 ```
 
-Sau đó Hard refresh từng app (hoặc REFRESH APP) trong UI.
+**Bắt buộc:** Đợi repo-server Ready (`kubectl get pods -n argocd -l app.kubernetes.io/name=argocd-repo-server`), rồi **refresh** để Argo CD build lại manifest với `--enable-helm`:
+
+- **Cách 1 (UI):** Trang Applications → nút **REFRESH APPS** (refresh tất cả), hoặc mở từng app → **REFRESH** → **HARD REFRESH**.
+- **Cách 2 (CLI):** Refresh từng app bằng argocd CLI hoặc xóa cache bằng cách set annotation:
+  ```bash
+  kubectl patch app root -n argocd -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}' --type merge
+  kubectl patch app playground-jenkins -n argocd -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}' --type merge
+  # Lặp cho playground-n8n, playground-metallb, playground-ingress-nginx, infra-metallb-system
+  ```
+  Hoặc dùng vòng lặp: `for a in root playground-jenkins playground-n8n playground-metallb playground-ingress-nginx infra-metallb-system; do kubectl patch app $a -n argocd -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}' --type merge; done`
+
+### Chart chung (standalone-app) — định nghĩa repo trong helmCharts
+
+Chart **không nằm trong repo k8s_manifest** (nằm repo khác). Bạn đóng gói chart đó, **push lên OCI registry**, rồi trong `chart/kustomization.yaml` khai báo `repo: oci://YOUR_OCI_REGISTRY/charts/standalone-app` (thay bằng registry thật). Argo CD / Kustomize sẽ `helm pull` từ URL đó khi build — dùng được bình thường. Format: `helmCharts` với `name`, `repo`, `version`, `valuesFile`, `additionalValuesFiles` (không dùng helmGlobals/chartHome). Hướng dẫn đóng gói và push: `k8s_setup/helm_chart_registry.md`.
 
 ### infra-metallb-system Sync failed / Missing (IPAddressPool, L2Advertisement)
 

@@ -1,13 +1,13 @@
-# Giống công ty: 1 chart chung (charts/standalone-app), app chỉ có values
+# Chart từ Docker Hub OCI: hoangvu753/standalone-app
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 helmCharts:
-  - name: standalone-app
-    repo: file://../../../../charts/standalone-app
-    releaseName: jenkins
-    namespace: jenkins
-    version: "1.1.0"
-    valuesFile: values.yaml
-    additionalValuesFiles:
-      - values-secret.yaml
+- name: standalone-app
+  repo: oci://registry-1.docker.io/hoangvu753/standalone-app
+  releaseName: jenkins
+  namespace: jenkins
+  version: 1.1.0
+  valuesFile: values.yaml
+  additionalValuesFiles:
+    - values-secret.yaml
