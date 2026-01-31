@@ -9,12 +9,20 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"kustomize.buildOptions":"--enable-helm"}}'
 kubectl rollout restart deployment argocd-repo-server -n argocd
 ```
-### 2. Expose UI (NodePort)
-Để truy cập từ ngoài vào (qua IP của Node), ta chuyển service server sang dạng NodePort:
+### 2. Expose UI
 
+**Ingress (GitOps):** App `playground-argocd` deploy Ingress tự động. Service giữ **ClusterIP** (mặc định). Truy cập **https://argocd.localhost** — không cần port-forward. Nếu trước đó đã patch sang NodePort, revert: `kubectl patch svc argocd-server -n argocd -p '{"spec":{"type":"ClusterIP"}}'`
+
+**port-forward (thủ công):** Dùng ClusterIP, không cần đổi service:
 ```bash
-kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort"}}'
 kubectl port-forward -n argocd svc/argocd-server 8080:443
+```
+Rồi mở https://localhost:8080
+
+**NodePort:** Chỉ khi cần truy cập trực tiếp qua NodeIP:Port (không dùng Ingress):
+```bash
+kubectl patch svc argocd-server -n argocd -p '{"spec":{"type":"NodePort"}}'
+# Lấy port: kubectl get svc argocd-server -n argocd
 ```
 
 ### 3. Lấy Password admin ban đầu
