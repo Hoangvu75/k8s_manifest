@@ -53,17 +53,17 @@ stringData:
 ### 2. Seal secret
 
 ```bash
-kubeseal \
-  --controller-name=sealed-secrets \
-  --controller-namespace=sealed-secrets \
-  
-example
+kubeseal --controller-name=sealed-secrets --controller-namespace=sealed-secrets --format yaml < secret.yaml > sealed-secret.yaml
+```
 
+**Ví dụ thực tế:**
 ```bash
 kubeseal --controller-name=sealed-secrets --controller-namespace=sealed-secrets --format yaml < apps/infra/cloudflared/chart/secret.yaml > apps/infra/cloudflared/chart/sealed-secret.yaml
 ```
 
 ### 3. Kết quả: SealedSecret (an toàn để commit)
+
+```yaml
 apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
 metadata:
@@ -85,35 +85,37 @@ resources:
 
 ---
 
-## Ví dụ: Cloudflared
+## Backup & Restore Private Key
+
+> ⚠️ **QUAN TRỌNG**: Nếu mất private key, tất cả SealedSecrets sẽ không decrypt được!
+
+### Backup (làm ngay sau khi cài controller!)
 
 ```bash
-cd k8s_manifest
-
-# Seal secret
-kubeseal \
-  --controller-name=sealed-secrets \
-  --controller-namespace=sealed-secrets \
-  --format yaml \
-  < apps/infra/cloudflared/chart/secret.yaml \
-  > apps/infra/cloudflared/chart/sealed-secret.yaml
-
-# Commit và push
-git add apps/infra/cloudflared/chart/sealed-secret.yaml
-git commit -m "feat: add sealed secret for cloudflared"
-git push
+kubectl get secret -n sealed-secrets -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > sealed-secrets-key-backup.yaml
 ```
+
+### Restore (apply TRƯỚC khi cài lại controller)
+
+```bash
+kubectl apply -f sealed-secrets-key-backup.yaml
+```
+
+### Khi nào cần restore?
+
+| Hành động | Private key | Cần restore? |
+|-----------|-------------|--------------|
+| Restart Pod | Giữ nguyên | ❌ Không |
+| Upgrade Helm chart | Giữ nguyên | ❌ Không |
+| Delete + reinstall (giữ Secret) | Giữ nguyên | ❌ Không |
+| **Delete namespace + reinstall** | **Mất** | ✅ **Cần restore** |
+| **Rebuild cluster** | **Mất** | ✅ **Cần restore** |
 
 ---
 
 ## Lưu ý quan trọng
 
 > ⚠️ **Namespace-scoped**: SealedSecret mặc định chỉ decrypt được trong namespace đã seal. Nếu đổi namespace, phải seal lại.
-
-> ⚠️ **Backup private key**: Nếu mất controller, mất luôn khả năng decrypt. Backup key:
-> ```bash
-> kubectl get secret -n sealed-secrets -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > sealed-secrets-key-backup.yaml
-> ```
 
 > ⚠️ **Xóa file plaintext**: Sau khi seal xong, xóa hoặc gitignore file `secret.yaml` gốc.
 
@@ -130,8 +132,12 @@ kubectl get pods -n sealed-secrets
 kubectl cluster-info
 ```
 
+### Xem public key
+```bash
+kubeseal --controller-name=sealed-secrets --controller-namespace=sealed-secrets --fetch-cert
+```
+
 ### Seal lại khi đổi namespace
 ```bash
-# SealedSecret namespace-scoped, phải seal lại nếu đổi namespace
 kubeseal --controller-name=sealed-secrets --controller-namespace=sealed-secrets --format yaml < secret.yaml > sealed-secret.yaml
 ```
