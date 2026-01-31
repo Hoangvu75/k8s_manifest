@@ -18,7 +18,7 @@ deployment:
     GENERIC_TIMEZONE:
       value: "Asia/Ho_Chi_Minh"
     WEBHOOK_URL:
-      value: "https://n8n.localhost"
+      value: "https://n8n.hoangvu75.space"
     N8N_BASIC_AUTH_ACTIVE:
       value: "true"
     N8N_BASIC_AUTH_USER:
