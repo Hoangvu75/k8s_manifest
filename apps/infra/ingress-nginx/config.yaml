@@ -1,4 +1,4 @@
-# Metadata cho Argo CD (Git file generator discover apps/playground/**/config.yaml)
+# Metadata cho Argo CD (Git file generator discover apps/infra/**/config.yaml)
 # appName: ingress-nginx
 # destNamespace: ingress-nginx
 # Chart từ Helm repo: kubernetes.github.io/ingress-nginx
