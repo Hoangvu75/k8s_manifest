@@ -5,7 +5,7 @@ deployment:
   enabled: true
   replicas: 1
   image:
-    repository: harbor-core.harbor.svc.cluster.local/library/sample_gitops_web
+    repository: harbor.hoangvu75.space/library/sample_gitops_web
     tag: "9fbea76"
     pullPolicy: IfNotPresent
   ports:
