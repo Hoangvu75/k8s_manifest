@@ -20,7 +20,7 @@ kubectl -n kubernetes-dashboard create clusterrolebinding dashboard-admin \
   --serviceaccount=kubernetes-dashboard:dashboard-admin
 
 # Lấy token (K8s 1.24+ không tự tạo Secret; dùng lệnh sau — copy output, dán vào ô "Enter token")
-kubectl -n kubernetes-dashboard create token dashboard-admin --duration=8760h
+kubectl -n kubernetes-dashboard create token dashboard-admin --duration=24h
 ```
 
 Chạy xong lệnh cuối, copy chuỗi token in ra → dán vào ô **Enter token** trên trang https://kubedashboard.localhost/#/login → bấm **Sign in**.
