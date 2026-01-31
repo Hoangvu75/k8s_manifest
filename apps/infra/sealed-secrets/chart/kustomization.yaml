@@ -9,3 +9,5 @@ helmCharts:
   namespace: sealed-secrets
   version: 2.16.2
   valuesFile: values.yaml
+  additionalValuesFiles:
+    - crd.yaml

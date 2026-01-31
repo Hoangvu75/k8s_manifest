@@ -1,11 +1,6 @@
 # Values cho Sealed Secrets controller
 fullnameOverride: sealed-secrets
 
-# Enable CRD creation
-crds:
-  create: true
-  keep: true
-
 # Số lượng replicas
 replicas: 1
 
