@@ -13,7 +13,7 @@ expose:
       nginx.ingress.kubernetes.io/proxy-body-size: "0"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
 
-externalURL: https://harbor.localhost
+externalURL: https://harbor.hoangvu75.space
 
 # Đổi mật khẩu admin sau lần đăng nhập đầu
 harborAdminPassword: "Harbor12345"
