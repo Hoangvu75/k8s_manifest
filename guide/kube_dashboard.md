@@ -1,26 +1,25 @@
 # Kubernetes Dashboard
+## Access
 
-## Truy cập
-
-Mở trình duyệt: **https://kubedashboard.localhost** (không cần sửa file hosts).
+Open browser: **https://kubedashboard.localhost** (no hosts file edit needed).
 
 ---
 
-## Đăng nhập bằng Token
+## Log in with Token
 
-Trên màn hình đăng nhập chọn **Token**, rồi dán token lấy từ lệnh dưới.
+On the login screen, select **Token**, then paste the token obtained from the command below.
 
-**Tạo ServiceAccount và lấy Bearer Token:**
+**Create ServiceAccount and Get Bearer Token:**
 
 ```bash
-# Tạo tài khoản admin cho Dashboard
+# Create admin account for Dashboard
 kubectl -n kubernetes-dashboard create serviceaccount dashboard-admin
 kubectl -n kubernetes-dashboard create clusterrolebinding dashboard-admin \
   --clusterrole=cluster-admin \
   --serviceaccount=kubernetes-dashboard:dashboard-admin
 
-# Lấy token (K8s 1.24+ không tự tạo Secret; dùng lệnh sau — copy output, dán vào ô "Enter token")
+# Get token (K8s 1.24+ does not auto-create Secret; use the following command — copy output, paste into "Enter token" box)
 kubectl -n kubernetes-dashboard create token dashboard-admin --duration=24h
 ```
 
-Chạy xong lệnh cuối, copy chuỗi token in ra → dán vào ô **Enter token** trên trang https://kubedashboard.localhost/#/login → bấm **Sign in**.
+After running the last command, copy the printed token string → paste into the **Enter token** box at https://kubedashboard.localhost/#/login → click **Sign in**.

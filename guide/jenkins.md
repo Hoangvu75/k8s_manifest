@@ -1,40 +1,40 @@
 # Jenkins
 
-## Truy cập
+## Access
 
-Mở trình duyệt: **https://jenkins.localhost**
+Open browser: **https://jenkins.localhost**
 
 ---
 
-## Lấy mật khẩu Unlock Jenkins (lần đầu)
+## Get Unlock Password (First Time)
 
-Một lệnh duy nhất (trên Windows dùng Git Bash cần `MSYS_NO_PATHCONV=1` để đường dẫn `/var/...` không bị đổi thành path Windows):
+One-liner (on Windows using Git Bash, `MSYS_NO_PATHCONV=1` is needed so `/var/...` paths aren't converted to Windows paths):
 
 ```bash
 MSYS_NO_PATHCONV=1 kubectl exec -n jenkins $(kubectl get pods -n jenkins -o jsonpath='{.items[0].metadata.name}') -- cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
-Copy chuỗi mật khẩu in ra → dán vào ô **Administrator password** trên trang Unlock Jenkins → bấm **Continue**.
+Copy the printed password string → paste into the **Administrator password** box on the Jenkins Unlock page → click **Continue**.
 
 ---
 
-## Cài và cấu hình Kubernetes plugin (để dùng Kaniko)
+## Install and Configure Kubernetes Plugin (for Kaniko)
 
-Pipeline Kaniko cần Jenkins kết nối được tới Kubernetes cluster để tạo pod build. Làm hai bước sau trên Jenkins web.
+Kaniko pipelines need Jenkins to connect to the Kubernetes cluster to create build pods. Perform the following two steps on the Jenkins web UI.
 
-### 1. Cài plugin Kubernetes
+### 1. Install Kubernetes Plugin
 
-1. Đăng nhập Jenkins → **Manage Jenkins** → **Manage Plugins**.
-2. Tab **Available** → ô tìm kiếm gõ **Kubernetes**.
-3. Tick chọn **Kubernetes** (Kubernetes plugin).
-4. Bấm **Install without restart** (hoặc **Download now and install after restart**).
-5. Nếu bắt buột restart thì **Manage Jenkins** → **Restart**.
+1. Login to Jenkins → **Manage Jenkins** → **Manage Plugins**.
+2. **Available** tab → search for **Kubernetes**.
+3. Select **Kubernetes** (Kubernetes plugin).
+4. Click **Install without restart** (or **Download now and install after restart**).
+5. If restart is required: **Manage Jenkins** → **Restart**.
 
-### 2. Tạo credential Kubernetes (Service Account token)
+### 2. Create Kubernetes Credential (Service Account Token)
 
-Jenkins cần quyền tạo/xóa pod trong namespace để chạy agent (Kaniko). ServiceAccount và RBAC đã nằm trong repo tại **`apps/playground/jenkins/chart/jenkins-sa.yaml`** — Argo CD sẽ tạo khi sync app `playground-jenkins`. Nếu chưa sync, đợi Argo CD sync xong hoặc apply thủ công: `kubectl apply -f apps/playground/jenkins/chart/jenkins-sa.yaml`.
+Jenkins needs permission to create/delete pods in the namespace to run agents (Kaniko). The ServiceAccount and RBAC are in the repo at **`apps/playground/jenkins/chart/jenkins-sa.yaml`** — Argo CD will create these when syncing the `playground-jenkins` app. If not yet synced, wait for Argo CD or apply manually: `kubectl apply -f apps/playground/jenkins/chart/jenkins-sa.yaml`.
 
-**Bước 1 – Đảm bảo ServiceAccount đã có trên cluster** (đã có nếu Argo CD đã sync app Jenkins). Nếu cần apply thủ công, dùng file trong repo:
+**Step 1 – Ensure ServiceAccount exists** (exists if Argo CD synced the Jenkins app). If creating manually, use the file in the repo:
 
 ```yaml
 apiVersion: v1
@@ -68,90 +68,90 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
-**Bước 2 – Lấy token (Kubernetes 1.24+):**
+**Step 2 – Get Token (Kubernetes 1.24+):**
 
 ```bash
 kubectl create token jenkins-sa -n jenkins --duration=8760h
 ```
 
-Copy toàn bộ chuỗi token in ra.
+Copy the complete token string printed.
 
-**Bước 3 – Thêm credential trong Jenkins:**
+**Step 3 – Add Credential in Jenkins:**
 
-1. Trên trang **New cloud** (Kubernetes), ở ô **Credentials** bấm **Add**.
-2. **Kind** chọn **Secret text**.
-3. **Secret**: dán token vừa copy.
-4. **ID**: đặt tên (ví dụ `jenkins-k8s-sa-token`).
-5. **Description** (tùy chọn): ví dụ "Service Account token cho Jenkins agents".
-6. Bấm **Add** → quay lại dropdown **Credentials** và chọn credential vừa tạo.
+1. On the **New cloud** (Kubernetes) page, in the **Credentials** field click **Add**.
+2. **Kind**: select **Secret text**.
+3. **Secret**: paste the token copied above.
+4. **ID**: set a name (e.g., `jenkins-k8s-sa-token`).
+5. **Description** (optional): e.g., "Service Account token for Jenkins agents".
+6. Click **Add** → go back to the **Credentials** dropdown and select the newly created credential.
 
 ---
 
-### 3. Cấu hình Kubernetes Cloud (các field)
+### 3. Configure Kubernetes Cloud (Fields)
 
-1. **Manage Jenkins** → **Clouds** → **Configure Clouds** (hoặc **New Cloud**) → chọn **Kubernetes**.
-2. Điền từng field:
+1. **Manage Jenkins** → **Clouds** → **Configure Clouds** (or **New Cloud**) → select **Kubernetes**.
+2. Fill in each field:
 
-| Field | Chọn / điền |
-|-------|-------------|
-| **Name** | `kubernetes` (giữ mặc định hoặc đặt tên khác). |
-| **Kubernetes URL** | Jenkins trong cùng cluster: để **trống** hoặc `https://kubernetes.default.svc`. Ngoài cluster: URL API (ví dụ `https://<cluster-ip>:6443`). |
-| **Use Jenkins Proxy** | Bỏ chọn (trừ khi Jenkins bắt buộc qua proxy để ra cluster). |
-| **Kubernetes server certificate key** | Để trống (cluster dùng CA mặc định). |
-| **Disable https certificate check** | Chỉ bật khi dev/test và gặp lỗi cert; production nên tắt. |
-| **Kubernetes Namespace** | `jenkins` (namespace chạy agent, trùng nơi đã tạo ServiceAccount). |
-| **Agent Docker Registry** | Để trống (Kaniko dùng image từ `gcr.io`). Nếu dùng registry riêng thì điền URL. |
-| **Inject restricted PSS...** | Có thể bỏ chọn lúc đầu; bật nếu cluster bắt PSS. |
-| **Credentials** | Chọn credential **Secret text** chứa token Service Account (đã tạo ở mục trên). Bấm **Test Connection** để kiểm tra. |
-| **WebSocket** | Nên **bật** (agent kết nối Jenkins ổn định hơn). |
-| **Direct Connection** | Tùy chọn; thường không cần nếu đã bật WebSocket. |
-| **Jenkins URL** | **Phải dùng URL nội bộ** để pod agent (chạy trong cluster) gọi được: `http://jenkins.jenkins.svc.cluster.local:8080`. Không dùng `https://jenkins.localhost` — từ trong cluster tên đó thường không resolve đúng, agent không kết nối được và Jenkins báo "offline". |
-| **Jenkins tunnel** | Để trống. |
-| **Connection Timeout / Read Timeout** | Giữ mặc định (5, 15) trừ khi mạng chậm. |
-| **Concurrency Limit** | Để trống (không giới hạn) hoặc điền số nếu muốn giới hạn pod agent cùng lúc. |
+| Field | Select / Value |
+|-------|----------------|
+| **Name** | `kubernetes` (keep default or rename). |
+| **Kubernetes URL** | Jenkins in same cluster: leave **empty** or `https://kubernetes.default.svc`. External: API URL (e.g., `https://<cluster-ip>:6443`). |
+| **Use Jenkins Proxy** | Unchecked (unless Jenkins must use proxy to reach cluster). |
+| **Kubernetes server certificate key** | Leave empty (cluster uses default CA). |
+| **Disable https certificate check** | Only check if dev/test and cert errors occur; uncheck for production. |
+| **Kubernetes Namespace** | `jenkins` (namespace running agents, matching where ServiceAccount was created). |
+| **Agent Docker Registry** | Leave empty (Kaniko uses images from `gcr.io`). Fill if using private registry. |
+| **Inject restricted PSS...** | Uncheck initially; check if cluster enforces PSS. |
+| **Credentials** | Select the **Secret text** credential containing the Service Account token. Click **Test Connection** to verify. |
+| **WebSocket** | **Check** (agent connection to Jenkins is more stable). |
+| **Direct Connection** | Optional; usually not needed if WebSocket is enabled. |
+| **Jenkins URL** | **Must use internal Service URL** so pod agent (in cluster) can call it: `http://jenkins.jenkins.svc.cluster.local:8080`. Do NOT use `https://jenkins.localhost` — from inside cluster it won't resolve correctly, causing agent to fail and Jenkins reporting "offline". |
+| **Jenkins tunnel** | Leave empty. |
+| **Connection Timeout / Read Timeout** | Keep defaults (5, 15) unless network is slow. |
+| **Concurrency Limit** | Empty (unlimited) or set a number to limit concurrent agent pods. |
 
-**Phần cấu hình phía dưới (Pod Retention, timeouts, …):**
+**Configuration below (Pod Retention, timeouts, ...):**
 
-| Field | Chọn / điền |
-|-------|-------------|
-| **Add Pod Label** | Không bắt buộc; có thể bỏ qua (pipeline Kaniko tự định nghĩa pod trong Jenkinsfile). |
-| **Pod Retention** | Giữ **Never** — pod agent bị xóa ngay sau khi build xong (tiết kiệm tài nguyên). |
-| **Max connections to Kubernetes API** | Giữ mặc định **32** (hoặc để trống). |
-| **Seconds to wait for pod to be running** | Đặt **900** hoặc **1200** (15–20 phút) — lần đầu pull image jnlp (~150MB) + Kaniko (~40MB) có thể mất vài phút; nếu để 600 có thể timeout trước khi pod Ready. |
-| **Container Cleanup Timeout** | Giữ **5** (phút) — thời gian chờ dọn container sau khi pod kết thúc. |
-| **Transfer proxy related environment variables...** | Bỏ chọn (trừ khi agent cần dùng proxy). |
-| **Restrict pipeline support to authorized folders** | Bỏ chọn (trừ khi muốn giới hạn folder được dùng K8s agent). |
-| **Defaults Provider Template Name** | Để trống. |
-| **Enable garbage collection** | Có thể **bật** — plugin tự dọn pod/volume cũ. |
+| Field | Select / Value |
+|-------|----------------|
+| **Add Pod Label** | Optional; can be ignored (Kaniko pipeline defines pod in Jenkinsfile). |
+| **Pod Retention** | Keep **Never** — agent pod is deleted immediately after build (saves resources). |
+| **Max connections to Kubernetes API** | Keep default **32** (or empty). |
+| **Seconds to wait for pod to be running** | Set **900** or **1200** (15–20 mins) — initial pull of jnlp (~150MB) + Kaniko (~40MB) images may take minutes; 600 might timeout before pod is ready. |
+| **Container Cleanup Timeout** | Keep **5** (minutes) — wait time to clean up container after pod finishes. |
+| **Transfer proxy related environment variables...** | Unchecked (unless agent needs proxy). |
+| **Restrict pipeline support to authorized folders** | Unchecked (unless limiting K8s agents to specific folders). |
+| **Defaults Provider Template Name** | Leave empty. |
+| **Enable garbage collection** | **Check** — plugin cleans up old pods/volumes. |
 
-3. Phần **Pod Templates** để mặc định; pipeline Kaniko tự dùng `podTemplate` trong Jenkinsfile.
+3. Leave **Pod Templates** section empty; Kaniko pipeline uses `podTemplate` in Jenkinsfile.
 4. **Save**.
 
-Sau khi cấu hình xong, chạy lại pipeline dùng Kaniko; Jenkins sẽ tạo pod trong namespace `jenkins` và chạy build trong container Kaniko.
+After configuration, run the Kaniko pipeline; Jenkins will create a pod in `jenkins` namespace and run build in Kaniko container.
 
 ---
 
-### 4. Pod kẹt "ContainerCreating" / agent "offline" — stuck rất lâu
+### 4. Pod Stuck "ContainerCreating" / Agent "Offline" — Stuck for Long Time
 
-Nếu console báo pod **Pending**, container **ContainerCreating**, agent **offline** và **Still waiting to schedule task** (build kẹt nhiều phút):
+If console shows pod **Pending**, container **ContainerCreating**, agent **offline** and **Still waiting to schedule task** (build stuck for minutes):
 
-**Bước 1 – Tăng timeout (bắt buộc):**  
-**Manage Jenkins** → **Clouds** → bấm **kubernetes** → tìm **Seconds to wait for pod to be running** → đổi thành **1200** (20 phút) → **Save**. Nếu để 600, Jenkins dừng chờ trước khi pod kịp pull xong image.
+**Step 1 – Increase Timeout (Mandatory):**
+**Manage Jenkins** → **Clouds** → click **kubernetes** → find **Seconds to wait for pod to be running** → change to **1200** (20 mins) → **Save**. If kept at 600, Jenkins stops waiting before pod finishes pulling images.
 
-**Bước 2 – Chờ một lần, không cancel:**  
-Chạy **Build Now** và **để chạy 5–10 phút** (không bấm Cancel). Lần đầu cluster phải pull image jnlp (~150MB) và Kaniko (~40MB) nên chậm. Khi pod Ready, build sẽ chạy tiếp. Build sau image đã có trên node sẽ nhanh hơn.
+**Step 2 – Wait Once, Do Not Cancel:**
+Run **Build Now** and **let it run 5–10 mins** (do not Cancel). First time cluster pulls jnlp (~150MB) and Kaniko (~40MB) images. When pod is Ready, build proceeds. Subsequent builds on nodes with cached images will be faster.
 
-**Bước 3 – Pre-pull để lần sau không chờ:**  
-Để các build sau lên pod nhanh, pull sẵn hai image lên node (chỉ cần làm một lần):
+**Step 3 – Pre-pull (Optional):**
+To speed up subsequent builds, pre-pull images to nodes:
 
-- **Cách A – Có SSH vào node (worker):**  
-  SSH vào máy node (ví dụ `desktop-worker2`), chạy:  
-  `crictl pull jenkins/inbound-agent:3355.v388858a_47b_33-3-jdk21` và  
-  `crictl pull gcr.io/kaniko-project/executor:v1.6.0-debug`  
-  (nếu node dùng Docker thì dùng `docker pull` thay cho `crictl pull`.)
+- **Method A – SSH access to node (worker):**
+  SSH into node (e.g. `desktop-worker2`), run:
+  `crictl pull jenkins/inbound-agent:3355.v388858a_47b_33-3-jdk21` and
+  `crictl pull gcr.io/kaniko-project/executor:v1.6.0-debug`
+  (use `docker pull` if node uses Docker).
 
-- **Cách B – Không SSH được vào node:**  
-  Tạo Job tạm để cluster tự pull hai image khi tạo pod. Lưu file sau rồi chạy `kubectl apply -f jenkins-agent-prepull.yaml`:
+- **Method B – No SSH access:**
+  Create a temporary Job to force pull. Save this file and run `kubectl apply -f jenkins-agent-prepull.yaml`:
 
 ```yaml
 apiVersion: batch/v1
@@ -173,47 +173,47 @@ spec:
         command: ["sleep", "60"]
 ```
 
-  Job này tạo một pod dùng đúng hai image → kubelet sẽ pull về node. Sau vài phút pod Complete; xóa Job: `kubectl delete job jenkins-agent-prepull -n jenkins`. Build Jenkins sau trên **cùng node** đó sẽ nhanh hơn (nếu cluster có nhiều node, có thể chạy Job vài lần hoặc dùng nodeSelector trùng node Jenkins hay dùng).
+This Job creates a pod using these images → kubelet pulls them. After a few minutes pod Completes; delete Job: `kubectl delete job jenkins-agent-prepull -n jenkins`. Subsequent Jenkins builds on **that same node** will be faster.
 
-**Kiểm tra pod:**  
-`kubectl get pods -n jenkins` và `kubectl describe pod -n jenkins <tên-pod>`. Phần Events nếu thấy **Pulled**, **Started** là pod đã chạy; nếu Jenkins vẫn báo offline thì thường do đã hết timeout — tăng lên 1200 rồi chạy lại build.
+**Check Pod:**
+`kubectl get pods -n jenkins` and `kubectl describe pod -n jenkins <pod-name>`. Events showing **Pulled**, **Started** means pod ran; if Jenkins still offline, it timed out — increase to 1200 then rebuild.
 
 ---
 
-### 5. Pod đã Running nhưng agent vẫn "offline" / chưa build
+### 5. Pod Running but Agent "Offline" / Build Not Starting
 
-Nếu Dashboard thấy pod **Running** nhưng Jenkins vẫn báo **Still waiting to schedule task**, **agent offline** và build không chạy tiếp:
+If Dashboard shows pod **Running** but Jenkins says **Still waiting to schedule task**, **agent offline**:
 
-**Nguyên nhân:** Container **jnlp** (Jenkins agent) không kết nối được về Jenkins. Thường do **Jenkins URL** đang dùng `https://jenkins.localhost` — từ **trong cluster** tên `jenkins.localhost` không resolve đúng (hoặc trỏ về 127.0.0.1 của chính pod), nên agent không tìm thấy Jenkins.
+**Cause:** **jnlp** container (Jenkins agent) cannot connect back to Jenkins. Usually because **Jenkins URL** is `https://jenkins.localhost` — inside cluster `jenkins.localhost` may resolve to 127.0.0.1, failing connection.
 
-**Cách sửa:**  
-**Manage Jenkins** → **Clouds** → bấm **kubernetes** → tìm **Jenkins URL** → đổi thành **URL Service nội bộ**:
+**Fix:**
+**Manage Jenkins** → **Clouds** → click **kubernetes** → find **Jenkins URL** → change to **Internal Service URL**:
 
 - `http://jenkins.jenkins.svc.cluster.local:8080`
 
-(Service Jenkins trong namespace `jenkins` thường tên `jenkins`, port 8080.)  
-Lưu **Save** → chạy lại **Build Now**. Pod mới sẽ dùng URL nội bộ và agent kết nối được, build chạy tiếp.
+(Service is usually named `jenkins` in `jenkins` namespace, port 8080.)
+**Save** → **Build Now**. New pod uses internal URL, agent connects, build proceeds.
 
 ---
 
-### 6. Push Harbor báo lỗi token "harbor.localhost" / connection refused
+### 6. Push Harbor Error: Token "harbor.localhost" / Connection Refused
 
-Nếu Kaniko báo lỗi dạng: `Get "https://harbor.localhost/service/token?...": dial tcp [::1]:443: connection refused`:
+If Kaniko fails with: `Get "https://harbor.localhost/service/token?...": dial tcp [::1]:443: connection refused`:
 
-**Nguyên nhân:** Harbor trả token URL về `https://harbor.localhost`. Từ trong pod, `harbor.localhost` resolve về 127.0.0.1 nên không tới được Harbor.
+**Cause:** Harbor returns token URL as `https://harbor.localhost`. Inside pod, `harbor.localhost` resolves to 127.0.0.1.
 
-**Cách sửa:** Pipeline đã thêm **hostAliases** để pod resolve `harbor.localhost` về Ingress. Cần cấu hình **INGRESS_CLUSTER_IP** trong Jenkins:
+**Fix:** Pipeline adds **hostAliases** to resolve `harbor.localhost` to Ingress. Configure **INGRESS_CLUSTER_IP** in Jenkins:
 
-1. Lấy ClusterIP của Ingress (Harbor qua Ingress):
+1. Get Ingress ClusterIP:
    ```bash
    kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.spec.clusterIP}'
    ```
-   (Nếu Ingress ở namespace/name khác thì đổi cho đúng.)
+   (Adjust namespace/name if different.)
 
-2. Trong Jenkins: **Manage Jenkins** → **System** → **Global properties** → tick **Environment variables** → **Add**:
+2. In Jenkins: **Manage Jenkins** → **System** → **Global properties** → Check **Environment variables** → **Add**:
    - **Name:** `INGRESS_CLUSTER_IP`
-   - **Value:** dán ClusterIP vừa lấy (ví dụ `10.96.123.45`).
+   - **Value:** Paste ClusterIP (e.g., `10.96.123.45`).
 
-3. **Save** → chạy lại **Build Now**.
+3. **Save** → **Build Now**.
 
-Pod agent sẽ dùng hostAliases để resolve `harbor.localhost` về Ingress → request token tới Ingress:443 → Ingress forward tới Harbor Core → push thành công.
+Agent pod uses hostAliases to resolve `harbor.localhost` to Ingress → requests token from Ingress:443 → Ingress forwards to Harbor Core → push succeeds.

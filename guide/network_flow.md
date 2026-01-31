@@ -15,7 +15,7 @@ flowchart LR
         end
         
         subgraph ingress-ns["ingress-nginx namespace"]
-            ING[🚪 Ingress Controller<br/>LoadBalancer: 192.168.56.200]
+            ING[🚪 Ingress Controller<br/>Type: ClusterIP]
         end
         
         subgraph app-ns["App namespaces"]
@@ -37,23 +37,23 @@ flowchart LR
 
 ---
 
-## Flow Chi Tiết
+## Detailed Flow
 
 ### 1️⃣ User → Cloudflare Edge
 - **DNS**: `hoangvu75.space` → Cloudflare nameservers
-- **SSL/TLS**: Cloudflare terminate SSL, cấp certificate tự động
+- **SSL/TLS**: Cloudflare terminates SSL, automatically issues certificates
 
 ### 2️⃣ Cloudflare → cloudflared Pod (Tunnel)
-- **cloudflared** tạo **outbound connection** tới Cloudflare
-- Không cần mở port, không cần public IP
-- Forward request tới ingress controller
+- **cloudflared** creates an **outbound connection** to Cloudflare
+- No open ports required, no public IP needed
+- Forwards requests to the ingress controller
 
 ### 3️⃣ cloudflared → Ingress Controller
-- Request HTTP với **Host header** (vd: `harbor.localhost`)
-- Ingress route dựa trên Host
+- HTTP Request with **Host header** (e.g., `harbor.localhost`)
+- Ingress routes based on the Host
 
 ### 4️⃣ Ingress → App Service
-- Match host → route tới ClusterIP service
+- Match host → route to ClusterIP service
 
 ---
 
@@ -69,30 +69,18 @@ flowchart LR
 
 ---
 
-## MetalLB - Vai trò
-
-| Access Method | Cần MetalLB? |
-|---------------|--------------|
-| Từ LAN (`192.168.56.x`) | ✅ Có - cấp LoadBalancer IP |
-| Từ Internet qua Cloudflare Tunnel | ❌ Không - bypass hoàn toàn |
-
-**Config:**
-```yaml
-# metallb-config.yaml - IP pool cho LAN access
-addresses:
-- 192.168.56.200-192.168.56.210
-```
-
-> Cloudflare Tunnel **bypass MetalLB** - traffic đi thẳng tới ClusterIP.
+## Note on LAN Access
+Currently **MetalLB has been removed**, so there is no LAN IP (`192.168.56.200`) for Ingress.
+- **Primary Access:** Via Cloudflare Tunnel (Internet).
+- **Local Access:** Requires `kubectl port-forward`.
 
 ---
 
 ## Summary
 
-| Layer | Component | Vai trò |
-|-------|-----------|---------|
+| Layer | Component | Role |
+|-------|-----------|------|
 | DNS | Cloudflare | Resolve domain → edge |
 | Edge | Cloudflare | SSL termination, WAF |
 | Tunnel | cloudflared | Bridge Cloudflare ↔ K8s |
 | Routing | Ingress Controller | Route by Host header |
-| LB | MetalLB | External IP cho LAN (không dùng cho tunnel) |

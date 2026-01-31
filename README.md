@@ -1,65 +1,65 @@
 # k8s_manifest
 
-Repo GitOps chứa toàn bộ manifest Kubernetes, đồng bộ lên cluster bằng **Argo CD**. Git là nguồn sự thật; Argo CD so sánh Git với cluster và apply thay đổi (auto-sync).
+K8s manifest repository (GitOps), synced to the cluster using **Argo CD**. Git is the source of truth; Argo CD compares Git with the cluster state and applies changes (auto-sync).
 
 ---
 
-## Cấu trúc thư mục
+## Directory Structure
 
-| Thư mục / file | Mô tả |
-|----------------|--------|
-| **bootstrap/** | Application “bootstrap” sync thư mục này → tạo Application **root** và ApplicationSet **cluster-resources** trên cluster. |
-| **bootstrap.yaml** | Định nghĩa Application “bootstrap” (sync path `bootstrap/`). Cài thủ công một lần hoặc apply bằng `kubectl apply -f`. |
-| **projects/** | Application **root** sync thư mục này → chứa AppProject + ApplicationSet **playground**, **infra** (tự tạo Application con từ `apps/`). |
-| **cluster-resources/default/** | ApplicationSet **cluster-resources** tạo app **cluster-resources-default** sync thư mục này → chủ yếu **namespace** (sync-wave -1, tạo trước các app). |
-| **apps/<project>/<app>/** | Mỗi app có `config.yaml` (metadata), `kustomization.yaml` (+ Helm chart trong `chart/` nếu dùng). ApplicationSet **playground** / **infra** quét `apps/playground/**/config.yaml` và `apps/infra/**/config.yaml` → tạo một Application cho mỗi app. |
-| **guide/** | Tài liệu nhanh: Argo CD, Jenkins, Kubernetes Dashboard (URL, lấy mật khẩu / token). |
-
----
-
-## Luồng đồng bộ (tóm tắt)
-
-1. **Bootstrap** (Application, cấu hình một lần) sync `bootstrap/`:
-   - Tạo Application **root** (sync `projects/`).
-   - Tạo ApplicationSet **cluster-resources** → sinh Application **cluster-resources-default** (sync `cluster-resources/default/` → namespace, v.v.).
-
-2. **Root** sync `projects/`:
-   - Áp dụng AppProject + ApplicationSet **playground** và **infra** lên cluster.
-
-3. **ApplicationSet playground / infra**:
-   - Quét Git theo pattern `apps/playground/**/config.yaml` và `apps/infra/**/config.yaml`.
-   - Mỗi file `config.yaml` tương ứng một Application (tên dạng `playground-<app>`, `infra-<app>`), sync path chứa app đó (Kustomize ± Helm).
-
-4. **cluster-resources-default** sync `cluster-resources/default/`:
-   - Apply `namespace.yaml` (và file khác nếu có) → tạo Namespace với sync-wave -1 để có sẵn trước khi app deploy.
+| Directory / File | Description |
+|------------------|-------------|
+| **bootstrap/** | The "bootstrap" Application syncs this directory → creates the **root** Application and **cluster-resources** ApplicationSet on the cluster. |
+| **bootstrap.yaml** | Defines the "bootstrap" Application (syncs `bootstrap/` path). Installed manually once or applied using `kubectl apply -f`. |
+| **projects/** | The **root** Application syncs this directory → contains AppProject and **playground**, **infra** ApplicationSets (automatically creates child Applications from `apps/`). |
+| **cluster-resources/default/** | The **cluster-resources** ApplicationSet creates the **cluster-resources-default** app which syncs this directory → mainly **namespaces** (sync-wave -1, created before other apps). |
+| **apps/<project>/<app>/** | Each app has a `config.yaml` (metadata), `kustomization.yaml` (+ Helm chart in `chart/` if used). The **playground** / **infra** ApplicationSets scan `apps/playground/**/config.yaml` and `apps/infra/**/config.yaml` → creating an Application for each app. |
+| **guide/** | Quick Start Guides: Argo CD, Jenkins, Kubernetes Dashboard (URLs, obtaining passwords/tokens). |
 
 ---
 
-## Projects và apps hiện có
+## Sync Flow (Summary)
 
-### playground (9 apps)
+1.  **Bootstrap** (Application, configured once) syncs `bootstrap/`:
+    - Creates the **root** Application (syncs `projects/`).
+    - Creates the **cluster-resources** ApplicationSet → generates the **cluster-resources-default** Application (syncs `cluster-resources/default/` → namespaces, etc.).
+
+2.  **Root** syncs `projects/`:
+    - Applies AppProject + **playground** and **infra** ApplicationSets to the cluster.
+
+3.  **ApplicationSet playground / infra**:
+    - Scans Git for patterns `apps/playground/**/config.yaml` and `apps/infra/**/config.yaml`.
+    - Each `config.yaml` corresponds to an Application (named `playground-<app>`, `infra-<app>`), syncing the path containing that app (Kustomize ± Helm).
+
+4.  **cluster-resources-default** syncs `cluster-resources/default/`:
+    - Applies `namespace.yaml` (and other files if present) → creates Namespaces with sync-wave -1 so they exist before apps deploy.
+
+---
+
+## Projects and Existing Apps
+
+### playground (5 apps)
 | App | Host (LAN) | Public URL |
 |-----|------------|------------|
-| ingress-nginx | - | - |
-| metallb | - | - |
 | argocd | argocd.localhost | argocd.hoangvu75.space |
 | harbor | harbor.localhost | harbor.hoangvu75.space |
 | jenkins | jenkins.localhost | jenkins.hoangvu75.space |
 | n8n | n8n.localhost | n8n.hoangvu75.space |
-| cloudflared | - | (tunnel connector) |
 | sample-gitops-web | - | - |
 
-### infra (2 apps)
+### infra (3 apps)
 | App | Host (LAN) | Public URL |
 |-----|------------|------------|
+| ingress-nginx | - | (Controller) |
+| cloudflared | - | (Tunnel Connector) |
 | kubernetes-dashboard | kubedashboard.localhost | dashboard.hoangvu75.space |
-| metallb-system | - | - |
 
-Thêm app: tạo thư mục `apps/<project>/<tên-app>/` với `config.yaml` + `kustomization.yaml` (và `chart/` nếu dùng Helm). Thêm Namespace (nếu cần) vào `cluster-resources/default/namespace.yaml`. Push Git → Argo CD tự tạo Application và sync.
+*> **Note:** Since MetalLB has been removed, LAN Hosts can only be accessed from outside the cluster via `kubectl port-forward`. The primary access method is via **Public URL** (Cloudflare Tunnel).*
+
+Adding an app: create a directory `apps/<project>/<app-name>/` with `config.yaml` + `kustomization.yaml` (and `chart/` if using Helm). Add the Namespace (if needed) to `cluster-resources/default/namespace.yaml`. Push to Git → Argo CD automatically creates the Application and syncs.
 
 ---
 
-## Hướng dẫn nhanh
+## Quick Guides
 
 - **Network Flow (DNS → K8s):** [guide/network_flow.md](guide/network_flow.md)
 - **Argo CD:** [guide/argo_cd.md](guide/argo_cd.md)
