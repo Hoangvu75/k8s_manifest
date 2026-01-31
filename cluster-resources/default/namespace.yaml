@@ -25,21 +25,6 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: metallb
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: metallb-system
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
-# metallb: namespace cho RBAC của Helm chart MetalLB; metallb-system: dùng chung playground + infra
----
-apiVersion: v1
-kind: Namespace
-metadata:
   name: kubernetes-dashboard
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
