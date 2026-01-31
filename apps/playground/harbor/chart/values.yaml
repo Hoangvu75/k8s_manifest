@@ -1,4 +1,4 @@
-# Harbor — playground: ingress harbor.localhost (giống jenkins/n8n)
+# Harbor — playground: ingress harbor.192.168.56.200.nip.io (đổi IP nếu khác)
 expose:
   type: ingress
   tls:
@@ -6,14 +6,14 @@ expose:
     certSource: auto
   ingress:
     hosts:
-      core: harbor.localhost
+      core: harbor.192.168.56.200.nip.io
     controller: default
     className: nginx
     annotations:
       nginx.ingress.kubernetes.io/proxy-body-size: "0"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
 
-externalURL: https://harbor.localhost
+externalURL: https://harbor.192.168.56.200.nip.io
 
 # Đổi mật khẩu admin sau lần đăng nhập đầu
 harborAdminPassword: "Harbor12345"
