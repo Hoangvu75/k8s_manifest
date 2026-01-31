@@ -1,0 +1,14 @@
+# Values cho Sealed Secrets controller
+fullnameOverride: sealed-secrets
+
+# Số lượng replicas
+replicas: 1
+
+# Resources
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi

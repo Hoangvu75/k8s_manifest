@@ -1,0 +1,5 @@
+# Metadata cho Argo CD (optional)
+# appName: sealed-secrets
+# destNamespace: kube-system
+# repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+# srcPath: apps/infra/sealed-secrets
