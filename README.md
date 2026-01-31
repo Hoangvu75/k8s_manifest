@@ -37,8 +37,23 @@ Repo GitOps chứa toàn bộ manifest Kubernetes, đồng bộ lên cluster b�
 
 ## Projects và apps hiện có
 
-- **playground:** ingress-nginx, jenkins, metallb, n8n, harbor, sample-gitops-web, argocd (host: `*.localhost` — port-forward ingress, xem [guide/nip_io.md](guide/nip_io.md)).
-- **infra:** kubernetes-dashboard (kubedashboard.localhost), metallb-system.
+### playground (9 apps)
+| App | Host (LAN) | Public URL |
+|-----|------------|------------|
+| ingress-nginx | - | - |
+| metallb | - | - |
+| argocd | argocd.localhost | argocd.hoangvu75.space |
+| harbor | harbor.localhost | harbor.hoangvu75.space |
+| jenkins | jenkins.localhost | jenkins.hoangvu75.space |
+| n8n | n8n.localhost | n8n.hoangvu75.space |
+| cloudflared | - | (tunnel connector) |
+| sample-gitops-web | - | - |
+
+### infra (2 apps)
+| App | Host (LAN) | Public URL |
+|-----|------------|------------|
+| kubernetes-dashboard | kubedashboard.localhost | dashboard.hoangvu75.space |
+| metallb-system | - | - |
 
 Thêm app: tạo thư mục `apps/<project>/<tên-app>/` với `config.yaml` + `kustomization.yaml` (và `chart/` nếu dùng Helm). Thêm Namespace (nếu cần) vào `cluster-resources/default/namespace.yaml`. Push Git → Argo CD tự tạo Application và sync.
 
@@ -46,8 +61,8 @@ Thêm app: tạo thư mục `apps/<project>/<tên-app>/` với `config.yaml` + `
 
 ## Hướng dẫn nhanh
 
+- **Network Flow (DNS → K8s):** [guide/network_flow.md](guide/network_flow.md)
 - **Argo CD:** [guide/argo_cd.md](guide/argo_cd.md)
 - **Jenkins (Unlock password):** [guide/jenkins.md](guide/jenkins.md)
 - **Kubernetes Dashboard (token):** [guide/kube_dashboard.md](guide/kube_dashboard.md)
 - **Harbor (registry):** [guide/harbor.md](guide/harbor.md)
-- **nip.io (truy cập qua mạng):** [guide/nip_io.md](guide/nip_io.md)
