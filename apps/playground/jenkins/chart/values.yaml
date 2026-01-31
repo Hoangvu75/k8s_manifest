@@ -85,13 +85,13 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "300"
   hosts:
-    - host: jenkins.192.168.56.200.nip.io
+    - host: jenkins.localhost
       paths:
         - path: /
           pathType: Prefix
   tls:
     - hosts:
-        - jenkins.192.168.56.200.nip.io
+        - jenkins.localhost
       secretName: jenkins-tls
 
 secret:

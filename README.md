@@ -37,7 +37,7 @@ Repo GitOps chứa toàn bộ manifest Kubernetes, đồng bộ lên cluster b�
 
 ## Projects và apps hiện có
 
-- **playground:** ingress-nginx, jenkins, metallb, n8n, harbor, sample-gitops-web, argocd (host: `*.192.168.56.200.nip.io` — xem [guide/nip_io.md](guide/nip_io.md)).
+- **playground:** ingress-nginx, jenkins, metallb, n8n, harbor, sample-gitops-web, argocd (host: `*.localhost` — port-forward ingress, xem [guide/nip_io.md](guide/nip_io.md)).
 - **infra:** kubernetes-dashboard (kubedashboard.localhost), metallb-system.
 
 Thêm app: tạo thư mục `apps/<project>/<tên-app>/` với `config.yaml` + `kustomization.yaml` (và `chart/` nếu dùng Helm). Thêm Namespace (nếu cần) vào `cluster-resources/default/namespace.yaml`. Push Git → Argo CD tự tạo Application và sync.

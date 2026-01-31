@@ -1,4 +1,4 @@
-# Ingress cho Kubernetes Dashboard — kubedashboard.192.168.56.200.nip.io
+# Ingress cho Kubernetes Dashboard — kubedashboard.localhost
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -13,7 +13,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: kubedashboard.192.168.56.200.nip.io
+    - host: kubedashboard.localhost
       http:
         paths:
           - path: /
@@ -25,5 +25,5 @@ spec:
                   number: 443
   tls:
     - hosts:
-        - kubedashboard.192.168.56.200.nip.io
+        - kubedashboard.localhost
       secretName: kubedashboard-tls

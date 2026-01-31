@@ -18,7 +18,7 @@ deployment:
     GENERIC_TIMEZONE:
       value: "Asia/Ho_Chi_Minh"
     WEBHOOK_URL:
-      value: "https://n8n.192.168.56.200.nip.io"
+      value: "https://n8n.localhost"
     N8N_BASIC_AUTH_ACTIVE:
       value: "true"
     N8N_BASIC_AUTH_USER:
@@ -85,13 +85,13 @@ ingress:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
-    - host: n8n.192.168.56.200.nip.io
+    - host: n8n.localhost
       paths:
         - path: /
           pathType: Prefix
   tls:
     - hosts:
-        - n8n.192.168.56.200.nip.io
+        - n8n.localhost
       secretName: n8n-tls
 
 secret:

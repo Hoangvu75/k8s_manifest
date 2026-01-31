@@ -1,4 +1,4 @@
-# Ingress cho Argo CD — https://argocd.192.168.56.200.nip.io (đổi IP nếu khác)
+# Ingress cho Argo CD — https://argocd.localhost (port-forward ingress để truy cập)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -13,7 +13,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: argocd.192.168.56.200.nip.io
+    - host: argocd.localhost
       http:
         paths:
           - path: /
@@ -25,5 +25,5 @@ spec:
                   number: 443
   tls:
     - hosts:
-        - argocd.192.168.56.200.nip.io
+        - argocd.localhost
       secretName: argocd-tls
