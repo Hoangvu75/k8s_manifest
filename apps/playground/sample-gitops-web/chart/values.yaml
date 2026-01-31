@@ -6,7 +6,7 @@ deployment:
   replicas: 1
   image:
     repository: harbor.hoangvu75.space/library/sample_gitops_web
-    tag: "80b3da3"
+    tag: "6c77975"
     pullPolicy: IfNotPresent
   ports:
     - containerPort: 3000
