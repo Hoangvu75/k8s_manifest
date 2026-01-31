@@ -1,0 +1,9 @@
+controller:
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+
+speaker:
+  frr:
+    enabled: false
