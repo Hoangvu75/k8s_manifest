@@ -1,0 +1,9 @@
+# Metadata cho Argo CD
+# appName: discord-bot
+# destNamespace: discord-bot
+
+# ArgoCD Notifications
+annotations:
+  notifications.argoproj.io/subscribe.on-sync-succeeded.n8n: ""
+  notifications.argoproj.io/subscribe.on-sync-failed.n8n: ""
+  notifications.argoproj.io/subscribe.on-deployed.n8n: ""

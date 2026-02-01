@@ -1,0 +1,42 @@
+# Values cho chart standalone-app - Discord Bot
+applicationName: discord-bot
+
+deployment:
+  enabled: true
+  replicas: 1
+  image:
+    repository: harbor.hoangvu75.space/library/discord-bot
+    tag: "latest"
+    pullPolicy: Always
+  # Discord bot không cần expose port (outbound only)
+  ports: []
+  env: []
+  envFrom:
+    - secretRef:
+        name: discord-bot-secret
+  
+  containerSecurityContext:
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+  # Discord bot không cần health check HTTP
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+persistence:
+  enabled: false
+
+# Discord bot không cần service và ingress
+service:
+  enabled: false
+
+ingress:
+  enabled: false
