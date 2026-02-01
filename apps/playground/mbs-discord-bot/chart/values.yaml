@@ -10,10 +10,22 @@ deployment:
     pullPolicy: Always
   # Discord bot không cần expose port (outbound only)
   ports: []
-  env: []
-  envFrom:
-    - secretRef:
-        name: mbs-discord-bot-secret
+  env:
+    BOT_TOKEN:
+      valueFrom:
+        secretKeyRef:
+          name: mbs-discord-bot-secret
+          key: BOT_TOKEN
+    CLIENT_ID:
+      valueFrom:
+        secretKeyRef:
+          name: mbs-discord-bot-secret
+          key: CLIENT_ID
+    N8N_WEBHOOK_URL:
+      valueFrom:
+        secretKeyRef:
+          name: mbs-discord-bot-secret
+          key: N8N_WEBHOOK_URL
   
   containerSecurityContext:
     readOnlyRootFilesystem: false
