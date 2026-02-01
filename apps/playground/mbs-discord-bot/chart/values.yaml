@@ -1,5 +1,5 @@
 # Values cho chart standalone-app - Discord Bot
-applicationName: discord-bot
+applicationName: mbs-discord-bot
 
 deployment:
   enabled: true

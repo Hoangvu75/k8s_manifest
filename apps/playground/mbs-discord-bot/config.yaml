@@ -1,6 +1,6 @@
 # Metadata cho Argo CD
-# appName: discord-bot
-# destNamespace: discord-bot
+# appName: mbs-discord-bot
+# destNamespace: mbs-discord-bot
 
 # ArgoCD Notifications
 annotations:
