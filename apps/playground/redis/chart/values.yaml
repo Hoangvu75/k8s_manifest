@@ -1,0 +1,20 @@
+# Bitnami Redis values - standalone mode for n8n token storage
+architecture: standalone
+
+auth:
+  enabled: false  # No password for internal cluster use
+
+master:
+  persistence:
+    enabled: true
+    size: 1Gi
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+replica:
+  replicaCount: 0  # Standalone mode, no replicas
