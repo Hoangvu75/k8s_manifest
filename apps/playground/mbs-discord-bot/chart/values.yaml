@@ -18,6 +18,8 @@ deployment:
   containerSecurityContext:
     readOnlyRootFilesystem: false
     runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
   # Discord bot không cần health check HTTP
   livenessProbe:
     enabled: false
