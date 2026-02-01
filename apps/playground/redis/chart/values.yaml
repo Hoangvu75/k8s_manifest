@@ -4,6 +4,9 @@ architecture: standalone
 auth:
   enabled: false  # No password for internal cluster use
 
+image:
+  tag: latest  # Use latest available tag
+
 master:
   persistence:
     enabled: true
