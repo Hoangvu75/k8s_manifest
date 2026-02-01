@@ -13,7 +13,7 @@ deployment:
   env: []
   envFrom:
     - secretRef:
-        name: discord-bot-secret
+        name: mbs-discord-bot-secret
   
   containerSecurityContext:
     readOnlyRootFilesystem: false
