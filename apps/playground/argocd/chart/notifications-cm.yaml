@@ -5,14 +5,12 @@ metadata:
   name: argocd-notifications-cm
   namespace: argocd
 data:
-  # Service n8n webhook
   service.webhook.n8n: |
     url: https://n8n.hoangvu75.space/webhook/argocd-notify
     headers:
     - name: Content-Type
       value: application/json
 
-  # Template cho Sync status
   template.app-sync-status: |
     webhook:
       n8n:
@@ -27,32 +25,6 @@ data:
             "revision": "{{.app.status.sync.revision}}"
           }
 
-  # Template cho Deploy (operation completed)
-  template.app-deployed: |
-    webhook:
-      n8n:
-        method: POST
-        body: |
-          {
-            "event_type": "deploy",
-            "app_name": "{{.app.metadata.name}}",
-            "project": "{{.app.spec.project}}",
-            "sync_status": "{{.app.status.sync.status}}",
-            "health_status": "{{.app.status.health.status}}",
-            "revision": "{{.app.status.sync.revision}}",
-            "phase": "{{.app.status.operationState.phase}}"
-          }
-
-  # Triggers - chỉ dùng 1 trong 2
   trigger.on-sync-succeeded: |
     - when: app.status.sync.status == 'Synced' and app.status.health.status == 'Healthy'
       send: [app-sync-status]
-
-  trigger.on-sync-failed: |
-    - when: app.status.sync.status == 'OutOfSync' or app.status.health.status == 'Degraded'
-      send: [app-sync-status]
-
-  trigger.on-deployed: |
-    - when: app.status.operationState != nil and app.status.operationState.phase == 'Succeeded' and app.status.operationState.operation.sync != nil
-      send: [app-deployed]
-

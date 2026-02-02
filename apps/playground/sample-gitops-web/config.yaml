@@ -7,6 +7,3 @@
 # ArgoCD Notifications - subscribe to triggers
 annotations:
   notifications.argoproj.io/subscribe.on-sync-succeeded.n8n: ""
-  notifications.argoproj.io/subscribe.on-sync-failed.n8n: ""
-  notifications.argoproj.io/subscribe.on-deployed.n8n: ""
-
