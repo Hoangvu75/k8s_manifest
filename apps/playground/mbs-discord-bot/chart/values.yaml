@@ -26,6 +26,11 @@ deployment:
         secretKeyRef:
           name: mbs-discord-bot-secret
           key: N8N_WEBHOOK_URL
+    GEMINI_API_KEY:
+      valueFrom:
+        secretKeyRef:
+          name: mbs-discord-bot-secret
+          key: GEMINI_API_KEY
   
   containerSecurityContext:
     readOnlyRootFilesystem: false
