@@ -1,0 +1,312 @@
+{{- if .Values.statefulset.enabled }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+  {{- include "application.labels" $ | nindent 4 }}
+{{- if .Values.statefulset.additionalLabels }}
+{{ toYaml .Values.statefulset.additionalLabels | indent 4 }}
+{{- end }}
+{{- if or .Values.statefulset.annotations .Values.statefulset.reloadOnChange }}
+  annotations:
+{{- end }}
+{{- if .Values.statefulset.annotations }}
+{{ toYaml .Values.statefulset.annotations | indent 4 }}
+{{- end }}
+{{- if .Values.statefulset.reloadOnChange }}
+    reloader.stakater.com/auto: "true"
+{{- end }}
+  name: {{ template "application.name" . }}
+  namespace: {{ include "application.namespace" . }}
+spec:
+  serviceName: {{ template "application.name" . }}
+{{- if not (eq .Values.statefulset.replicas nil) }}
+  replicas: {{ .Values.statefulset.replicas }}
+{{- end }}
+  selector:
+    matchLabels:
+{{ include "application.selectorLabels" . | indent 6 }}
+  {{- if .Values.statefulset.updateStrategy }}
+  updateStrategy:
+{{ toYaml .Values.statefulset.updateStrategy | indent 4 }}
+  {{- end }}
+  {{- if not (kindIs "invalid" .Values.statefulset.revisionHistoryLimit) }}
+  revisionHistoryLimit: {{ .Values.statefulset.revisionHistoryLimit }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+{{ include "application.selectorLabels" . | indent 8 }}
+{{- if .Values.statefulset.podLabels }}
+{{ toYaml .Values.statefulset.podLabels | indent 8 }}
+{{- end }}
+{{- if or .Values.statefulset.additionalPodAnnotations .Values.statefulset.fluentdConfigAnnotations }}
+      annotations:
+{{- end }}
+{{- with .Values.statefulset.additionalPodAnnotations }}
+{{ toYaml . | indent 8 }}
+{{- end }}
+{{- if .Values.statefulset.fluentdConfigAnnotations }}
+        fluentdConfiguration: >
+          [
+            {
+              "containers":
+              [
+                {
+                  "expressionFirstLine": "{{ .Values.statefulset.fluentdConfigAnnotations.regexFirstLine }}",
+                  "expression": "{{ .Values.statefulset.fluentdConfigAnnotations.regex }}",
+                  "timeFormat": "{{ .Values.statefulset.fluentdConfigAnnotations.timeFormat }}",
+                  "containerName": "{{ template "application.name" . }}"
+                }
+              ]{{- with .Values.statefulset.fluentdConfigAnnotations.notifications }},
+              "notifications": {
+                {{- with .slack }}
+                "slack": {
+                  "webhookURL": "{{ .webhookURL }}",
+                  "channelName": "{{ .channelName }}"
+                },
+                {{- end }}
+                "key": "{{ .key }}",
+                "pattern": "{{ .pattern }}"
+              }
+              {{- end }}
+            }
+          ]
+{{- end }}
+    spec:
+      {{- with .Values.statefulset.hostAliases }}
+      hostAliases: {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.statefulset.initContainers }}
+      initContainers:
+  {{- range $key, $value := .Values.statefulset.initContainers }}
+      - name: {{ $key }}
+{{ include "application.tplvalues.render" ( dict "value" $value "context" $ ) | indent 8 }}
+      {{- end }}
+      {{- end }}
+      {{- if .Values.statefulset.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.statefulset.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- with .Values.statefulset.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- if .Values.statefulset.tolerations }}
+      tolerations:
+{{ toYaml .Values.statefulset.tolerations | indent 8 -}}
+      {{- end }}
+      {{- if .Values.statefulset.affinity }}
+      affinity:
+{{ toYaml .Values.statefulset.affinity | indent 8 -}}
+      {{- end }}
+      {{- with .Values.statefulset.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.statefulset.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: {{ template "application.name" . }}
+        {{- $image := required "Undefined image for application container" .Values.statefulset.image.repository }}
+        {{- with .Values.statefulset.image.tag    }} {{- $image = print $image ":" . }} {{- end }}
+        {{- with .Values.statefulset.image.digest }} {{- $image = print $image "@" . }} {{- end }}
+        image: {{ $image }}
+        imagePullPolicy: {{ .Values.statefulset.image.pullPolicy }}
+        {{- with .Values.statefulset.lifecycle }}
+        lifecycle:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- if .Values.statefulset.command }}
+        command: {{- include "application.tplvalues.render" (dict "value" .Values.statefulset.command "context" $) | nindent 12 }}
+        {{- end }}
+        {{- if .Values.statefulset.args }}
+        args: {{- include "application.tplvalues.render" (dict "value" .Values.statefulset.args "context" $) | nindent 12 }}
+        {{- end }}
+        {{- if .Values.statefulset.ports }}
+        ports:
+{{ toYaml .Values.statefulset.ports | indent 10 }}
+        {{- end }}
+        {{- if .Values.statefulset.envFrom }}
+        envFrom:
+        {{- range $value := .Values.statefulset.envFrom }}
+        {{- if (eq .type "configmap") }}
+        - configMapRef:
+            {{- if .name }}
+            name: {{ include "application.tplvalues.render" ( dict "value" $value.name "context" $ ) }}
+            {{- else if .nameSuffix }}
+            name: {{ template "application.name" $ }}-{{ include "application.tplvalues.render" ( dict "value" $value.nameSuffix "context" $ ) }}
+            {{- else }}
+            name: {{ template "application.name" $ }}
+            {{- end }}
+            optional: {{ default false $value.optional }}
+        {{- end }}
+        {{- if (eq .type "secret") }}
+        - secretRef:
+            {{- if .name }}
+            name: {{ include "application.tplvalues.render" ( dict "value" $value.name "context" $ ) }}
+            {{- else if .nameSuffix }}
+            name: {{ template "application.name" $ }}-{{ include "application.tplvalues.render" ( dict "value" $value.nameSuffix "context" $ ) }}
+            {{- else }}
+            name: {{ template "application.name" $ }}
+            {{- end }}
+            optional: {{ default false $value.optional }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.statefulset.env }}
+        env:
+        {{- range $key, $value := .Values.statefulset.env }}
+        - name: {{ include "application.tplvalues.render" ( dict "value" $key "context" $ ) }}
+{{ include "application.tplvalues.render" ( dict "value" $value "context" $ ) | indent 10 }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.statefulset.startupProbe.enabled }}
+        startupProbe:
+          failureThreshold: {{ .Values.statefulset.startupProbe.failureThreshold }}
+          periodSeconds: {{ .Values.statefulset.startupProbe.periodSeconds }}
+          successThreshold: {{ .Values.statefulset.startupProbe.successThreshold }}
+          timeoutSeconds: {{ .Values.statefulset.startupProbe.timeoutSeconds }}
+          initialDelaySeconds: {{ .Values.statefulset.startupProbe.initialDelaySeconds }}
+          {{- if .Values.statefulset.startupProbe.exec }}
+          exec:
+            {{- toYaml .Values.statefulset.startupProbe.exec | nindent 12 }}
+          {{- else if .Values.statefulset.startupProbe.httpGet }}
+          httpGet:
+            {{- toYaml .Values.statefulset.startupProbe.httpGet | nindent 12 }}
+          {{- else if .Values.statefulset.startupProbe.tcpSocket }}
+          tcpSocket:
+            {{- toYaml .Values.statefulset.startupProbe.tcpSocket | nindent 12 }}
+          {{- else if .Values.statefulset.startupProbe.grpc }}
+          grpc:
+            {{- toYaml .Values.statefulset.startupProbe.grpc | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.statefulset.livenessProbe.enabled }}
+        livenessProbe:
+          failureThreshold: {{ .Values.statefulset.livenessProbe.failureThreshold }}
+          periodSeconds: {{ .Values.statefulset.livenessProbe.periodSeconds }}
+          successThreshold: {{ .Values.statefulset.livenessProbe.successThreshold }}
+          timeoutSeconds: {{ .Values.statefulset.livenessProbe.timeoutSeconds }}
+          initialDelaySeconds: {{ .Values.statefulset.livenessProbe.initialDelaySeconds }}
+          {{- if .Values.statefulset.livenessProbe.exec }}
+          exec:
+            {{- toYaml .Values.statefulset.livenessProbe.exec | nindent 12 }}
+          {{- else if .Values.statefulset.livenessProbe.httpGet }}
+          httpGet:
+            {{- toYaml .Values.statefulset.livenessProbe.httpGet | nindent 12 }}
+          {{- else if .Values.statefulset.livenessProbe.tcpSocket }}
+          tcpSocket:
+            {{- toYaml .Values.statefulset.livenessProbe.tcpSocket | nindent 12 }}
+          {{- else if .Values.statefulset.livenessProbe.grpc }}
+          grpc:
+            {{- toYaml .Values.statefulset.livenessProbe.grpc | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.statefulset.readinessProbe.enabled }}
+        readinessProbe:
+          failureThreshold: {{ .Values.statefulset.readinessProbe.failureThreshold }}
+          periodSeconds: {{ .Values.statefulset.readinessProbe.periodSeconds }}
+          successThreshold: {{ .Values.statefulset.readinessProbe.successThreshold }}
+          timeoutSeconds: {{ .Values.statefulset.readinessProbe.timeoutSeconds }}
+          initialDelaySeconds: {{ .Values.statefulset.readinessProbe.initialDelaySeconds }}
+          {{- if .Values.statefulset.readinessProbe.exec }}
+          exec:
+            {{- toYaml .Values.statefulset.readinessProbe.exec | nindent 12 }}
+          {{- else if .Values.statefulset.readinessProbe.httpGet }}
+          httpGet:
+            {{- toYaml .Values.statefulset.readinessProbe.httpGet | nindent 12 }}
+          {{- else if .Values.statefulset.readinessProbe.tcpSocket }}
+          tcpSocket:
+            {{- toYaml .Values.statefulset.readinessProbe.tcpSocket | nindent 12 }}
+          {{- else if .Values.statefulset.readinessProbe.grpc }}
+          grpc:
+            {{- toYaml .Values.statefulset.readinessProbe.grpc | nindent 12 }}
+          {{- end }}
+        {{- end }}
+      {{- if or (.Values.statefulset.volumeMounts) (.Values.statefulset.volumeClaimTemplates) }}
+        volumeMounts:
+        {{- if .Values.statefulset.volumeClaimTemplates }}
+        {{- range $pvc := .Values.statefulset.volumeClaimTemplates }}
+        - name: {{ $pvc.metadata.name }}
+          mountPath: {{ $pvc.mountPath | default "/data" }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.statefulset.volumeMounts }}
+        {{- range $key, $value := .Values.statefulset.volumeMounts }}
+        - name: {{ $key }}
+{{  include "application.tplvalues.render" ( dict "value" $value "context" $ ) | indent 10 }}
+        {{- end }}
+        {{- end }}
+      {{- end }}
+        {{- with .Values.statefulset.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- if .Values.statefulset.containerSecurityContext }}
+        securityContext:
+{{ toYaml .Values.statefulset.containerSecurityContext | indent 10 }}
+        {{- end }}
+        {{- if .Values.statefulset.additionalContainers }}
+{{ toYaml .Values.statefulset.additionalContainers | indent 6 }}
+        {{- end }}
+        {{- if .Values.statefulset.securityContext }}
+      securityContext:
+{{ toYaml .Values.statefulset.securityContext | indent 8 }}
+          {{- end }}
+      {{- if .Values.statefulset.dnsConfig }}
+      dnsConfig:
+{{ toYaml .Values.statefulset.dnsConfig | indent 8 }}
+          {{- end }}
+      {{- if .Values.statefulset.dnsPolicy }}
+      dnsPolicy: {{ .Values.statefulset.dnsPolicy }}
+      {{- end }}
+      {{- if .Values.statefulset.volumes }}
+      volumes:
+        {{- range $key, $value := .Values.statefulset.volumes }}
+      - name: {{ $key }}
+{{ include "application.tplvalues.render" ( dict "value" $value "context" $ ) | indent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.rbac.serviceAccount.enabled }}
+      {{- if .Values.rbac.serviceAccount.name }}
+      serviceAccountName: {{ .Values.rbac.serviceAccount.name }}
+      {{- else }}
+      serviceAccountName: {{ template "application.name" $ }}
+      {{- end }}
+      {{- end }}
+      {{- if .Values.statefulset.hostNetwork }}
+      hostNetwork: {{ .Values.statefulset.hostNetwork }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.statefulset.terminationGracePeriodSeconds | default 30 }}
+  {{- if .Values.statefulset.volumeClaimTemplates }}
+  volumeClaimTemplates:
+  {{- range $pvc := .Values.statefulset.volumeClaimTemplates }}
+  - metadata:
+      name: {{ $pvc.metadata.name }}
+      {{- if $pvc.metadata.labels }}
+      labels:
+{{ toYaml $pvc.metadata.labels | indent 8 }}
+      {{- end }}
+      {{- if $pvc.metadata.annotations }}
+      annotations:
+{{ toYaml $pvc.metadata.annotations | indent 8 }}
+      {{- end }}
+    spec:
+      accessModes:
+{{ toYaml $pvc.spec.accessModes | indent 8 }}
+      {{- if $pvc.spec.storageClassName }}
+      storageClassName: {{ $pvc.spec.storageClassName }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ $pvc.spec.resources.requests.storage }}
+      {{- if $pvc.spec.selector }}
+      selector:
+{{ toYaml $pvc.spec.selector | indent 8 }}
+      {{- end }}
+  {{- end }}
+  {{- end }}
+{{- end }}
