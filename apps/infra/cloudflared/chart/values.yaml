@@ -1,0 +1,44 @@
+# Values cho chart standalone-app - Cloudflared Tunnel
+applicationName: cloudflared
+
+deployment:
+  enabled: true
+  replicas: 2
+  image:
+    repository: cloudflare/cloudflared
+    tag: "2024.12.2"
+    pullPolicy: IfNotPresent
+  # Cloudflared không cần expose port
+  ports: []
+  # Args cho tunnel
+  args:
+    - tunnel
+    - --no-autoupdate
+    - run
+    - --token
+    - $(TUNNEL_TOKEN)
+  # Load env từ secret
+  envFrom:
+    - type: secret
+      name: cloudflared-credentials
+  
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+
+persistence:
+  enabled: false
+
+service:
+  enabled: false
+
+ingress:
+  enabled: false
