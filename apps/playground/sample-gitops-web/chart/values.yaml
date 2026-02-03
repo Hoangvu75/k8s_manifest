@@ -47,6 +47,11 @@ deployment:
 persistence:
   enabled: false
 
+rbac:
+  serviceAccount:
+    enabled: true
+    name: sample-gitops-web
+
 service:
   enabled: true
   type: ClusterIP
