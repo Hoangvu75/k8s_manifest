@@ -1,8 +1,0 @@
-# Giống công ty: namespace + resources chart (chart/kustomization.yaml có helmCharts)
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namespace: sample-gitops-web
-
-resources:
-  - chart

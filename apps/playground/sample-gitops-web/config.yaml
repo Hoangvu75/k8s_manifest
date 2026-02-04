@@ -1,9 +1,0 @@
-# Metadata cho Argo CD (optional)
-# appName: sample-gitops-web
-# destNamespace: sample-gitops-web
-# repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-# srcPath: apps/playground/sample-gitops-web
-
-# ArgoCD Notifications - subscribe to triggers
-annotations:
-  notifications.argoproj.io/subscribe.on-sync-succeeded.n8n: ""
