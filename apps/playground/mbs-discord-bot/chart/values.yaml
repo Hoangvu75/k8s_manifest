@@ -6,31 +6,13 @@ deployment:
   replicas: 1
   image:
     repository: harbor.hoangvu75.space/library/mbs-discord-bot
-    tag: "face064"
+    tag: "e4aa01e"
     pullPolicy: Always
   # Discord bot không cần expose port (outbound only)
   ports: []
-  env:
-    BOT_TOKEN:
-      valueFrom:
-        secretKeyRef:
-          name: mbs-discord-bot-secret
-          key: BOT_TOKEN
-    CLIENT_ID:
-      valueFrom:
-        secretKeyRef:
-          name: mbs-discord-bot-secret
-          key: CLIENT_ID
-    N8N_WEBHOOK_URL:
-      valueFrom:
-        secretKeyRef:
-          name: mbs-discord-bot-secret
-          key: N8N_WEBHOOK_URL
-    GEMINI_API_KEY:
-      valueFrom:
-        secretKeyRef:
-          name: mbs-discord-bot-secret
-          key: GEMINI_API_KEY
+  envFrom:
+    - type: secret
+      name: mbs-discord-bot-secret
   
   containerSecurityContext:
     readOnlyRootFilesystem: false

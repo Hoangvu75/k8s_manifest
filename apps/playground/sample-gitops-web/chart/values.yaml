@@ -6,7 +6,7 @@ deployment:
   replicas: 1
   image:
     repository: harbor.hoangvu75.space/library/sample_gitops_web
-    tag: "a5f3703"
+    tag: "b3e327f"
     pullPolicy: IfNotPresent
   ports:
     - containerPort: 3000
@@ -46,6 +46,11 @@ deployment:
 
 persistence:
   enabled: false
+
+rbac:
+  serviceAccount:
+    enabled: true
+    name: sample-gitops-web
 
 service:
   enabled: true
