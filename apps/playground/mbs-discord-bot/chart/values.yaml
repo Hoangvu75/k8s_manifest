@@ -6,7 +6,7 @@ deployment:
   replicas: 1
   image:
     repository: harbor.hoangvu75.space/library/mbs-discord-bot
-    tag: "f1f3b61"
+    tag: "a7c652b"
     pullPolicy: Always
   # Discord bot không cần expose port (outbound only)
   ports: []
