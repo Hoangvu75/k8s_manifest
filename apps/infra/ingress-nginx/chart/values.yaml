@@ -5,5 +5,21 @@ controller:
     loadBalancerIP: 192.168.56.200
   config:
     use-forwarded-headers: "true"
+    # Performance: nén gzip giảm payload (HTML/CSS/JS thường giảm 60-80%)
+    use-gzip: "true"
+    gzip-level: "5"
+    gzip-min-length: "256"
+    # Proxy buffer: giúp backends chậm (Jenkins, n8n) không block client
+    proxy-buffering: "on"
+    proxy-buffer-size: "8k"
+    proxy-buffers-number: "8"
+    proxy-busy-buffers-size: "16k"
+    # Upstream keepalive: tái sử dụng kết nối tới backend
+    upstream-keepalive-connections: "320"
+    upstream-keepalive-time: "1h"
+    upstream-keepalive-requests: "10000"
+    # Client keepalive: giảm overhead tạo connection mới
+    keep-alive: "75"
+    keep-alive-requests: "10000"
   metrics:
     enabled: true
