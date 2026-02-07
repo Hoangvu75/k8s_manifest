@@ -58,9 +58,6 @@ spec:
         kustomize:
           buildOptions: "--enable-helm"
       syncPolicy:
-        {{- if eq (index .path.segments 2) "mbs-discord-bot" }}
-        {}
-        {{- else }}
         automated:
           allowEmpty: true
           prune: true
@@ -73,7 +70,6 @@ spec:
             maxDuration: 20s
         # syncOptions:
         # - CreateNamespace=true
-        {{- end }}
   templatePatch: |
     metadata:
       labels:
