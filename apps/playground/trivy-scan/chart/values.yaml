@@ -1,5 +1,5 @@
-# Trivy K8s manifest scan service - Scan all playground apps, post to Discord
-# Cấu trúc theo helm_application: rbac.serviceAccount + extraObjects (ClusterRole)
+# Trivy K8s scan - chỉ chạy CronJob (scan cluster), không Deployment.
+# Trigger tay: kubectl create job trivy-scan-manual-1 --from=cronjob/scan -n trivy-scan
 applicationName: trivy-scan
 
 rbac:
@@ -7,126 +7,52 @@ rbac:
   serviceAccount:
     enabled: true
     name: trivy-scan
-  # ClusterRole dùng extraObjects bên dưới (chart chỉ có Role namespaced)
 
-# ClusterRole + ClusterRoleBinding cho trivy k8s (scan cluster) — đưa vào chart qua extraObjects
-extraObjects:
-  - |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: ClusterRole
-    metadata:
-      name: trivy-scan-cluster-reader
-    rules:
-      - apiGroups: [""]
-        resources: ["*"]
-        verbs: ["list", "get"]
-      # Trivy k8s (with node info) cần create/delete namespaces tạm
-      - apiGroups: [""]
-        resources: ["namespaces"]
-        verbs: ["list", "get", "create", "delete"]
-      # Node-collector job chạy trong trivy-temp namespace: cần tạo/xóa pods + watch events
-      - apiGroups: [""]
-        resources: ["pods", "pods/log"]
-        verbs: ["list", "get", "create", "delete", "watch"]
-      - apiGroups: [""]
-        resources: ["events"]
-        verbs: ["list", "get", "watch"]
-      - apiGroups: ["apps"]
-        resources: ["*"]
-        verbs: ["list", "get"]
-      # Trivy chạy node-collector Job trong namespace trivy-temp
-      - apiGroups: ["batch"]
-        resources: ["jobs"]
-        verbs: ["list", "get", "create", "delete", "watch"]
-      - apiGroups: ["batch"]
-        resources: ["cronjobs"]
-        verbs: ["list", "get"]
-      - apiGroups: ["networking.k8s.io"]
-        resources: ["*"]
-        verbs: ["list", "get"]
-      - apiGroups: ["rbac.authorization.k8s.io"]
-        resources: ["*"]
-        verbs: ["list", "get"]
-      - apiGroups: ["admissionregistration.k8s.io"]
-        resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
-        verbs: ["list", "get"]
-  - |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: ClusterRoleBinding
-    metadata:
-      name: trivy-scan-cluster-reader
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: ClusterRole
-      name: trivy-scan-cluster-reader
-    subjects:
-      - kind: ServiceAccount
-        name: trivy-scan
-        namespace: {{ .Release.Namespace }}
+# CronJob theo template helm_application
+cronJob:
+  enabled: true
+  jobs:
+    scan:
+      schedule: "0 2 * * *"
+      concurrencyPolicy: Forbid
+      successfulJobsHistoryLimit: 1
+      failedJobsHistoryLimit: 2
+      backoffLimit: 0
+      image:
+        repository: harbor.hoangvu75.space/library/trivy-scan
+        tag: "5b85e19"
+        imagePullPolicy: Always
+      command: ["python3", "/app/app.py", "cron"]
+      envFrom:
+        - secretRef:
+            name: trivy-scan-secret
+      env:
+        TRIVY_CACHE_DIR:
+          value: "/tmp/trivy-cache"
+        XDG_CACHE_HOME:
+          value: "/tmp/trivy-cache"
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
 
 deployment:
-  enabled: true
-  replicas: 1
-  image:
-    repository: harbor.hoangvu75.space/library/trivy-scan
-    tag: "5b85e19"
-    pullPolicy: Always
-  ports:
-    - containerPort: 8080
-      name: http
-  envFrom:
-    - type: secret
-      name: trivy-scan-secret
-  containerSecurityContext:
-    runAsNonRoot: false
-  env:
-    PORT:
-      value: "8080"
-    # Trivy cần thư mục ghi được cho cache/checks (container read-only root)
-    TRIVY_CACHE_DIR:
-      value: "/tmp/trivy-cache"
-    XDG_CACHE_HOME:
-      value: "/tmp/trivy-cache"
-  livenessProbe:
-    enabled: true
-    httpGet:
-      path: /health
-      port: 8080
-      scheme: HTTP
-    initialDelaySeconds: 10
-    periodSeconds: 10
-  readinessProbe:
-    enabled: true
-    httpGet:
-      path: /health
-      port: 8080
-      scheme: HTTP
-    initialDelaySeconds: 5
-    periodSeconds: 5
-  resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-    requests:
-      cpu: 100m
-      memory: 256Mi
-  # Thư mục tạm để scan (clone repo, trivy) - tránh FileNotFoundError: No usable temporary directory
-  volumes:
-    tmp:
-      emptyDir: {}
-  volumeMounts:
-    tmp:
-      mountPath: /tmp
+  enabled: false
 
 persistence:
   enabled: false
 
 service:
-  enabled: true
-  ports:
-    - port: 80
-      targetPort: 8080
-      name: http
+  enabled: false
 
 ingress:
   enabled: false
