@@ -22,12 +22,13 @@ cronJob:
         repository: harbor.hoangvu75.space/library/trivy-scan
         tag: "5b85e19"
         imagePullPolicy: Always
-      command: ["python3"]
-      args: ["/app/app.py", "cron"]
+      # Không override command/args: dùng CMD mặc định (python3 /app/app.py). Env TRIVY_CRON=1 khiến app chạy scan rồi thoát.
       envFrom:
         - secretRef:
             name: trivy-scan-secret
       env:
+        TRIVY_CRON:
+          value: "1"
         TRIVY_CACHE_DIR:
           value: "/tmp/trivy-cache"
         XDG_CACHE_HOME:
