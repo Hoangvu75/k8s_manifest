@@ -15,7 +15,7 @@ deployment:
     - type: secret
       name: trivy-scan-secret
   env:
-    - name: PORT
+    PORT:
       value: "8080"
   livenessProbe:
     enabled: true
