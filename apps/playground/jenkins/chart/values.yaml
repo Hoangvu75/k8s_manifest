@@ -3,7 +3,7 @@ applicationName: jenkins
 
 deployment:
   enabled: true
-  replicas: 2
+  replicas: 1
   image:
     repository: docker.io/jenkins/jenkins
     tag: lts
