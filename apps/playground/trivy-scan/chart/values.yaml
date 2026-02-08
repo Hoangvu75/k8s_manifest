@@ -1,0 +1,49 @@
+# Trivy K8s manifest scan service - Scan all playground apps, post to Discord
+applicationName: trivy-scan
+
+deployment:
+  enabled: true
+  replicas: 1
+  image:
+    repository: harbor.hoangvu75.space/library/trivy-scan
+    tag: "latest"
+    pullPolicy: Always
+  ports:
+    - containerPort: 8080
+      name: http
+  envFrom:
+    - type: secret
+      name: trivy-scan-secret
+  env:
+    - name: PORT
+      value: "8080"
+  livenessProbe:
+    enabled: true
+    path: /health
+    port: 8080
+    scheme: HTTP
+  readinessProbe:
+    enabled: true
+    path: /health
+    port: 8080
+    scheme: HTTP
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+persistence:
+  enabled: false
+
+service:
+  enabled: true
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+
+ingress:
+  enabled: false
