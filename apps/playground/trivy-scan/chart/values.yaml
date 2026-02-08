@@ -29,9 +29,7 @@ cronJob:
       env:
         TRIVY_CRON:
           value: "1"
-        # Chỉ quét misconfig (bỏ qua image) — tránh stuck do image digest lỗi (Harbor) và chạy nhanh ~1–2 phút
-        TRIVY_SKIP_IMAGES:
-          value: "1"
+        # Không set TRIVY_SKIP_IMAGES → quét đầy đủ (misconfig + vuln image). Xem log trong pod.
         TRIVY_CACHE_DIR:
           value: "/tmp/trivy-cache"
         XDG_CACHE_HOME:
@@ -44,11 +42,11 @@ cronJob:
           emptyDir: {}
       resources:
         requests:
-          cpu: 100m
-          memory: 256Mi
-        limits:
-          cpu: 500m
+          cpu: 200m
           memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
 
 deployment:
   enabled: false
