@@ -1,5 +1,53 @@
 # Trivy K8s manifest scan service - Scan all playground apps, post to Discord
+# Cấu trúc theo helm_application: rbac.serviceAccount + extraObjects (ClusterRole)
 applicationName: trivy-scan
+
+rbac:
+  enabled: true
+  serviceAccount:
+    enabled: true
+    name: trivy-scan
+  # ClusterRole dùng extraObjects bên dưới (chart chỉ có Role namespaced)
+
+# ClusterRole + ClusterRoleBinding cho trivy k8s (scan cluster) — đưa vào chart qua extraObjects
+extraObjects:
+  - |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: trivy-scan-cluster-reader
+    rules:
+      - apiGroups: [""]
+        resources: ["*"]
+        verbs: ["list", "get"]
+      - apiGroups: ["apps"]
+        resources: ["*"]
+        verbs: ["list", "get"]
+      - apiGroups: ["batch"]
+        resources: ["*"]
+        verbs: ["list", "get"]
+      - apiGroups: ["networking.k8s.io"]
+        resources: ["*"]
+        verbs: ["list", "get"]
+      - apiGroups: ["rbac.authorization.k8s.io"]
+        resources: ["*"]
+        verbs: ["list", "get"]
+      - apiGroups: ["admissionregistration.k8s.io"]
+        resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
+        verbs: ["list", "get"]
+  - |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: trivy-scan-cluster-reader
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: trivy-scan-cluster-reader
+    subjects:
+      - kind: ServiceAccount
+        name: trivy-scan
+        namespace: {{ .Release.Namespace }}
 
 deployment:
   enabled: true

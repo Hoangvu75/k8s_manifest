@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - sealed-secret.yaml
-  
+
 helmCharts:
 - name: helm-application
   repo: oci://registry-1.docker.io/hoangvu753
