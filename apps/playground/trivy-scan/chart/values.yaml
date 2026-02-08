@@ -19,14 +19,20 @@ deployment:
       value: "8080"
   livenessProbe:
     enabled: true
-    path: /health
-    port: 8080
-    scheme: HTTP
+    httpGet:
+      path: /health
+      port: 8080
+      scheme: HTTP
+    initialDelaySeconds: 10
+    periodSeconds: 10
   readinessProbe:
     enabled: true
-    path: /health
-    port: 8080
-    scheme: HTTP
+    httpGet:
+      path: /health
+      port: 8080
+      scheme: HTTP
+    initialDelaySeconds: 5
+    periodSeconds: 5
   resources:
     limits:
       cpu: 500m
