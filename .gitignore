@@ -1,3 +1,5 @@
-﻿apps/playground/mbs-discord-bot/chart/secret.yaml
+apps/playground/mbs-discord-bot/chart/secret.yaml
 apps/infra/cloudflared/chart/secret.yaml
 apps/playground/trivy-scan/chart/secret.yaml
+apps/playground/argocd/chart/dockerhub-repo-secret.yaml
+apps/playground/argocd/chart/secret.yaml

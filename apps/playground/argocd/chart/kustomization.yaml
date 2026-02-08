@@ -6,3 +6,4 @@ resources:
   - ingress.yaml
   - notifications-cm.yaml
   - notifications-secret.yaml
+  - sealed-secret.yaml
