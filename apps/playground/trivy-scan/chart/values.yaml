@@ -24,10 +24,13 @@ extraObjects:
       - apiGroups: [""]
         resources: ["namespaces"]
         verbs: ["list", "get", "create", "delete"]
-      # Node-collector job chạy trong trivy-temp namespace: cần tạo/xóa pods
+      # Node-collector job chạy trong trivy-temp namespace: cần tạo/xóa pods + watch events
       - apiGroups: [""]
         resources: ["pods", "pods/log"]
         verbs: ["list", "get", "create", "delete", "watch"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["list", "get", "watch"]
       - apiGroups: ["apps"]
         resources: ["*"]
         verbs: ["list", "get"]
