@@ -29,6 +29,9 @@ cronJob:
       env:
         TRIVY_CRON:
           value: "1"
+        # Chỉ quét misconfig (bỏ qua image) — tránh stuck do image digest lỗi (Harbor) và chạy nhanh ~1–2 phút
+        TRIVY_SKIP_IMAGES:
+          value: "1"
         TRIVY_CACHE_DIR:
           value: "/tmp/trivy-cache"
         XDG_CACHE_HOME:
