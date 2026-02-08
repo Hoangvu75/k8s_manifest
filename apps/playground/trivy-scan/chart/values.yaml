@@ -20,7 +20,7 @@ cronJob:
       backoffLimit: 0
       image:
         repository: harbor.hoangvu75.space/library/trivy-scan
-        tag: "bee4668"
+        tag: "86f005d"
         imagePullPolicy: Always
       # Không override command/args: dùng CMD mặc định (python3 /app/app.py). Env TRIVY_CRON=1 khiến app chạy scan rồi thoát.
       envFrom:
