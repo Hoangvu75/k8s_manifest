@@ -42,6 +42,13 @@ deployment:
     requests:
       cpu: 100m
       memory: 256Mi
+  # Thư mục tạm để scan (clone repo, trivy) - tránh FileNotFoundError: No usable temporary directory
+  volumes:
+    tmp:
+      emptyDir: {}
+  volumeMounts:
+    tmp:
+      mountPath: /tmp
 
 persistence:
   enabled: false
