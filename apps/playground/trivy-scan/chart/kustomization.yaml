@@ -6,8 +6,6 @@ resources:
   - clusterrole.yaml
   - clusterrolebinding.yaml
   - networkpolicy-egress.yaml
-  # Deployment test misconfig (Trivy sẽ báo) — xóa khi không cần test nữa
-  - trivy-test-misconfig.yaml
 
 helmCharts:
 - name: helm-application
