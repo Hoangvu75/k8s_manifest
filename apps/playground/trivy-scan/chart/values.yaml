@@ -6,7 +6,7 @@ deployment:
   replicas: 1
   image:
     repository: harbor.hoangvu75.space/library/trivy-scan
-    tag: "51b96c0"
+    tag: "fddf0af"
     pullPolicy: Always
   ports:
     - containerPort: 8080
