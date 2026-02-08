@@ -22,7 +22,8 @@ cronJob:
         repository: harbor.hoangvu75.space/library/trivy-scan
         tag: "5b85e19"
         imagePullPolicy: Always
-      command: ["python3", "/app/app.py", "cron"]
+      command: ["python3"]
+      args: ["/app/app.py", "cron"]
       envFrom:
         - secretRef:
             name: trivy-scan-secret
