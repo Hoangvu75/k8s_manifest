@@ -1,0 +1,8 @@
+# Metadata cho Argo CD
+# appName: trivy-operator
+# destNamespace: trivy-system
+
+# ArgoCD Notifications
+annotations:
+  notifications.argoproj.io/subscribe.on-sync-succeeded.n8n: ""
+

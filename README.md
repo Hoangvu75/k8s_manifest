@@ -44,7 +44,6 @@ K8s manifest repository (GitOps), synced to the cluster using **Argo CD**. Git i
 | harbor | harbor.localhost | harbor.hoangvu75.space |
 | jenkins | jenkins.localhost | jenkins.hoangvu75.space |
 | n8n | n8n.localhost | n8n.hoangvu75.space |
-| sample-gitops-web | - | - |
 
 ### infra (3 apps)
 | App | Host (LAN) | Public URL |

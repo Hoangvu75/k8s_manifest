@@ -1,0 +1,12 @@
+# Trivy Operator — Helm chart chính thức: https://aquasecurity.github.io/helm-charts
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+  - name: trivy-operator
+    repo: https://aquasecurity.github.io/helm-charts/
+    version: "0.10.1"
+    releaseName: trivy-operator
+    namespace: trivy-system
+    valuesFile: values.yaml
+

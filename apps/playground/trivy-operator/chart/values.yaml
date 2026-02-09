@@ -1,0 +1,7 @@
+# Trivy Operator — cấu hình tối thiểu cho GitOps (Argo CD + Kustomize + Helm)
+# Tham khảo: `https://trivy.dev/docs/latest/tutorials/kubernetes/gitops/`
+
+trivy:
+  # Bỏ qua các lỗ hổng chưa có bản vá để giảm noise
+  ignoreUnfixed: true
+
