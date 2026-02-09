@@ -84,10 +84,3 @@ metadata:
   name: mbs-discord-bot
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: trivy-scan
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
