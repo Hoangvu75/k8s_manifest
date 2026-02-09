@@ -2,6 +2,8 @@
 # Namespace sẽ được tạo tự động bởi Helm charts
 
 # ArgoCD sync options
-# SkipDryRunOnMissingResource: Bỏ qua dry-run validation khi CRDs chưa có (CRDs đã được cài trong cluster-resources)
+# SkipDryRunOnMissingResource: Bỏ qua dry-run validation khi CRDs chưa có
+# ServerSideApply: Sử dụng server-side apply để tránh conflicts
+# SkipSchemaValidation: Bỏ qua schema validation (CRDs đã được cài trong cluster-resources)
 annotations:
-  argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true,ServerSideApply=true

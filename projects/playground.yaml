@@ -68,8 +68,9 @@ spec:
             duration: 20s
             factor: 1
             maxDuration: 20s
-        # syncOptions:
-        # - CreateNamespace=true
+        syncOptions:
+          - CreateNamespace=true
+          - SkipDryRunOnMissingResource=true
   templatePatch: |
     metadata:
       labels:
@@ -81,4 +82,8 @@ spec:
         {{- range $key, $value := .annotations }}
         {{ $key }}: {{ $value | quote }}
         {{- end }}
-  syncPolicy: {}
+    spec:
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - SkipDryRunOnMissingResource=true
