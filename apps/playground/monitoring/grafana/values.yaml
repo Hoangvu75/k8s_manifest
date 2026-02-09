@@ -25,7 +25,7 @@ resources:
     memory: 512Mi
     cpu: 500m
 
-# Dashboard providers — để import dashboards từ ConfigMaps
+# Dashboard providers — để import dashboards từ ConfigMaps hoặc Grafana.com
 dashboardProviders:
   dashboardproviders.yaml:
     apiVersion: 1
@@ -36,19 +36,28 @@ dashboardProviders:
       type: file
       disableDeletion: false
       editable: true
+      updateIntervalSeconds: 10
       options:
         path: /var/lib/grafana/dashboards/default
 
-# Dashboards — tự động load dashboards từ ConfigMaps
+# Dashboards — tự động import từ Grafana.com
+# Grafana Helm chart sẽ tự động download dashboard từ:
+# https://grafana.com/api/dashboards/{gnetId}/revisions/{revision}/download
+# và tạo ConfigMap, sau đó sidecar container sẽ import vào Grafana
 dashboards:
   default:
     # Trivy Operator Dashboard từ Grafana.com
+    # Dashboard ID: 17813 - https://grafana.com/grafana/dashboards/17813
+    # Hoặc có thể dùng ID: 18831
     trivy-operator:
       gnetId: 17813
       revision: 1
       datasource: Prometheus
+      # Folder để tổ chức dashboards (optional)
+      folder: "Security"
 
 # Datasources — cấu hình Prometheus làm datasource mặc định
+# Service name của Prometheus từ kube-prometheus-stack chart
 datasources:
   datasources.yaml:
     apiVersion: 1
@@ -56,7 +65,10 @@ datasources:
     - name: Prometheus
       type: prometheus
       access: proxy
-      url: http://prometheus-server.monitoring.svc.cluster.local:80
+      # Service name của Prometheus từ kube-prometheus-stack
+      # Format: {release-name}-kube-p-prometheus
+      # Release name: prometheus-operator → Service: prometheus-operator-kube-p-prometheus
+      url: http://prometheus-operator-kube-p-prometheus.monitoring.svc.cluster.local:9090
       isDefault: true
       editable: true
 

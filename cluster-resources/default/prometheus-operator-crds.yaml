@@ -1,0 +1,172 @@
+# Prometheus Operator CRDs — phải được cài đặt trước khi deploy Prometheus Operator
+# Sync-wave -2 để tạo trước namespace và các resources khác
+# CRDs từ: https://github.com/prometheus-operator/prometheus-operator
+# Sử dụng schema đơn giản với x-kubernetes-preserve-unknown-fields để tương thích với mọi version
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: alertmanagers.monitoring.coreos.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  group: monitoring.coreos.com
+  names:
+    kind: Alertmanager
+    listKind: AlertmanagerList
+    plural: alertmanagers
+    singular: alertmanager
+  scope: Namespaced
+  versions:
+  - name: v0
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: podmonitors.monitoring.coreos.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  group: monitoring.coreos.com
+  names:
+    kind: PodMonitor
+    listKind: PodMonitorList
+    plural: podmonitors
+    singular: podmonitor
+  scope: Namespaced
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: probes.monitoring.coreos.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  group: monitoring.coreos.com
+  names:
+    kind: Probe
+    listKind: ProbeList
+    plural: probes
+    singular: probe
+  scope: Namespaced
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: prometheuses.monitoring.coreos.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  group: monitoring.coreos.com
+  names:
+    kind: Prometheus
+    listKind: PrometheusList
+    plural: prometheuses
+    singular: prometheus
+  scope: Namespaced
+  versions:
+  - name: v0
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: prometheusrules.monitoring.coreos.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  group: monitoring.coreos.com
+  names:
+    kind: PrometheusRule
+    listKind: PrometheusRuleList
+    plural: prometheusrules
+    singular: prometheusrule
+  scope: Namespaced
+  versions:
+  - name: v0
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: servicemonitors.monitoring.coreos.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  group: monitoring.coreos.com
+  names:
+    kind: ServiceMonitor
+    listKind: ServiceMonitorList
+    plural: servicemonitors
+    singular: servicemonitor
+  scope: Namespaced
+  versions:
+  - name: v0
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: thanosrulers.monitoring.coreos.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  group: monitoring.coreos.com
+  names:
+    kind: ThanosRuler
+    listKind: ThanosRulerList
+    plural: thanosrulers
+    singular: thanosruler
+  scope: Namespaced
+  versions:
+  - name: v0
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
