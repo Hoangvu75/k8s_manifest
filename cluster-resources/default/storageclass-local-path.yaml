@@ -1,0 +1,14 @@
+# StorageClass local-path — alias cho hostpath
+# Nhiều Helm charts yêu cầu StorageClass tên "local-path"
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-path
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: rancher.io/local-path
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+allowVolumeExpansion: false

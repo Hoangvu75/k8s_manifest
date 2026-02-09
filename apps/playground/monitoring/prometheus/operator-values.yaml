@@ -34,7 +34,7 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: local-path
+          storageClassName: local-path  # StorageClass sẽ được tạo trong cluster-resources
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:

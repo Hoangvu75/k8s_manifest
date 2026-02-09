@@ -14,7 +14,7 @@ service:
 persistence:
   enabled: true
   size: 10Gi
-  storageClassName: local-path
+  storageClassName: local-path  # StorageClass sẽ được tạo trong cluster-resources
 
 # Resources
 resources:
