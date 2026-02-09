@@ -1,2 +1,7 @@
 # Monitoring Stack — Prometheus + Grafana (riêng biệt)
 # Namespace sẽ được tạo tự động bởi Helm charts
+
+# ArgoCD sync options
+# SkipDryRunOnMissingResource: Bỏ qua dry-run validation khi CRDs chưa có (CRDs đã được cài trong cluster-resources)
+annotations:
+  argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
