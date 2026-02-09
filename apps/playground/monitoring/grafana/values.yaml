@@ -1,0 +1,65 @@
+# Grafana — cấu hình cho GitOps (Argo CD + Kustomize + Helm)
+# Chart: grafana/grafana
+
+# Admin credentials — nên dùng Sealed Secrets trong production
+adminUser: admin
+adminPassword: prom-operator
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+
+# Persistence — lưu dashboards và datasources
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClassName: local-path
+
+# Resources
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
+    cpu: 500m
+
+# Dashboard providers — để import dashboards từ ConfigMaps
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      editable: true
+      options:
+        path: /var/lib/grafana/dashboards/default
+
+# Dashboards — tự động load dashboards từ ConfigMaps
+dashboards:
+  default:
+    # Trivy Operator Dashboard từ Grafana.com
+    trivy-operator:
+      gnetId: 17813
+      revision: 1
+      datasource: Prometheus
+
+# Datasources — cấu hình Prometheus làm datasource mặc định
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus-server.monitoring.svc.cluster.local:80
+      isDefault: true
+      editable: true
+
+# Ingress
+ingress:
+  enabled: false  # Sẽ tạo riêng bằng ingress-grafana.yaml

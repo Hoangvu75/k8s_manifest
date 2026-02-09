@@ -1,0 +1,2 @@
+# Monitoring Stack — Prometheus + Grafana (riêng biệt)
+# Namespace sẽ được tạo tự động bởi Helm charts

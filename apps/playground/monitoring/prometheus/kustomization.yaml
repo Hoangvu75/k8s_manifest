@@ -1,0 +1,18 @@
+# Prometheus Operator + Prometheus Server — Helm charts riêng biệt
+# Prometheus Operator: quản lý Prometheus instances và ServiceMonitors
+# Prometheus: server thực tế để scrape metrics
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+  # Prometheus Operator — quản lý Prometheus và ServiceMonitors
+  - name: kube-prometheus-stack
+    repo: https://prometheus-community.github.io/helm-charts
+    version: "58.0.0"
+    releaseName: prometheus-operator
+    namespace: monitoring
+    valuesFile: operator-values.yaml
+  
+  # Prometheus Server — được quản lý bởi Prometheus Operator
+  # Thực ra không cần install riêng vì kube-prometheus-stack đã bao gồm Prometheus
+  # Nhưng nếu muốn riêng thì có thể dùng prometheus-community/prometheus

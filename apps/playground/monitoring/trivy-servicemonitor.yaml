@@ -1,0 +1,21 @@
+# ServiceMonitor cho Trivy Operator
+# Prometheus sẽ tự động discover và scrape metrics từ Trivy Operator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: trivy-operator
+  namespace: trivy-system
+  labels:
+    app: trivy-operator
+    release: prometheus-operator  # Label này để Prometheus Operator selector match
+spec:
+  selector:
+    matchLabels:
+      app: trivy-operator
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics
+  namespaceSelector:
+    matchNames:
+      - trivy-system

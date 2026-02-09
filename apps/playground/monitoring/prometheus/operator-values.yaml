@@ -1,0 +1,66 @@
+# Prometheus Operator — chỉ cài Operator và Prometheus Server
+# Chart: prometheus-community/kube-prometheus-stack
+# Chỉ enable Prometheus Operator và Prometheus Server, không cài Grafana
+
+# Prometheus Operator
+prometheusOperator:
+  enabled: true
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+
+# Prometheus Server
+prometheus:
+  enabled: true
+  prometheusSpec:
+    # ServiceMonitor discovery — tự động discover ServiceMonitors từ các namespace
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    
+    # PodMonitor discovery
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+    
+    # Retention — giữ metrics trong 15 ngày
+    retention: 15d
+    
+    # Storage
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 50Gi
+    
+    # Resources
+    resources:
+      requests:
+        memory: 2Gi
+        cpu: 1000m
+      limits:
+        memory: 4Gi
+        cpu: 2000m
+
+# Không cài Grafana (sẽ cài riêng)
+grafana:
+  enabled: false
+
+# Không cài Alertmanager (tùy chọn)
+alertmanager:
+  enabled: false
+
+# Node Exporter
+nodeExporter:
+  enabled: true
+
+# Kube State Metrics
+kubeStateMetrics:
+  enabled: true

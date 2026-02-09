@@ -1,0 +1,12 @@
+# Grafana — Helm chart chính thức
+# Chart: https://github.com/grafana/helm-charts/tree/main/charts/grafana
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+  - name: grafana
+    repo: https://grafana.github.io/helm-charts
+    version: "7.3.7"
+    releaseName: grafana
+    namespace: monitoring
+    valuesFile: values.yaml
