@@ -1,0 +1,20 @@
+# Rancher Server — cấu hình tối thiểu cho playground
+# Helm chart: rancher (repo: https://releases.rancher.com/server-charts/latest)
+#
+# YÊU CẦU: cert-manager đã được cài (apps/playground/cert-manager)
+
+# Domain truy cập Rancher. Anh có thể chỉnh lại cho phù hợp.
+hostname: rancher.localhost
+
+# Mật khẩu admin ban đầu (user: admin).
+# NÊN đổi sau khi đăng nhập lần đầu.
+bootstrapPassword: "admin"
+
+# Số replica của Rancher server
+replicas: 1
+
+ingress:
+  tls:
+    # Dùng cert-manager + self-signed CA do Rancher tự quản lý
+    source: rancher
+
