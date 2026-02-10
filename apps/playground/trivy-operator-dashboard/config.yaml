@@ -1,0 +1,6 @@
+# Metadata cho Argo CD
+# appName: trivy-operator-dashboard
+# destNamespace: trivy-operator-dashboard
+# repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+# srcPath: apps/playground/trivy-operator-dashboard
+

@@ -1,0 +1,227 @@
+---
+# Source: trivy-operator-dashboard/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: release-name-trivy-operator-dashboard
+  labels:
+    helm.sh/chart: trivy-operator-dashboard-1.8.0
+    app.kubernetes.io/name: trivy-operator-dashboard
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.8.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: trivy-operator-dashboard/templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: release-name-trivy-operator-dashboard
+rules:
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["aquasecurity.github.io"]
+  resources: ["*"]
+  verbs: ["get", "watch", "list"]
+---
+# Source: trivy-operator-dashboard/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: release-name-trivy-operator-dashboard
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: release-name-trivy-operator-dashboard
+subjects:
+- kind: ServiceAccount
+  name: release-name-trivy-operator-dashboard
+  namespace: default
+---
+# Source: trivy-operator-dashboard/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-trivy-operator-dashboard
+  labels:
+    helm.sh/chart: trivy-operator-dashboard-1.8.0
+    app.kubernetes.io/name: trivy-operator-dashboard
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.8.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8900
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: trivy-operator-dashboard
+    app.kubernetes.io/instance: release-name
+---
+# Source: trivy-operator-dashboard/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: release-name-trivy-operator-dashboard
+  labels:
+    helm.sh/chart: trivy-operator-dashboard-1.8.0
+    app.kubernetes.io/name: trivy-operator-dashboard
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.8.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: trivy-operator-dashboard
+      app.kubernetes.io/instance: release-name
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: trivy-operator-dashboard-1.8.0
+        app.kubernetes.io/name: trivy-operator-dashboard
+        app.kubernetes.io/instance: release-name
+        app.kubernetes.io/version: "1.8.0"
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: web
+        app.kubernetes.io/part-of: trivy-operator
+    spec:
+      serviceAccountName: release-name-trivy-operator-dashboard
+      securityContext:
+        {}
+      containers:
+      - name: trivy-operator-dashboard
+        securityContext:
+          {}
+        image: "hoangvu753/trivy-operator-dashboard:1.0.0"
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MAINAPPPORT
+          value: "8900"
+        - name: KUBERNETES__KUBECONFIGFILENAME
+          value: 
+        - name: KUBERNETES__USEDEFAULTCONTEXT
+          value: "true"
+        - name: KUBERNETES__NAMESPACELIST
+          value: ""
+        - name: KUBERNETES__TRIVYUSECLUSTERCOMPLIANCEREPORT
+          value: "true"
+        - name: KUBERNETES__TRIVYUSECLUSTERINFRAASSESSMENTREPORT
+          value: "true"
+        - name: KUBERNETES__TRIVYUSECLUSTERRBACASSESSMENTREPORT
+          value: "true"
+        - name: KUBERNETES__TRIVYUSECLUSTERSBOMREPORT
+          value: "true"
+        - name: KUBERNETES__TRIVYUSECLUSTERVULNERABILITYREPORT
+          value: "true"
+        - name: KUBERNETES__TRIVYUSECONFIGAUDITREPORT
+          value: "true"
+        - name: KUBERNETES__TRIVYUSEINFRAASSESSMENTREPORT
+          value: "true"
+        - name: KUBERNETES__TRIVYUSEEXPOSEDSECRETREPORT
+          value: "true"
+        - name: KUBERNETES__TRIVYUSERBACASSESSMENTREPORT
+          value: "true"
+        - name: KUBERNETES__TRIVYUSESBOMREPORT
+          value: "true"
+        - name: KUBERNETES__TRIVYUSEVULNERABILITYREPORT
+          value: "true"
+        - name: FILEREPOSITORY__BASEPATH
+          value: ""
+        - name: GITHUB__SERVERCHECKFORUPDATES
+          value: "true"
+        - name: GITHUB__CHECKFORUPDATESINTERVALINMINUTES
+          value: "360"
+        - name: OPENTELEMETRY__ENABLED
+          value: "false"
+        - name: OPENTELEMETRY__OTELENDPOINT
+          value: 
+        - name: OPENTELEMETRY__OTELPROTOCOL
+          value: "grpc"
+        - name: OPENTELEMETRY__CONSOLEENABLED
+          value: "false"
+        - name: OPENTELEMETRY__ASPNETCOREINSTRUMENTATIONENABLED
+          value: "true"
+        - name: OPENTELEMETRY__RUNTIMEINSTRUMENTATIONENABLED
+          value: "true"
+        - name: OPENTELEMETRY__PROMETHEUSEXPORTERPORT
+          value: 
+        - name: SERILOG__MINIMUMLEVEL__DEFAULT
+          value: Information
+        ports:
+        - name: http
+          containerPort: 8900
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-volume
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /healthz/ready
+            port: http
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz/live
+            port: http
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /healthz/ready
+            port: http
+          periodSeconds: 30
+        resources:
+          {}
+      volumes:
+      - name: tmp-volume
+        emptyDir:
+          sizeLimit: 1024Mi
+---
+# Source: trivy-operator-dashboard/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: release-name-trivy-operator-dashboard
+  labels:
+    helm.sh/chart: trivy-operator-dashboard-1.8.0
+    app.kubernetes.io/name: trivy-operator-dashboard
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.8.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: "chart-example.local"
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: release-name-trivy-operator-dashboard
+                port:
+                  number: 8900
+---
+# Source: trivy-operator-dashboard/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "release-name-trivy-operator-dashboard-test-connection"
+  labels:
+    helm.sh/chart: trivy-operator-dashboard-1.8.0
+    app.kubernetes.io/name: trivy-operator-dashboard
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.8.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['release-name-trivy-operator-dashboard:8900']
+  restartPolicy: Never
