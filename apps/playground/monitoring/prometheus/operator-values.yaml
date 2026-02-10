@@ -29,6 +29,10 @@ prometheus:
     
     # Retention — giữ metrics trong 15 ngày
     retention: 15d
+
+    # Global intervals
+    evaluationInterval: 30s
+    scrapeInterval: 30s
     
     # Storage
     storageSpec:
