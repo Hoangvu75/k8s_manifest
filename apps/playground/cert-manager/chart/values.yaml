@@ -1,5 +1,11 @@
 # cert-manager — cấu hình tối thiểu cho playground
 # Helm repo: https://charts.jetstack.io
 
+# Cài luôn CRDs (Issuer, ClusterIssuer, Certificate, ...)
 installCRDs: true
+
+# Tăng timeout cho job startupapicheck để nó chờ webhook cert-manager lâu hơn
+startupapicheck:
+  enabled: true
+  timeout: 5m
 
