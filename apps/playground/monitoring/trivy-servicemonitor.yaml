@@ -6,14 +6,16 @@ metadata:
   name: trivy-operator
   namespace: trivy-system
   labels:
-    app: trivy-operator
+    app.kubernetes.io/name: trivy-operator
+    app.kubernetes.io/instance: trivy-operator
     release: prometheus-operator  # Label này để Prometheus Operator selector match
 spec:
   selector:
     matchLabels:
-      app: trivy-operator
+      app.kubernetes.io/name: trivy-operator
+      app.kubernetes.io/instance: trivy-operator
   endpoints:
-    - port: http
+    - port: metrics
       interval: 30s
       path: /metrics
   namespaceSelector:
