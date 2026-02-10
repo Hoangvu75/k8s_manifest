@@ -5,5 +5,6 @@ kind: Kustomization
 namespace: trivy-system
 
 resources:
+  - crds.yaml
   - chart
 
