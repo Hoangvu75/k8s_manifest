@@ -1,0 +1,5 @@
+# cert-manager — cấu hình tối thiểu cho playground
+# Helm repo: https://charts.jetstack.io
+
+installCRDs: true
+
