@@ -1,7 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Helm chart cert-manager chính thức
 helmCharts:
   - name: cert-manager
     repo: https://charts.jetstack.io

@@ -1,21 +1,5 @@
-# cert-manager — cấu hình tối thiểu cho playground
-# Helm repo: https://charts.jetstack.io
-
-# Cấu hình global cho cert-manager
 global:
-  # Mặc định chart dùng namespace kube-system để tạo lease leader election.
-  # Cluster của anh không cho serviceAccount ở namespace cert-manager
-  # truy cập lease trong kube-system → cainjector không chạy được.
-  # Đổi leaderElection về chính namespace cert-manager để cainjector
-  # có quyền, từ đó inject CA vào MutatingWebhookConfiguration.
   leaderElection:
     namespace: cert-manager
 
-# Cài luôn CRDs (Issuer, ClusterIssuer, Certificate, ...)
 installCRDs: true
-
-# Tăng timeout cho job startupapicheck để nó chờ webhook cert-manager lâu hơn
-startupapicheck:
-  enabled: true
-  timeout: 5m
-
