@@ -14,6 +14,11 @@ bootstrapPassword: "admin"
 replicas: 1
 
 ingress:
+  # Đảm bảo ingress-nginx bắt được Ingress của Rancher
+  ingressClassName: nginx
+  extraAnnotations:
+    kubernetes.io/ingress.class: "nginx"
+
   tls:
     # Dùng cert-manager + self-signed CA do Rancher tự quản lý
     source: rancher
