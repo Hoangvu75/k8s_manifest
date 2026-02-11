@@ -1,5 +1,19 @@
-# Trivy Operator — cấu hình tối thiểu cho GitOps (Argo CD + Kustomize + Helm)
-# Tham khảo: `https://trivy.dev/docs/latest/tutorials/kubernetes/gitops/`
+# Trivy Operator — cấu hình cho GitOps (Argo CD + Kustomize + Helm)
+# Tham khảo: https://aquasecurity.github.io/trivy-operator/latest/getting-started/installation/configuration/
+
+# Scan toàn cluster (rỗng = mọi namespace)
+targetNamespaces: ""
+excludeNamespaces: ""
+
+operator:
+  # Timeout scan job — tăng lên cho image lớn / registry chậm
+  scanJobTimeout: "10m"
+  # Giới hạn concurrent scan — cân bằng giữa tốc độ và rate limit registry
+  scanJobsConcurrentLimit: 15
+
+# Bật ServiceMonitor cho Prometheus (metrics → Grafana Trivy dashboard)
+serviceMonitor:
+  enabled: true
 
 trivy:
   # Bỏ qua các lỗ hổng chưa có bản vá để giảm noise
