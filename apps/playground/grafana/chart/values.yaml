@@ -18,7 +18,9 @@ ingress:
 persistence:
   enabled: true
   size: 10Gi
-  storageClassName: local-path
+  # Dùng storageclass mặc định "standard" (rancher.io/local-path)
+  # Nếu muốn dùng PVC tự tạo thì có thể bỏ dòng này và cấu hình persistence.existingClaim.
+  storageClassName: standard
 
 resources:
   requests:
