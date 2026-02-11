@@ -39,6 +39,10 @@ initChownData:
 datasources:
   datasources.yaml:
     apiVersion: 1
+    # Xóa datasource "prometheus" (chữ thường) dư — không xóa được qua UI vì provisioned
+    deleteDatasources:
+      - name: prometheus
+        orgId: 1
     datasources:
       - name: Prometheus
         uid: prometheus
