@@ -5,7 +5,7 @@ kind: Kustomization
 helmCharts:
   - name: trivy-operator
     repo: https://aquasecurity.github.io/helm-charts/
-    version: "0.10.1"
+    version: "0.32.0"
     releaseName: trivy-operator
     namespace: trivy-system
     valuesFile: values.yaml
