@@ -189,4 +189,100 @@ spec:
         openAPIV3Schema:
           type: object
           x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: sbomreports.aquasecurity.github.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  group: aquasecurity.github.io
+  scope: Namespaced
+  names:
+    plural: sbomreports
+    singular: sbomreport
+    kind: SbomReport
+    shortNames:
+      - sreport
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clustervulnerabilityreports.aquasecurity.github.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  group: aquasecurity.github.io
+  scope: Cluster
+  names:
+    plural: clustervulnerabilityreports
+    singular: clustervulnerabilityreport
+    kind: ClusterVulnerabilityReport
+    shortNames:
+      - cvreport
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clustersbomreports.aquasecurity.github.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  group: aquasecurity.github.io
+  scope: Cluster
+  names:
+    plural: clustersbomreports
+    singular: clustersbomreport
+    kind: ClusterSbomReport
+    shortNames:
+      - csreport
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterinfraassessmentreports.aquasecurity.github.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  group: aquasecurity.github.io
+  scope: Cluster
+  names:
+    plural: clusterinfraassessmentreports
+    singular: clusterinfraassessmentreport
+    kind: ClusterInfraAssessmentReport
+    shortNames:
+      - ciareport
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
 
