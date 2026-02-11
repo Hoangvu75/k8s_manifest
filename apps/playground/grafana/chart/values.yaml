@@ -38,7 +38,7 @@ datasources:
   datasources.yaml:
     apiVersion: 1
     datasources:
-      - name: Prometheus
+      - name: prometheus
         type: prometheus
         access: proxy
         url: http://prometheus-server.monitoring.svc.cluster.local
@@ -66,5 +66,5 @@ dashboards:
       # https://grafana.com/grafana/dashboards/17813
       gnetId: 17813
       revision: 1
-      datasource: Prometheus
+      datasource: prometheus
 
