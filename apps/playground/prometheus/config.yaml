@@ -1,0 +1,4 @@
+# Metadata cho Argo CD (Git file generator)
+# appName: prometheus
+# destNamespace: monitoring
+

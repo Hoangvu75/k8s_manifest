@@ -1,0 +1,31 @@
+# Prometheus — cấu hình tối thiểu cho playground
+# Helm chart: prometheus-community/prometheus
+
+alertmanager:
+  enabled: false
+
+pushgateway:
+  enabled: false
+
+server:
+  retention: 15d
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - prometheus.localhost
+    paths:
+      - /
+

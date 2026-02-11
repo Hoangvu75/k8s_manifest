@@ -1,0 +1,30 @@
+# Grafana — cấu hình tối thiểu cho playground
+# Helm chart: grafana/grafana
+
+adminUser: admin
+adminPassword: grafana
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hosts:
+    - grafana.localhost
+  path: /
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClassName: local-path
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
