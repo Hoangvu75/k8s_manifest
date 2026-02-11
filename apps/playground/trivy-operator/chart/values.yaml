@@ -6,6 +6,8 @@ targetNamespaces: ""
 excludeNamespaces: ""
 
 operator:
+  # Bật metric trivy_vulnerability_id (CVE, fixed_version) cho Grafana dashboard
+  metricsVulnIdEnabled: true
   # Timeout scan job — tăng lên cho image lớn / registry chậm
   scanJobTimeout: "10m"
   # Giới hạn concurrent scan — cân bằng giữa tốc độ và rate limit registry
