@@ -33,18 +33,19 @@ resources:
 initChownData:
   enabled: false
 
-# Khai báo Prometheus — uid phải khớp với DS_PROMETHEUS của dashboard Trivy
+# Khai báo Prometheus — không dùng uid vì provisioning + dashboard gây lỗi "data source not found"
 datasources:
   datasources.yaml:
     apiVersion: 1
     datasources:
       - name: Prometheus
-        uid: prometheus
         type: prometheus
         access: proxy
         url: http://prometheus-server.monitoring.svc.cluster.local
         isDefault: true
 
+# Dashboard Trivy: import thủ công qua Grafana UI (Dashboards → New → Import → ID 17813 → chọn Prometheus)
+# Provisioning qua Helm gây lỗi crash khi dùng DS_PROMETHEUS
 dashboardProviders:
   dashboardproviders.yaml:
     apiVersion: 1
@@ -59,12 +60,5 @@ dashboardProviders:
         options:
           path: /var/lib/grafana/dashboards/default
 
-dashboards:
-  default:
-    trivy-operator:
-      gnetId: 17813
-      revision: 1
-      datasource:
-        - name: DS_PROMETHEUS
-          value: prometheus
+# dashboards: {}  # Tạm bỏ — import thủ công Trivy dashboard ID 17813
 
