@@ -34,13 +34,14 @@ initChownData:
   enabled: false
 
 # Khai báo Prometheus làm datasource mặc định cho Grafana
+# Lưu ý: Thêm uid cố định để dashboard Trivy (DS_PROMETHEUS) có thể resolve đúng.
+# Nếu có 2 datasource Prometheus trùng (prometheus vs Prometheus), xóa bớt 1 cái trong Grafana UI.
 datasources:
   datasources.yaml:
     apiVersion: 1
     datasources:
-      # Tên datasource này phải khớp với giá trị "datasource" dùng khi import dashboard (bên dưới).
-      # Dashboard Trivy Operator sử dụng biến DS_PROMETHEUS và sẽ được gán bằng tên này.
       - name: Prometheus
+        uid: prometheus
         type: prometheus
         access: proxy
         url: http://prometheus-server.monitoring.svc.cluster.local
@@ -68,5 +69,8 @@ dashboards:
       # https://grafana.com/grafana/dashboards/17813
       gnetId: 17813
       revision: 1
-      datasource: Prometheus
+      # Map biến DS_PROMETHEUS sang UID của datasource (phải khớp với uid ở datasources)
+      datasource:
+        - name: DS_PROMETHEUS
+          value: prometheus
 
