@@ -16,7 +16,8 @@ persistence:
   enabled: true
 
 mountDind:
-  enabled: false
+  enabled: true
+  forceTLS: false
 
 lambda:
   executor: docker
