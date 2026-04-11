@@ -33,12 +33,16 @@ datadog:
 clusterAgent:
   enabled: true
   replicas: 1
+  image:
+    tag: "7.77.1"
   env:
     # Đồng bộ rõ ràng với node agent (tránh UI báo Orchestrator PARTIAL khi env thiếu).
     - name: DD_ORCHESTRATOR_EXPLORER_ENABLED
       value: "true"
 
 agents:
+  image:
+    tag: "7.77.1"
   containers:
     agent:
       env:
