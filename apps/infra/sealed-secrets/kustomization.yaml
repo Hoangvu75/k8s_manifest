@@ -1,8 +1,0 @@
-# Sealed Secrets - Mã hóa secrets cho GitOps
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namespace: sealed-secrets
-
-resources:
-  - chart

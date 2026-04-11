@@ -1,3 +1,0 @@
-# Metadata cho Argo CD (optional)
-# appName: sealed-secrets
-destNamespace: kube-system
