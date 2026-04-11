@@ -3,7 +3,7 @@
 
 datadog:
   apiKeyExistingSecret: datadog-key
-  site: datadoghq.com
+  site: us5.datadoghq.com
   clusterName: playground
 
   kubeStateMetricsCore:
