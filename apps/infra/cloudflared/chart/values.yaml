@@ -34,3 +34,6 @@ deployment:
   containerSecurityContext:
     runAsNonRoot: false
     readOnlyRootFilesystem: false
+
+service:
+  enabled: false

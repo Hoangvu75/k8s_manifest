@@ -1,1 +1,6 @@
 applicationName: argocd-ingress
+
+deployment:
+  enabled: false
+service:
+  enabled: false
