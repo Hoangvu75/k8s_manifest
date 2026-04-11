@@ -3,23 +3,18 @@ datadog:
   site: us5.datadoghq.com
   clusterName: playground
 
-  # Kind / Docker Desktop (WSL2): kubelet dùng cert không verify được mặc định → check kubelet + orchestrator_pod fail,
-  # Explorer không có pod đa namespace. Prod có CA kubelet riêng nên bật lại tlsVerify: true.
   kubelet:
     tlsVerify: false
 
-  # Chart mặc định bật Operator kèm DaemonSet — tắt nếu chỉ dùng Helm (tránh xung đột, dễ lỗi orchestrator).
   operator:
     enabled: false
 
-  # Tag cardinality cho check K8s — giúp Explorer/orchestrator có đủ tag (tăng nhẹ cardinality).
   checksCardinality: orchestrator
 
   orchestratorExplorer:
     enabled: true
-    # Tắt scrubbing giảm CPU/RAM khi thu thập orchestrator — cluster nhỏ hay PARTIAL có thể đỡ hơn.
     container_scrubbing:
-      enabled: false
+      enabled: true
 
   kubeStateMetricsCore:
     enabled: true
@@ -28,10 +23,10 @@ datadog:
 
   logs:
     enabled: true
-    containerCollectAll: false
+    containerCollectAll: true
 
   apm:
-    socketEnabled: false
+    socketEnabled: true
     portEnabled: true
 
   processAgent:
@@ -45,7 +40,6 @@ clusterAgent:
   image:
     tag: "7.77.1"
   env:
-    # Bắt buộc khớp site US5 — nếu Cluster Agent gửi nhầm orchestrator.api.datadoghq.com sẽ 404 / PARTIAL.
     - name: DD_SITE
       value: "us5.datadoghq.com"
     - name: DD_ORCHESTRATOR_EXPLORER_ENABLED
