@@ -28,9 +28,22 @@ clusterAgent:
 agents:
   containers:
     agent:
+      env:
+        - name: DD_HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
       resources:
         requests:
           cpu: 200m
           memory: 256Mi
         limits:
           memory: 512Mi
+    traceAgent:
+      env:
+        - name: DD_HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
