@@ -6,8 +6,14 @@ datadog:
   site: us5.datadoghq.com
   clusterName: playground
 
+  # Kubernetes Explorer / Pod: cần orchestrator + (khuyến nghị) container collection.
+  orchestratorExplorer:
+    enabled: true
+
   kubeStateMetricsCore:
     enabled: true
+    rbac:
+      create: true
 
   logs:
     enabled: true
@@ -20,6 +26,7 @@ datadog:
   processAgent:
     enabled: true
     processCollection: true
+    containerCollection: true
 
 clusterAgent:
   enabled: true
@@ -41,6 +48,13 @@ agents:
         limits:
           memory: 512Mi
     traceAgent:
+      env:
+        - name: DD_HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+    processAgent:
       env:
         - name: DD_HOSTNAME
           valueFrom:
