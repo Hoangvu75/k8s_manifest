@@ -1,8 +1,9 @@
 # Values cho Helm chart ingress-nginx (cùng repo với Argo CD)
 controller:
   service:
-    type: LoadBalancer
-    loadBalancerIP: 192.168.56.200
+    type: NodePort
+  extraArgs:
+    enable-ssl-passthrough: ""
   config:
     use-forwarded-headers: "true"
     # Performance: nén gzip giảm payload (HTML/CSS/JS thường giảm 60-80%)
