@@ -7,4 +7,6 @@ helmCharts:
     releaseName: rancher
     namespace: cattle-system
     valuesFile: values.yaml
+    additionalValuesFiles:
+      - values-ingress.yaml
 
