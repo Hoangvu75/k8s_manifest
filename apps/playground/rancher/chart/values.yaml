@@ -6,16 +6,3 @@ hostname: rancher.hoangvu75.space
 bootstrapPassword: "admin"
 
 replicas: 1
-
-ingress:
-  ingressClassName: nginx
-  extraAnnotations:
-    # Tunnel HTTP → nginx; tránh redirect vòng khi TLS ở Cloudflare.
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-    # Giống Argo CD: Host lệch (localhost / FQDN service nội bộ) vẫn vào đúng server.
-    nginx.ingress.kubernetes.io/server-alias: "rancher.localhost ingress-nginx-controller.ingress-nginx.svc ingress-nginx-controller.ingress-nginx.svc.cluster.local"
-  tls:
-    source: rancher

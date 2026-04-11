@@ -1,6 +1,12 @@
-# Ingress cho Argo CD UI — raw manifest (Argo CD install thủ công, chỉ thêm Ingress)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-resources:
-  - ingress.yaml
+helmCharts:
+- name: helm-application
+  repo: oci://registry-1.docker.io/hoangvu753
+  releaseName: argocd-ingress
+  namespace: argocd
+  version: 6.16.1
+  valuesFile: values.yaml
+  additionalValuesFiles:
+    - values-ingress.yaml

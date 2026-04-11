@@ -1,0 +1,10 @@
+ingress:
+  ingressClassName: nginx
+  extraAnnotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/server-alias: "rancher.localhost ingress-nginx-controller.ingress-nginx.svc ingress-nginx-controller.ingress-nginx.svc.cluster.local"
+  tls:
+    source: rancher

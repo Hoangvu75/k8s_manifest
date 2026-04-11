@@ -1,8 +1,6 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: argocd-server
-  namespace: argocd
+ingress:
+  enabled: true
+  ingressClassName: nginx
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     nginx.ingress.kubernetes.io/proxy-ssl-verify: "off"
@@ -13,18 +11,11 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
-    # Cùng backend cho Host mà tunnel đôi khi gửi (localhost / FQDN service).
     nginx.ingress.kubernetes.io/server-alias: "argocd.localhost ingress-nginx-controller.ingress-nginx.svc ingress-nginx-controller.ingress-nginx.svc.cluster.local"
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: argocd.hoangvu75.space
-    http:
+  hosts:
+    - host: argocd.hoangvu75.space
       paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: argocd-server
-            port:
-              name: https
+        - path: /
+          pathType: Prefix
+          serviceName: argocd-server
+          servicePort: https
