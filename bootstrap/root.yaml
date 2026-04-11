@@ -16,7 +16,6 @@ spec:
     path: projects
     repoURL: https://github.com/Hoangvu75/k8s_manifest.git
     targetRevision: base-manifest
-  # ApplicationSet trên cluster có thể bị mutate (vd. kustomize: {} thay vì buildOptions) → bỏ qua diff để root Synced
   ignoreDifferences:
   - group: argoproj.io
     kind: ApplicationSet

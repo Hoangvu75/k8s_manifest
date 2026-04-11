@@ -1,0 +1,36 @@
+# Chart: https://github.com/DataDog/helm-charts/tree/main/charts/datadog
+# Secret trên cluster: tên do repo private đặt; key trong Secret phải là api-key (không dùng API_KEY).
+
+datadog:
+  apiKeyExistingSecret: datadog-key
+  site: datadoghq.com
+  clusterName: playground
+
+  kubeStateMetricsCore:
+    enabled: true
+
+  logs:
+    enabled: true
+    containerCollectAll: false
+
+  apm:
+    socketEnabled: false
+    portEnabled: true
+
+  processAgent:
+    enabled: true
+    processCollection: true
+
+clusterAgent:
+  enabled: true
+  replicas: 1
+
+agents:
+  containers:
+    agent:
+      resources:
+        requests:
+          cpu: 200m
+          memory: 256Mi
+        limits:
+          memory: 512Mi
