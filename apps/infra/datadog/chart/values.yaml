@@ -1,12 +1,11 @@
-# Chart: https://github.com/DataDog/helm-charts/tree/main/charts/datadog
-# Secret trên cluster: tên do repo private đặt; key trong Secret phải là api-key (không dùng API_KEY).
-
 datadog:
   apiKeyExistingSecret: datadog-key
   site: us5.datadoghq.com
   clusterName: playground
 
-  # Kubernetes Explorer / Pod: cần orchestrator + (khuyến nghị) container collection.
+  # Tag cardinality cho check K8s — giúp Explorer/orchestrator có đủ tag (tăng nhẹ cardinality).
+  checksCardinality: orchestrator
+
   orchestratorExplorer:
     enabled: true
 
@@ -31,11 +30,17 @@ datadog:
 clusterAgent:
   enabled: true
   replicas: 1
+  env:
+    # Đồng bộ rõ ràng với node agent (tránh UI báo Orchestrator PARTIAL khi env thiếu).
+    - name: DD_ORCHESTRATOR_EXPLORER_ENABLED
+      value: "true"
 
 agents:
   containers:
     agent:
       env:
+        - name: DD_ORCHESTRATOR_EXPLORER_ENABLED
+          value: "true"
         - name: DD_HOSTNAME
           valueFrom:
             fieldRef:
@@ -56,6 +61,8 @@ agents:
               fieldPath: spec.nodeName
     processAgent:
       env:
+        - name: DD_ORCHESTRATOR_EXPLORER_ENABLED
+          value: "true"
         - name: DD_HOSTNAME
           valueFrom:
             fieldRef:
