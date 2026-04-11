@@ -8,6 +8,9 @@ datadog:
 
   orchestratorExplorer:
     enabled: true
+    # Tắt scrubbing giảm CPU/RAM khi thu thập orchestrator — cluster nhỏ hay PARTIAL có thể đỡ hơn.
+    container_scrubbing:
+      enabled: false
 
   kubeStateMetricsCore:
     enabled: true
@@ -49,9 +52,9 @@ agents:
       resources:
         requests:
           cpu: 200m
-          memory: 256Mi
+          memory: 384Mi
         limits:
-          memory: 512Mi
+          memory: 768Mi
     traceAgent:
       env:
         - name: DD_HOSTNAME
