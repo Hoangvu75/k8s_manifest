@@ -25,7 +25,7 @@ spec:
       source:
         path: cluster-resources/{{name}}
         repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-        targetRevision: master
+        targetRevision: base-manifest
       syncPolicy:
         automated:
           allowEmpty: true
