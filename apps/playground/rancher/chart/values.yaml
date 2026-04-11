@@ -1,25 +1,21 @@
-# Rancher Server — cấu hình tối thiểu cho playground
-# Helm chart: rancher (repo: https://releases.rancher.com/server-charts/latest)
-#
-# YÊU CẦU: cert-manager đã được cài (apps/playground/cert-manager)
+# Rancher Server — playground (Helm: releases.rancher.com/server-charts/latest)
+# cert-manager: apps/playground/cert-manager
 
-# Domain truy cập Rancher. Anh có thể chỉnh lại cho phù hợp.
-hostname: rancher.localhost
+hostname: rancher.hoangvu75.space
 
-# Mật khẩu admin ban đầu (user: admin).
-# NÊN đổi sau khi đăng nhập lần đầu.
 bootstrapPassword: "admin"
 
-# Số replica của Rancher server
 replicas: 1
 
 ingress:
-  # Đảm bảo ingress-nginx bắt được Ingress của Rancher
   ingressClassName: nginx
   extraAnnotations:
-    kubernetes.io/ingress.class: "nginx"
-
+    # Tunnel HTTP → nginx; tránh redirect vòng khi TLS ở Cloudflare.
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # Giống Argo CD: Host lệch (localhost / FQDN service nội bộ) vẫn vào đúng server.
+    nginx.ingress.kubernetes.io/server-alias: "rancher.localhost ingress-nginx-controller.ingress-nginx.svc ingress-nginx-controller.ingress-nginx.svc.cluster.local"
   tls:
-    # Dùng cert-manager + self-signed CA do Rancher tự quản lý
     source: rancher
-
