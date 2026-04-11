@@ -1,4 +1,2 @@
-# Metadata cho Argo CD (Git file generator)
-# appName: rancher
 destNamespace: cattle-system
 

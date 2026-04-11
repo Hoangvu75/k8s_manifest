@@ -1,6 +1,3 @@
-# Rancher Server — playground (Helm: releases.rancher.com/server-charts/latest)
-# cert-manager: apps/playground/cert-manager
-
 hostname: rancher.hoangvu75.space
 
 bootstrapPassword: "admin"
