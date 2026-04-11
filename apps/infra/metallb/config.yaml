@@ -1,4 +1,0 @@
-# Metadata cho Argo CD (Git file generator discover apps/infra/**/config.yaml)
-# appName: metallb
-# destNamespace: metallb-system
-# Chart từ Helm repo: metallb.github.io/metallb

@@ -1,7 +1,0 @@
-# Metadata cho Argo CD
-# appName: mbs-discord-bot
-# destNamespace: mbs-discord-bot
-
-# ArgoCD Notifications
-annotations:
-  notifications.argoproj.io/subscribe.on-sync-succeeded.n8n: ""

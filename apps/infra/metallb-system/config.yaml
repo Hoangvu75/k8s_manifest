@@ -1,3 +1,0 @@
-# Metadata cho Argo CD (Git file generator discover apps/infra/**/config.yaml)
-# appName: metallb-system (MetalLB IPAddressPool + L2Advertisement)
-# destNamespace: metallb-system

@@ -1,5 +1,0 @@
-# Metadata cho Argo CD (optional)
-# appName: redis
-# destNamespace: redis
-# repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-# srcPath: apps/playground/redis
