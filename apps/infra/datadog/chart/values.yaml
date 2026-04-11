@@ -3,6 +3,11 @@ datadog:
   site: us5.datadoghq.com
   clusterName: playground
 
+  # Kind / Docker Desktop (WSL2): kubelet dùng cert không verify được mặc định → check kubelet + orchestrator_pod fail,
+  # Explorer không có pod đa namespace. Prod có CA kubelet riêng nên bật lại tlsVerify: true.
+  kubelet:
+    tlsVerify: false
+
   # Chart mặc định bật Operator kèm DaemonSet — tắt nếu chỉ dùng Helm (tránh xung đột, dễ lỗi orchestrator).
   operator:
     enabled: false
