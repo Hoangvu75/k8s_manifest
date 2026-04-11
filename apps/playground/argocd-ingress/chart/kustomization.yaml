@@ -1,0 +1,6 @@
+# Ingress cho Argo CD UI — raw manifest (Argo CD install thủ công, chỉ thêm Ingress)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ingress.yaml
