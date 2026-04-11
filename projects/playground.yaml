@@ -33,7 +33,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/Hoangvu75/k8s_manifest.git
-        revision: "master"
+        revision: "base-manifest"
         requeueAfterSeconds: 20
         files:
           - path: "apps/playground/**/config.yaml"
@@ -53,7 +53,7 @@ spec:
       project: '{{.values.project}}'
       source:
         repoURL: '{{ default "https://github.com/Hoangvu75/k8s_manifest.git" .repoURL }}'
-        targetRevision: "master"
+        targetRevision: "base-manifest"
         path: '{{ default ( trimSuffix "/config.yaml" .values.app_path ) .srcPath }}'
         kustomize:
           buildOptions: "--enable-helm"
