@@ -9,6 +9,10 @@ envFrom:
   - secretRef:
       name: localstack-secret
 
+extraEnvVars:
+  - name: LOCALSTACK_HOST
+    value: "localstack.hoangvu75.space:443"
+
 service:
   type: ClusterIP
 

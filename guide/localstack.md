@@ -7,7 +7,13 @@ Chart bật **Ingress** (`ingressClassName: nginx`) tới Service edge **4566**:
 
 **Cloudflare Tunnel / DNS:** tạo hostname public trỏ tới cùng Ingress nginx như Argo CD (ví dụ public hostname → `http://ingress-nginx-controller.ingress-nginx.svc:80` với header `Host: localstack.hoangvu75.space`).
 
-**Web dashboard (`app.localstack.cloud`):** `localhost.localstack.cloud:4566` chỉ về **127.0.0.1**, không tới cluster. Trong cấu hình instance đổi endpoint thành URL bạn expose, ví dụ **`https://localstack.hoangvu75.space`** (không thêm `:4566` nếu đi qua 443). Ingress đã bật CORS cho `https://app.localstack.cloud`.
+**Web dashboard (`app.localstack.cloud`):**
+
+- Trang dashboard là **HTTPS** → endpoint phải là **`https://localstack.hoangvu75.space`** (hoặc domain bạn dùng). **Không** dùng `http://...` (mixed content, trình duyệt chặn).
+- **Không** thêm **`:4566`** trên URL public: Ingress/Cloudflare lắng nghe **443** (và 80); cổng **4566** chỉ trong cluster. `https://...:4566` từ Internet hầu như luôn thất bại.
+- `LOCALSTACK_HOST` trong `values.yaml` đã set **`localstack.hoangvu75.space:443`** để LocalStack trả URL đúng khi đi qua reverse proxy.
+
+**Kiểm tra nhanh:** `curl -sS -o /dev/null -w "%{http_code}" https://localstack.hoangvu75.space/_localstack/health` → kỳ vọng **200**. Nếu timeout / DNS lỗi → chưa có **Public Hostname** trên Cloudflare Tunnel (hoặc DNS) trỏ tới Ingress giống `argocd.hoangvu75.space`.
 
 **Port-forward (dự phòng):**
 
