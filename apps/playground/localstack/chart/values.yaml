@@ -18,6 +18,7 @@ persistence:
 mountDind:
   enabled: true
   forceTLS: false
+  image: docker:24-dind
 
 lambda:
   executor: docker

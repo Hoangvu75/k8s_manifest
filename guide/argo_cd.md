@@ -15,6 +15,7 @@ kubectl rollout restart deployment argocd-repo-server -n argocd
 
 **port-forward (manual):** Use ClusterIP, no service change needed:
 ```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 kubectl port-forward -n argocd svc/argocd-server 8080:443
 ```
 Then open https://localhost:8080
@@ -22,13 +23,4 @@ Then open https://localhost:8080
 **NodePort:** Only if direct access via NodeIP:Port is needed (without Ingress):
 ```bash
 kubectl patch svc argocd-server -n argocd -p '{"spec":{"type":"NodePort"}}'
-# Get port: kubectl get svc argocd-server -n argocd
-```
-
-### 3. Get Initial Admin Password
-Default username: `admin`
-Password is in the `argocd-initial-admin-secret` secret:
-
-```bash
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
-```
+\```
