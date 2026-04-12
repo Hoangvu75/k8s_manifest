@@ -5,7 +5,11 @@ Chart bật **Ingress** (`ingressClassName: nginx`) tới Service edge **4566**:
 - Host: **`localstack.hoangvu75.space`** (đổi trong `chart/values.yaml` nếu cần).
 - Alias: **`localstack.localhost`** (thêm `127.0.0.1 localstack.localhost` trong `hosts` nếu truy cập Ingress qua IP máy bạn / Docker Desktop).
 
-**Cloudflare Tunnel / DNS:** tạo hostname public trỏ tới cùng Ingress nginx như Argo CD (ví dụ public hostname → `http://ingress-nginx-controller.ingress-nginx.svc:80` với header `Host: localstack.hoangvu75.space`).
+**Cloudflare Tunnel + DNS (hay gặp lỗi):**
+
+1. Trong **Zero Trust → Networks → Tunnels → [tunnel] → Public Hostname**, thêm `localstack.hoangvu75.space` → `http://ingress-nginx-controller.ingress-nginx.svc.cluster.local:80` (giống Argo CD) là **chưa đủ** nếu DNS public không biết subdomain này.
+2. **`DNS_PROBE_FINISHED_NXDOMAIN`:** tên `localstack.hoangvu75.space` **chưa có bản ghi DNS**. Vào **Cloudflare Dashboard → DNS → Records** của zone `hoangvu75.space`, thêm bản ghi mà Tunnel yêu cầu (thường **CNAME** `localstack` → `<id-tunnel>.cfargotunnel.com`, **Proxied**). Khi tạo Public Hostname, Cloudflare thường có nút **Save** kèm tùy chọn tự tạo DNS — bật / xác nhận bản ghi đã xuất hiện. So sánh với subdomain **đang chạy** (vd. `argocd`): nếu `argocd` có CNAME còn `localstack` không có → đúng bệnh NXDOMAIN.
+3. **`404 nginx`:** DNS đã tới Ingress nhưng **không có Ingress rule** khớp `Host` (chưa deploy Ingress cho app đó, hoặc host gõ sai). Với LocalStack, kiểm tra Argo CD: Ingress `localstack` có host `localstack.hoangvu75.space`.
 
 **Web dashboard (`app.localstack.cloud`):**
 
@@ -14,6 +18,10 @@ Chart bật **Ingress** (`ingressClassName: nginx`) tới Service edge **4566**:
 - `LOCALSTACK_HOST` trong `values.yaml` đã set **`localstack.hoangvu75.space:443`** để LocalStack trả URL đúng khi đi qua reverse proxy.
 
 **Kiểm tra nhanh:** `curl -sS -o /dev/null -w "%{http_code}" https://localstack.hoangvu75.space/_localstack/health` → kỳ vọng **200**. Nếu timeout / DNS lỗi → chưa có **Public Hostname** trên Cloudflare Tunnel (hoặc DNS) trỏ tới Ingress giống `argocd.hoangvu75.space`.
+
+**Ingress vs NodePort:** Nên giữ **Ingress** (cùng pattern Argo CD / Tunnel). **NodePort** không giải quyết CORS/dashboard; chỉ đổi cách expose cổng. Nếu tắt app LocalStack mà vẫn thấy **404 nginx**, thường là **không còn Ingress rule** hoặc **default backend** — chứng tỏ request đã tới Ingress controller.
+
+**Dashboard `app.localstack.cloud` không connect:** thường do **CORS** (trình duyệt chặn). Trong `values.yaml` cần **`EXTRA_CORS_ALLOWED_ORIGINS=https://app.localstack.cloud`**. Không nên bật CORS trùng trên nginx Ingress (đã tắt trong `values-ingress.yaml`). Mở DevTools (F12) → tab **Network** / **Console** nếu vẫn lỗi (401 = thiếu token Pro trong cấu hình stack).
 
 **Port-forward (dự phòng):**
 
