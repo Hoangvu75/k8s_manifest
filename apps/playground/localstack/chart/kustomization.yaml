@@ -8,3 +8,5 @@ helmCharts:
     releaseName: localstack
     namespace: localstack
     valuesFile: values.yaml
+    additionalValuesFiles:
+      - values-ingress.yaml
