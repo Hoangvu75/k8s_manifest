@@ -5,6 +5,29 @@ image:
 
 replicaCount: 1
 
+# Service phụ: TCP 22 tới pod LocalStack (sshd proxy cho EC2 Docker).
+# Ingress HTTP(S) hiện tại KHÔNG thể dùng cho SSH; muốn SSH qua domain/LB thì cần thêm
+# TCP trên Load Balancer của ingress-nginx (tcp-services) hoặc Service LoadBalancer riêng.
+# Tài liệu: https://kubernetes.github.io/ingress-nginx/user-guide/exposing-tcp-udp-services/
+extraDeploy:
+  - |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: {{ include "localstack.fullname" . }}-ssh
+      namespace: {{ .Release.Namespace | quote }}
+      labels:
+        {{- include "localstack.labels" . | nindent 4 }}
+    spec:
+      type: ClusterIP
+      ports:
+        - name: ssh
+          port: 22
+          targetPort: 22
+          protocol: TCP
+      selector:
+        {{- include "localstack.selectorLabels" . | nindent 8 }}
+
 envFrom:
   - secretRef:
       name: localstack-secret
