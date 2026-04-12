@@ -6,10 +6,16 @@ kubectl port-forward -n localstack svc/localstack 4566:4566
 
 Web console / `localhost.localstack.cloud:4566` trỏ tới cổng đã forward.
 
-## Lỗi `Docker not available` (EC2, Lambda docker, …)
+## DinD + Lambda (docker)
 
-Trên Kubernetes, container LocalStack **không** có sẵn Docker. Các API như **EC2** (mô phỏng instance bằng container) hoặc **Lambda** với `lambda.executor: docker` cần **Docker daemon**.
+- **`mountDind.enabled: true`** và **`lambda.executor: docker`**: EC2/Lambda dùng Docker trong pod (sidecar privileged).
+- Image DinD dùng **`public.ecr.aws/docker/library/docker:24-dind`** (mirror Docker Official trên ECR Public) để tránh lỗi pull **`unexpected EOF`** từ Docker Hub. RAM nên đủ (trong `values.yaml` đã tăng **limit ~4Gi**).
 
-Trong chart, bật **`mountDind`** (Docker-in-Docker sidecar). Đã cấu hình trong `apps/playground/localstack/chart/values.yaml`. Sau khi sync, pod sẽ nặng hơn và thường chạy **privileged** — cluster phải cho phép (PSP/Kyverno/Gatekeeper).
+## Nếu vẫn `ImagePullBackOff`
 
-**Thay thế cho Lambda:** đặt `lambda.executor: kubernetes` và đảm bảo `role.create: true` (RBAC tạo pod Lambda trong cluster) nếu không cần EC2/Docker.
+- Thử pull tay: `docker pull public.ecr.aws/docker/library/docker:24-dind`
+- **`localstack-pro`** vẫn từ Docker Hub: có thể thêm **`imagePullSecrets`** (Secret kiểu `kubernetes.io/dockerconfigjson` trong namespace `localstack`) nếu bị rate limit.
+
+## Hướng thay thế (không cần DinD)
+
+- **`mountDind.enabled: false`** + **`lambda.executor: kubernetes`**: Lambda chạy bằng Pod (cần `role.create: true` trên chart); EC2 kiểu container có thể không dùng được như với Docker.
