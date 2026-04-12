@@ -14,6 +14,7 @@ ingress:
     # CORS để LocalStack xử lý (EXTRA_CORS_ALLOWED_ORIGINS); nginx thêm CORS dễ trùng header và hỏng preflight
     nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
     nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
+    nginx.ingress.kubernetes.io/websocket-services: "localstack"
     nginx.ingress.kubernetes.io/server-alias: "localstack.localhost"
   hosts:
     - host: localstack.hoangvu75.space

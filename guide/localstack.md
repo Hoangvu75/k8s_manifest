@@ -21,7 +21,7 @@ Chart bật **Ingress** (`ingressClassName: nginx`) tới Service edge **4566**:
 
 **Ingress vs NodePort:** Nên giữ **Ingress** (cùng pattern Argo CD / Tunnel). **NodePort** không giải quyết CORS/dashboard; chỉ đổi cách expose cổng. Nếu tắt app LocalStack mà vẫn thấy **404 nginx**, thường là **không còn Ingress rule** hoặc **default backend** — chứng tỏ request đã tới Ingress controller.
 
-**Dashboard `app.localstack.cloud` không connect:** thường do **CORS** (trình duyệt chặn). Trong `values.yaml` cần **`EXTRA_CORS_ALLOWED_ORIGINS=https://app.localstack.cloud`**. Không nên bật CORS trùng trên nginx Ingress (đã tắt trong `values-ingress.yaml`). Mở DevTools (F12) → tab **Network** / **Console** nếu vẫn lỗi (401 = thiếu token Pro trong cấu hình stack).
+**Dashboard `app.localstack.cloud` không connect:** đã set **`EXTRA_CORS_ALLOWED_ORIGINS`** + **`DISABLE_CORS_CHECKS=1`** (homelab — nới CSRF server-side cho Web App) và **`websocket-services`** trên Ingress. Trong UI stack, thêm **Auth / API key** (cùng `LOCALSTACK_AUTH_TOKEN` trong Secret) nếu Pro yêu cầu. F12 → **Network**: lỗi đỏ là **CORS/blocked** hay **401** hay **failed** (DNS/TLS) — mỗi loại xử khác nhau.
 
 **Port-forward (dự phòng):**
 
