@@ -18,7 +18,6 @@ persistence:
 mountDind:
   enabled: true
   forceTLS: false
-  # Docker Hub hay EOF khi pull dind; ECR Public mirror cùng official image
   image: public.ecr.aws/docker/library/docker:24-dind
 
 lambda:
