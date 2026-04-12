@@ -9,18 +9,6 @@ envFrom:
   - secretRef:
       name: localstack-secret
 
-extraEnvVars:
-  - name: LOCALSTACK_HOST
-    value: "localstack.hoangvu75.space:443"
-  - name: DISABLE_CORS_HEADERS
-    value: "1"
-
-service:
-  type: ClusterIP
-  edgeService:
-    name: edge
-    targetPort: 4566
-
 persistence:
   enabled: true
 
