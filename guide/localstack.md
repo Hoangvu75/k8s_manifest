@@ -21,6 +21,10 @@ Chart bật **Ingress** (`ingressClassName: nginx`) tới Service edge **4566**:
 
 **Ingress vs NodePort:** Nên giữ **Ingress** (cùng pattern Argo CD / Tunnel). **NodePort** không giải quyết CORS/dashboard; chỉ đổi cách expose cổng. Nếu tắt app LocalStack mà vẫn thấy **404 nginx**, thường là **không còn Ingress rule** hoặc **default backend** — chứng tỏ request đã tới Ingress controller.
 
+**S3 / API sau khi health OK:** nếu OPTIONS 204 nhưng PUT bucket vẫn đỏ → mở request **OPTIONS** cho `/my-bucket`, xem **Request Headers → access-control-request-headers**; mọi tên đó phải nằm trong `cors-allow-headers` của Ingress (đã mở rộng cho `x-amz-acl`, `amz-sdk-*`, checksum, …).
+
+**S3 / API sau khi health OK:** OPTIONS 204 nhưng PUT tạo bucket vẫn lỗi → thường do **preflight** không cho phép hết header AWS SDK (vd. `x-amz-acl`, `amz-sdk-invocation-id`). Xem OPTIONS tới `/my-bucket` → `access-control-request-headers`; bổ sung vào `cors-allow-headers` trên Ingress nếu thiếu (manifest đã mở rộng + `cors-expose-headers` cho ETag).
+
 **Dashboard `app.localstack.cloud` không connect:** lỗi **preflight OPTIONS** (“No content available for preflight request”) → CORS xử lý tại **Ingress nginx** (`enable-cors`, origin `https://app.localstack.cloud`); LocalStack dùng **`DISABLE_CORS_HEADERS=1`** để không trùng header với nginx. Giữ **`websocket-services`**. Trong UI stack có thể cần **API key** (token Pro). F12 → request **OPTIONS** `/_localstack/health` phải trả **204** và header `Access-Control-Allow-Origin`.
 
 **Port-forward (dự phòng):**
