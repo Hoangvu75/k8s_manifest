@@ -1,9 +1,0 @@
-# Gateway API CRDs - simplified version
-# Full CRDs should be installed separately using kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml
-# This is a placeholder to satisfy kustomize dependencies
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: gateway-api
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
