@@ -3,7 +3,7 @@ kind: Kustomization
 
 helmCharts:
 - name: application
-  repo: ghcr.io/hoangvu75/helm_application
+  repo: oci://ghcr.io/hoangvu75/helm_application
   releaseName: cloudflared
   namespace: cloudflared
   version: 6.16.1
