@@ -1,0 +1,76 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "deepseek/deepseek-v4-pro",
+  "instructions": [".opencode/rules/gitops.md", ".opencode/rules/web-research.md", ".opencode/rules/agent-behavior.md"],
+  "permission": {
+    "webfetch": "allow"
+  },
+  "agent": {
+    "build": {
+      "mode": "primary",
+      "model": "deepseek/deepseek-v4-pro",
+      "permission": {
+        "webfetch": "allow"
+      }
+    },
+    "plan": {
+      "mode": "primary",
+      "model": "deepseek/deepseek-v4-pro",
+      "permission": {
+        "webfetch": "allow"
+      }
+    },
+    "general": {
+      "mode": "subagent",
+      "model": "openrouter/auto",
+      "description": "General-purpose subagent for easy multi-step tasks including web research (OpenRouter auto routes to best available free model)",
+      "permission": {
+        "webfetch": "allow"
+      }
+    },
+    "explore": {
+      "mode": "subagent",
+      "model": "openrouter/auto",
+      "description": "Fast read-only subagent for codebase exploration and web searches (OpenRouter auto routes to best available free model)",
+      "permission": {
+        "webfetch": "allow"
+      }
+    },
+    "k8s-validator": {
+      "mode": "subagent",
+      "model": "openrouter/auto",
+      "description": "Validates Kubernetes manifests, Kustomize overlays, and Helm charts for syntax errors and best practices",
+      "permission": {
+        "edit": "deny",
+        "webfetch": "allow"
+      }
+    },
+    "gitops-reviewer": {
+      "mode": "subagent",
+      "model": "openrouter/auto",
+      "description": "Reviews ArgoCD Application/ApplicationSet manifests and GitOps bootstrap patterns for correctness",
+      "permission": {
+        "edit": "deny",
+        "webfetch": "allow"
+      }
+    },
+    "helm-reviewer": {
+      "mode": "subagent",
+      "model": "openrouter/auto",
+      "description": "Reviews Helm chart values, kustomization with helmCharts, and chart configurations for correctness",
+      "permission": {
+        "edit": "deny",
+        "webfetch": "allow"
+      }
+    },
+    "input-optimizer": {
+      "mode": "subagent",
+      "model": "openrouter/auto",
+      "description": "Condenses verbose user prompts into minimal input tokens while preserving all requirements and intent — use before sending complex tasks to other agents",
+      "hidden": true,
+      "permission": {
+        "edit": "deny"
+      }
+    }
+  }
+}
