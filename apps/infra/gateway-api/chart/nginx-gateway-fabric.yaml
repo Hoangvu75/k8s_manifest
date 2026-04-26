@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: nginx-gateway-fabric
-        image: nginxinc/nginx-gateway-fabric:latest
+        image: ghcr.io/nginxinc/nginx-gateway-fabric:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
