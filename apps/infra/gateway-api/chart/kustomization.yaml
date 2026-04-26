@@ -1,5 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# Use official NGINX Gateway Fabric Helm chart instead of manual deployment
+helmCharts:
+- name: nginx-gateway-fabric
+  repo: https://helm.nginx.com/stable
+  releaseName: nginx-gateway-fabric
+  namespace: gateway-api
+  version: 0.8.0
+
 resources:
-  - nginx-gateway-fabric.yaml
+  # No local nginx-gateway-fabric.yaml needed - using Helm chart instead
