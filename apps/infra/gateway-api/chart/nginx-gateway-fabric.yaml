@@ -25,6 +25,11 @@ spec:
           - static-mode
           - --gateway-ctlr-name=gateway.nginx.org/gateway-controller
           - --gatewayclass=nginx
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
         ports:
         - containerPort: 80
         - containerPort: 443
