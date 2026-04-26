@@ -9,6 +9,7 @@ spec:
   parentRefs:
     - name: shared-gateway
       namespace: gateway-api
+      sectionName: http
   hostnames:
     - "argocd.hoangvu75.space"
   rules:
@@ -18,4 +19,4 @@ spec:
             value: /
       backendRefs:
         - name: argocd-server
-          port: 443
+          port: 80
