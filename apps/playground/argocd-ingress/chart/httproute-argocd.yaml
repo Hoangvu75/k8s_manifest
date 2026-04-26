@@ -12,6 +12,7 @@ spec:
       sectionName: http
   hostnames:
     - "argocd.hoangvu75.space"
+    - "argocd.localhost"
   rules:
     - matches:
         - path:
