@@ -3,11 +3,4 @@ kind: Kustomization
 
 resources:
   - https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml
-
-helmCharts:
-  - name: nginx-gateway-fabric
-    repo: https://nginxinc.github.io/nginx-gateway-fabric-helm-charts
-    version: "0.8.0"
-    releaseName: nginx-gateway-fabric
-    namespace: gateway-api
-    valuesFile: values.yaml
+  - https://github.com/nginx/nginx-gateway-fabric/releases/download/v0.8.0/nginx-gateway-fabric.yaml
