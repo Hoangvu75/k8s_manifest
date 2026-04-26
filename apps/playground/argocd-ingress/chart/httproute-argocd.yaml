@@ -9,7 +9,7 @@ spec:
   parentRefs:
     - name: shared-gateway
       namespace: gateway-api
-      sectionName: https
+      sectionName: http
   hostnames:
     - "argocd.hoangvu75.space"
     - "argocd.localhost"
