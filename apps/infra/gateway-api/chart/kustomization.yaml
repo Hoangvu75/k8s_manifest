@@ -4,10 +4,10 @@ kind: Kustomization
 # Use official NGINX Gateway Fabric Helm chart instead of manual deployment
 helmCharts:
 - name: nginx-gateway-fabric
-  repo: https://helm.nginx.com/stable
+  repo: https://charts.nginx.org/nginx-gateway-fabric
   releaseName: nginx-gateway-fabric
   namespace: gateway-api
-  version: 0.8.0
+  version: 0.10.0
 
 resources:
   # No local nginx-gateway-fabric.yaml needed - using Helm chart instead
