@@ -21,6 +21,8 @@ spec:
       - name: nginx-gateway-fabric
         image: ghcr.io/nginxinc/nginx-gateway-fabric:latest
         imagePullPolicy: IfNotPresent
+        args:
+          - static-mode
         ports:
         - containerPort: 80
         - containerPort: 443
