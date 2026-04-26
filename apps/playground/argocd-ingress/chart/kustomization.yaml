@@ -3,7 +3,7 @@ kind: Kustomization
 
 helmCharts:
 - name: helm-application
-  repo: oci://registry-1.docker.io/hoangvu753
+  repo: oci://ghcr.io/hoangvu75/helm_application
   releaseName: argocd-ingress
   namespace: argocd
   version: 6.16.1
