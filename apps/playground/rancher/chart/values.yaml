@@ -9,7 +9,7 @@ ingress:
     source: secret
 
 httpRoute:
-  enabled: true
+  enabled: false
   parentRefs:
     - name: shared-gateway
       namespace: gateway-api
