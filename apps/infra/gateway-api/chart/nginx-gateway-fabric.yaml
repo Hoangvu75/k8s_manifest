@@ -23,6 +23,8 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
           - static-mode
+          - --gateway-ctlr-name=gateway.nginx.org/gateway-controller
+          - --gatewayclass=nginx
         ports:
         - containerPort: 80
         - containerPort: 443
