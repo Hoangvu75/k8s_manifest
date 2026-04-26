@@ -30,6 +30,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
         ports:
         - containerPort: 80
         - containerPort: 443
