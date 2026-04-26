@@ -16,9 +16,12 @@ spec:
           from: All
     - name: https
       port: 443
-      protocol: TLS
+      protocol: HTTPS
       allowedRoutes:
         namespaces:
           from: All
       tls:
-        mode: Passthrough
+        mode: Terminate
+        certificateRefs:
+          - name: wildcard-tls
+            kind: Secret
