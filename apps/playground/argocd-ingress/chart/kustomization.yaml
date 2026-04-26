@@ -10,3 +10,7 @@ helmCharts:
   valuesFile: values.yaml
   additionalValuesFiles:
     - values-ingress.yaml
+
+resources:
+  - httproute-argocd.yaml
+  - argocd-nodeport.yaml

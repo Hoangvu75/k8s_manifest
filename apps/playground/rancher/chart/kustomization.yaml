@@ -10,3 +10,6 @@ helmCharts:
     additionalValuesFiles:
       - values-ingress.yaml
 
+resources:
+  - httproute-rancher.yaml
+

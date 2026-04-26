@@ -4,7 +4,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ingress-nginx
+  name: gateway-api
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 ---
