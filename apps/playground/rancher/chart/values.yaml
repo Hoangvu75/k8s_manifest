@@ -3,3 +3,19 @@ hostname: rancher.hoangvu75.space
 bootstrapPassword: "admin"
 
 replicas: 1
+
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: shared-gateway
+      namespace: gateway-api
+  hostnames:
+    - "rancher.hoangvu75.space"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: rancher
+          port: 80

@@ -4,3 +4,19 @@ deployment:
   enabled: false
 service:
   enabled: false
+
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: shared-gateway
+      namespace: gateway-api
+  hostnames:
+    - "argocd.hoangvu75.space"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: argocd-server
+          port: 443
