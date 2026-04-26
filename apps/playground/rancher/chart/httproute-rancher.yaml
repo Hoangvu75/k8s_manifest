@@ -9,7 +9,7 @@ spec:
   parentRefs:
     - name: shared-gateway
       namespace: gateway-api
-      sectionName: http
+      sectionName: https
   hostnames:
     - "rancher.hoangvu75.space"
     - "rancher.localhost"
