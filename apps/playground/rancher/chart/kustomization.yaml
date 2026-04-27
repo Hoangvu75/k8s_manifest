@@ -7,9 +7,6 @@ helmCharts:
     releaseName: rancher
     namespace: cattle-system
     valuesFile: values.yaml
-    additionalValuesFiles:
-      - httproute-rancher.yaml
 
-# resources:
-#   - httproute-rancher.yaml
-
+resources:
+  - httproute-rancher.yaml
