@@ -1,2 +1,4 @@
 destNamespace: cert-manager
+annotations:
+  argocd.argoproj.io/sync-wave: "2"
 

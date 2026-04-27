@@ -8,3 +8,6 @@ helmCharts:
   namespace: hello-api
   version: 6.16.1
   valuesFile: values.yaml
+  additionalValuesFiles:
+    - values-service.yaml
+    - values-httproute.yaml

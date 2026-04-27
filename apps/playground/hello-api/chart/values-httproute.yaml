@@ -1,21 +1,17 @@
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: argocd
-  namespace: argocd
+httpRoute:
+  enabled: true
   annotations:
     argocd.argoproj.io/sync-wave: "3"
-spec:
   parentRefs:
     - name: shared-gateway
       namespace: gateway-api
   hostnames:
-    - "argocd.hoangvu75.space"
+    - api.hoangvu75.space
   rules:
     - matches:
         - path:
             type: PathPrefix
-            value: /
+            value: /helloworld
       filters:
         - type: RequestHeaderModifier
           requestHeaderModifier:
@@ -25,5 +21,5 @@ spec:
               - name: X-Forwarded-Port
                 value: "443"
       backendRefs:
-        - name: argocd-server
-          port: 80
+        - name: hello-api
+          port: 5678

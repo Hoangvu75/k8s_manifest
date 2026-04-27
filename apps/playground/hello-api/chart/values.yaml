@@ -20,34 +20,3 @@ deployment:
     requests:
       cpu: 10m
       memory: 16Mi
-
-service:
-  enabled: true
-  ports:
-    - name: http
-      port: 5678
-      targetPort: 5678
-
-httpRoute:
-  enabled: true
-  parentRefs:
-    - name: shared-gateway
-      namespace: gateway-api
-  hostnames:
-    - test.hoangvu75.space
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /helloworld
-      filters:
-        - type: RequestHeaderModifier
-          requestHeaderModifier:
-            set:
-              - name: X-Forwarded-Proto
-                value: https
-              - name: X-Forwarded-Port
-                value: "443"
-      backendRefs:
-        - name: hello-api
-          port: 5678
