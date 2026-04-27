@@ -8,9 +8,6 @@ helmCharts:
   namespace: argocd
   version: 6.16.1
   valuesFile: values.yaml
-  additionalValuesFiles:
-    - values-ingress.yaml
 
 resources:
   - httproute-argocd.yaml
-  - argocd-nodeport.yaml
