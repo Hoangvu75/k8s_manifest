@@ -6,4 +6,3 @@ namespace: argocd
 
 resources:
   - chart
-  - argocd-cmd-params-cm.yaml
