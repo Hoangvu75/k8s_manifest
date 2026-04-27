@@ -59,18 +59,19 @@ GitOps repo for Kubernetes cluster management with ArgoCD, Kustomize, and Helm.
 ### Bootstrap Chain
 
 ```
-bootstrap.yaml ──► bootstrap/root.yaml ──► projects/*.yaml ──► apps/**/config.yaml
-     │                    │                      │                      │
-  root App            points to             AppProject +           Kustomize +
-  (manual apply)      projects/             ApplicationSet         Helm charts
+kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► projects/   ──► apps/**/config.yaml
+(kubectl apply)         │                    │               │                  │
+                     root App            bootstrap/       AppProject +       Kustomize +
+                     (manual apply)      kustomization    ApplicationSet     Helm charts
 ```
 
-1. **`bootstrap.yaml`** — manually applied once; creates the root ArgoCD `Application` pointing to `bootstrap/`
-2. **`bootstrap/root.yaml`** — root Application syncs `projects/`, which defines AppProjects and ApplicationSets
-3. **`bootstrap/cluster-resources.yaml`** — creates namespaces and shared cluster objects (sync-wave `-1`)
-4. **`bootstrap/secrets.yaml`** — syncs secrets from private repo `k8s_manifest_secrets` (sync-wave `1`)
-5. **`projects/infra.yaml`** + **`projects/playground.yaml`** — ApplicationSets discover apps via `config.yaml` files
-6. **`apps/infra/**/config.yaml`** + **`apps/playground/**/config.yaml`** — each discovered app is rendered by Kustomize (`--enable-helm`) and synced
+1. **`kustomize build . | kubectl apply -f -`** — (initial one-time) builds `bootstrap.yaml` with repo URLs injected from `components/repo-url/`, then creates the root ArgoCD `Application`
+2. **`bootstrap/`** — kustomization applies the same component, substituting `PLACEHOLDER` URLs in `root.yaml`, `cluster-resources.yaml`, and `secrets.yaml`
+3. **`bootstrap/root.yaml`** — root Application syncs `projects/`, which defines AppProjects and ApplicationSets
+4. **`bootstrap/cluster-resources.yaml`** — creates namespaces and shared cluster objects (sync-wave `-1`)
+5. **`bootstrap/secrets.yaml`** — syncs secrets from private repo (sync-wave `1`)
+6. **`projects/infra.yaml`** + **`projects/playground.yaml`** — ApplicationSets discover apps via `config.yaml` files
+7. **`apps/infra/**/config.yaml`** + **`apps/playground/**/config.yaml`** — each discovered app is rendered by Kustomize (`--enable-helm`) and synced
 
 ### Sync Order (by sync-wave)
 
@@ -86,28 +87,34 @@ bootstrap.yaml ──► bootstrap/root.yaml ──► projects/*.yaml ──►
 ## Repo Structure
 
 ```
-├── bootstrap.yaml              # Root ArgoCD Application (manual apply once)
-├── bootstrap/                  # Bootstrap Applications
-│   ├── root.yaml               # Points to projects/
-│   ├── cluster-resources.yaml  # Namespace ApplicationSet
-│   └── secrets.yaml            # Private secrets repo sync
-├── projects/                   # AppProjects + ApplicationSets
-│   ├── infra.yaml              # Infrastructure project
-│   └── playground.yaml         # Experimental/user apps project
-├── cluster-resources/          # Shared cluster resources
-│   └── default/                # Namespace definitions
+├── kustomization.yaml           # Root Kustomize — builds bootstrap.yaml via components
+├── bootstrap.yaml               # Root ArgoCD Application (contains PLACEHOLDER repoURL)
+├── components/
+│   └── repo-url/                # Central repo URL definitions (shared by all kustomizations)
+│       └── kustomization.yaml
+├── bootstrap/                   # Bootstrap Applications
+│   ├── kustomization.yaml       # Uses components/repo-url, replaces PLACEHOLDERs
+│   ├── root.yaml                # Points to projects/
+│   ├── cluster-resources.yaml   # Namespace ApplicationSet
+│   └── secrets.yaml             # Private secrets repo sync
+├── projects/                    # AppProjects + ApplicationSets
+│   ├── kustomization.yaml       # Uses components/repo-url, replaces PLACEHOLDERs
+│   ├── infra.yaml               # Infrastructure project
+│   └── playground.yaml          # Experimental/user apps project
+├── cluster-resources/           # Shared cluster resources
+│   └── default/                 # Namespace definitions
 ├── apps/
-│   ├── infra/                  # Platform/infrastructure components
-│   │   ├── gateway-api-crds/   # Gateway API CRDs (install first)
-│   │   ├── gateway-api/        # Traefik + Gateway + wildcard TLS
-│   │   ├── cloudflared/        # Cloudflare tunnel connector
-│   │   └── datadog/            # Monitoring agent
-│   └── playground/             # Experimental and user-facing apps
-│       ├── cert-manager/       # Certificate management
-│       ├── argocd-ingress/     # ArgoCD HTTPRoute exposure
-│       └── rancher/            # Rancher management UI
-├── guide/                      # Setup guides and troubleshooting
-└── .opencode/                  # OpenCode config, rules, agents, skills
+│   ├── infra/                   # Platform/infrastructure components
+│   │   ├── gateway-api-crds/    # Gateway API CRDs (install first)
+│   │   ├── gateway-api/         # Traefik + Gateway + wildcard TLS
+│   │   ├── cloudflared/         # Cloudflare tunnel connector
+│   │   └── datadog/             # Monitoring agent
+│   └── playground/              # Experimental and user-facing apps
+│       ├── cert-manager/        # Certificate management
+│       ├── argocd-ingress/      # ArgoCD HTTPRoute exposure
+│       └── rancher/             # Rancher management UI
+├── guide/                       # Setup guides and troubleshooting
+└── .opencode/                   # OpenCode config, rules, agents, skills
 ```
 
 ## GitOps Rules

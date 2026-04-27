@@ -32,7 +32,7 @@ spec:
   goTemplateOptions: ["missingkey=default"]
   generators:
     - git:
-        repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+        repoURL: PLACEHOLDER
         revision: "base-manifest"
         requeueAfterSeconds: 20
         files:
@@ -42,6 +42,7 @@ spec:
           project: "{{index .path.segments 1}}"
           app_path: "{{.path.path}}"
           name: "{{.path.basename}}"
+          repoURL: PLACEHOLDER
   template:
     metadata:
       name: '{{ default ( printf "%s-%s" .values.project ( index .path.segments 2 ) ) .appName }}'
@@ -52,7 +53,7 @@ spec:
         server: https://kubernetes.default.svc
       project: '{{.values.project}}'
       source:
-        repoURL: '{{ default "https://github.com/Hoangvu75/k8s_manifest.git" .repoURL }}'
+        repoURL: '{{ default .values.repoURL .repoURL }}'
         targetRevision: "base-manifest"
         path: '{{ default ( trimSuffix "/config.yaml" .values.app_path ) .srcPath }}'
         kustomize:

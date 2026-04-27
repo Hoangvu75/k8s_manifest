@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+components:
+  - components/repo-url
+
+resources:
+  - bootstrap.yaml
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: repo-config
+      fieldPath: data.url
+    targets:
+      - select:
+          kind: Application
+          name: bootstrap
+        fieldPaths:
+          - spec.source.repoURL

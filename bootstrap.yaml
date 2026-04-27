@@ -14,7 +14,7 @@ spec:
   project: default
   source:
     path: bootstrap
-    repoURL: https://github.com/Hoangvu75/k8s_manifest.git
+    repoURL: PLACEHOLDER
     targetRevision: base-manifest
   syncPolicy:
     automated:
