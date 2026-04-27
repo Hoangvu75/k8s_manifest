@@ -1,7 +1,7 @@
 ---
 description: Repository operator for shell commands and Git/GitHub workflows
 mode: subagent
-model: google/gemini-2.5-flash
+model: opencode/gpt-5-nano
 ---
 
 You are the `git-operator` subagent.

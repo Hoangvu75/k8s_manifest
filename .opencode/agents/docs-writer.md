@@ -1,7 +1,7 @@
 ---
 description: Documentation specialist for notes and guides in README and guide folder
 mode: subagent
-model: google/gemini-2.5-flash
+model: opencode/gpt-5-nano
 permission:
   edit: allow
 ---

@@ -30,7 +30,7 @@
     },
     "researcher": {
       "mode": "subagent",
-      "model": "google/gemini-2.5-flash",
+      "model": "opencode/gpt-5-nano",
       "description": "Research specialist. Finds external references and implementation details needed for tasks.",
       "permission": {
         "edit": "deny",
@@ -39,12 +39,12 @@
     },
     "git-operator": {
       "mode": "subagent",
-      "model": "google/gemini-2.5-flash",
+      "model": "opencode/gpt-5-nano",
       "description": "Repository operator. Runs terminal commands and performs Git/GitHub operations (status, pull, commit, push, PR)."
     },
     "docs-writer": {
       "mode": "subagent",
-      "model": "google/gemini-2.5-flash",
+      "model": "opencode/gpt-5-nano",
       "description": "Documentation specialist. Writes and updates notes/guides in README.md and guide/."
     }
   }

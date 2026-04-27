@@ -1,7 +1,7 @@
 ---
 description: Researcher subagent for gathering external technical references and implementation details
 mode: subagent
-model: google/gemini-2.5-flash
+model: opencode/gpt-5-nano
 permission:
   edit: deny
   webfetch: allow
