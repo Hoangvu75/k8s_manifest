@@ -24,3 +24,9 @@ kubectl apply -f argocd-repository-secrets.yaml
 ```bash
 kubectl kustomize . | kubectl apply -f -
 ```
+
+### 5. In case need to delete bootstrap
+```bash
+kubectl patch application bootstrap -n argocd --type=merge -p '{"metadata":{"finalizers":null}}'
+kubectl delete application bootstrap -n argocd --force --grace-period=0
+```
