@@ -34,7 +34,7 @@ httpRoute:
     - name: shared-gateway
       namespace: gateway-api
   hostnames:
-    - api.hoangvu75.space
+    - test.hoangvu75.space
   rules:
     - matches:
         - path:
