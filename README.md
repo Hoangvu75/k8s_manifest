@@ -116,6 +116,7 @@ bootstrap.yaml ──► bootstrap/root.yaml ──► projects/*.yaml ──►
 - All changes go through Git — commit YAML manifests, ArgoCD syncs automatically
 - Read-only `kubectl` commands (`get`, `describe`, `logs`, `top`) are allowed for debugging
 - Prefer OCI Helm charts from `oci://ghcr.io/hoangvu75/helm_application`
+- Helm charts repo: `https://github.com/Hoangvu75/helm_application`
 
 ## Adding a New App
 

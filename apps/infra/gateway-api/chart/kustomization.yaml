@@ -6,3 +6,4 @@ resources:
   - gatewayclass.yaml
   - gateway.yaml
   - wildcard-tls-secret.yaml
+  - httproute-traefik-dashboard.yaml
