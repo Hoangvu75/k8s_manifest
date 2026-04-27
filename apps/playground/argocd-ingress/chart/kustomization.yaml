@@ -11,3 +11,4 @@ helmCharts:
 
 resources:
   - httproute-argocd.yaml
+  - argocd-cmd-params-cm.yaml

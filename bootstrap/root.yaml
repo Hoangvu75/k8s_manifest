@@ -21,6 +21,11 @@ spec:
     kind: ApplicationSet
     jqPathExpressions:
     - .spec.template.spec.source.kustomize
+  - group: ""
+    kind: ConfigMap
+    name: repo-config
+    jqPathExpressions:
+    - .metadata.annotations
   syncPolicy:
     automated:
       allowEmpty: true
