@@ -14,6 +14,12 @@ kubectl port-forward -n argocd svc/argocd-server 8080:80
 ```
 Then open http://localhost:8080
 
-### 3. Apply bootstrap
+### 3. Apply secrets to allow using private repo
+```bash
+kubectl apply -f argocd-repository-secrets.yaml
+```
+
+### 4. Apply bootstrap
 ```bash
 kubectl kustomize . | kubectl apply -f https://raw.githubusercontent.com/Hoangvu75/k8s_manifest/refs/heads/base-manifest/bootstrap.yaml
+```
