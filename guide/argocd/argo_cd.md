@@ -8,9 +8,12 @@ kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"kustomize
 kubectl rollout restart deployment argocd-repo-server -n argocd
 ```
 ### 2. Expose UI
-
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 kubectl port-forward -n argocd svc/argocd-server 8080:80
 ```
 Then open http://localhost:8080
+
+### 3. Apply bootstrap
+```bash
+kubectl kustomize . | kubectl apply -f https://raw.githubusercontent.com/Hoangvu75/k8s_manifest/refs/heads/base-manifest/bootstrap.yaml
