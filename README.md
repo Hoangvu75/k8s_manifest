@@ -10,7 +10,7 @@ GitOps repo for Kubernetes cluster management with ArgoCD, Kustomize, and Helm.
                         ▼
               ┌─────────────────────┐
               │   Cloudflare CDN    │
-              │  (cloudflared tunnel│◄── HTTP/2 tunnel
+              │ (cloudflared tunnel)│◄── HTTP/2 tunnel
               └────────┬────────────┘
                        │
                        ▼
@@ -52,7 +52,7 @@ GitOps repo for Kubernetes cluster management with ArgoCD, Kustomize, and Helm.
 |----------|---------|-----------|
 | `argocd.hoangvu75.space` | argocd-server:80 | argocd |
 | `rancher.hoangvu75.space` | rancher:80 | cattle-system |
-| `*.hoangvu75.space` | (wildcard TLS) | gateway-api |
+| `traefik.hoangvu75.space` | traefik:8080 | gateway-api |
 
 ## Workflow
 
@@ -156,14 +156,6 @@ Shared namespaces are defined in `cluster-resources/default/namespace.yaml` with
 | cert-manager | playground | TLS certificate automation |
 | ArgoCD Ingress | playground | Expose ArgoCD UI via HTTPRoute |
 | Rancher | playground | Cluster management UI |
-
-## OpenCode Setup
-
-This repo includes OpenCode configuration for:
-- **Main agents** (`build`/`plan`): `deepseek/deepseek-v4-pro`
-- **Subagents** (`general`/`explore`): `openrouter/auto`
-- **Specialized agents**: `k8s-validator`, `gitops-reviewer`, `helm-reviewer`, `input-optimizer`
-- **Skills**: GitOps sync, Kustomize structure, Helm chart management, Prometheus rules, Dockerfile optimization, K8s debugging
 
 ## Private Secrets
 

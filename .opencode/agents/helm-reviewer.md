@@ -1,7 +1,7 @@
 ---
 description: Reviews Helm chart values, kustomization with helmCharts, and chart configurations for correctness
 mode: subagent
-model: openrouter/auto
+model: deepseek/deepseek-v4-flash
 permission:
   edit: deny
 ---

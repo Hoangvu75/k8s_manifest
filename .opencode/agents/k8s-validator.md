@@ -1,7 +1,7 @@
 ---
 description: Validates Kubernetes manifests, Kustomize overlays, and Helm charts for syntax errors and best practices
 mode: subagent
-model: openrouter/auto
+model: deepseek/deepseek-v4-flash
 permission:
   edit: deny
 ---

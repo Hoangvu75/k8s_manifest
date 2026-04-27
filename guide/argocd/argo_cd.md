@@ -19,6 +19,7 @@ Then open http://localhost:8080
 ```bash
 kubectl apply -f argocd-repository-secrets.yaml
 ```
+This will allow ArgoCD access the repositories in case the repositories are private
 
 ### 4. Apply bootstrap
 ```bash
