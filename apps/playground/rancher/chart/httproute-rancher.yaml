@@ -9,7 +9,6 @@ spec:
       namespace: gateway-api
   hostnames:
     - "rancher.hoangvu75.space"
-    - "rancher.localhost"
   rules:
     - matches:
         - path:
@@ -25,4 +24,4 @@ spec:
                 value: "443"
       backendRefs:
         - name: rancher
-          port: 443
+          port: 80
