@@ -14,15 +14,17 @@
 - Delegate to `sa` before implementation when requirement is ambiguous, high-impact, or has multiple architecture options.
 - Delegate to `researcher` when external docs/version behavior are needed (Kubernetes, ArgoCD, Helm, Traefik, cloudflared, providers).
 - Delegate to `sre` after substantial changes to review reliability, runtime safety, and rollback risk.
-- Delegate to `repo-operator` only for command-heavy workflows (git status/diff, pull/rebase, commit/push, PR/checks).
+- Delegate to `git-operator` only for command-heavy workflows (git status/diff, pull/rebase, commit/push, PR/checks).
+- Delegate to `docs-writer` for any request to create/update notes, runbooks, onboarding docs, `README.md`, or files in `guide/`.
 - If user explicitly names an agent, follow that routing first unless it violates safety constraints.
 
 ## Default Multi-Agent Flow
-- For medium/large tasks: `sa` (plan) -> `devops` (implement) -> `sre` (review) -> `repo-operator` (git/github ops when requested).
+- For medium/large tasks: `sa` (plan) -> `devops` (implement) -> `sre` (review) -> `git-operator` (git/github ops when requested).
 - For research-first tasks: `researcher` -> `sa` (optional synthesis) -> `devops`.
+- For documentation tasks: `docs-writer` -> `devops` (only if manifest/code updates are also needed).
 - For simple tasks: `devops` acts alone.
 
-## Subagent Output Rules (`sa`, `sre`, `researcher`, `repo-operator`)
+## Subagent Output Rules (`sa`, `sre`, `researcher`, `git-operator`, `docs-writer`)
 - Optimize output to minimize token usage
 - Return only essential information — no fluff, no recaps, no suggestions unless asked
 - Use bullet points only when listing multiple items; otherwise plain short text

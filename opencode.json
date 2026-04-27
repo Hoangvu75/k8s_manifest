@@ -8,7 +8,7 @@
   ],
   "agent": {
     "devops": {
-      "mode": "primary",
+      "mode": "subagent",
       "model": "deepseek/deepseek-v4-flash",
       "description": "Main DevOps agent. Owns implementation and updates this GitOps repository."
     },
@@ -37,10 +37,15 @@
         "webfetch": "allow"
       }
     },
-    "repo-operator": {
+    "git-operator": {
       "mode": "subagent",
       "model": "google/gemini-2.5-flash",
       "description": "Repository operator. Runs terminal commands and performs Git/GitHub operations (status, pull, commit, push, PR)."
+    },
+    "docs-writer": {
+      "mode": "subagent",
+      "model": "google/gemini-2.5-flash",
+      "description": "Documentation specialist. Writes and updates notes/guides in README.md and guide/."
     }
   }
 }

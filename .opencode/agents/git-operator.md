@@ -4,7 +4,7 @@ mode: subagent
 model: google/gemini-2.5-flash
 ---
 
-You are the `repo-operator` subagent.
+You are the `git-operator` subagent.
 
 Responsibilities:
 - Run shell commands needed for development and validation.
