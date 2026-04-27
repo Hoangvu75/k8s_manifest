@@ -7,7 +7,8 @@ kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubuse
 kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"kustomize.buildOptions":"--enable-helm"}}'
 kubectl rollout restart deployment argocd-repo-server -n argocd
 ```
-### 2. Expose UI
+### 2. Expose ArgoCD UI
+Wait for all the pods of ArgoCD ready, then run
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 kubectl port-forward -n argocd svc/argocd-server 8080:80
@@ -21,5 +22,5 @@ kubectl apply -f argocd-repository-secrets.yaml
 
 ### 4. Apply bootstrap
 ```bash
-kubectl kustomize . | kubectl apply -f https://raw.githubusercontent.com/Hoangvu75/k8s_manifest/refs/heads/base-manifest/bootstrap.yaml
+kubectl kustomize . | kubectl apply -f -
 ```
