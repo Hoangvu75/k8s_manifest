@@ -1,9 +1,0 @@
-# Gateway API CRDs - must be installed before any Gateway API resources
-# This application installs the Gateway API Custom Resource Definitions
-# Sync wave -2 ensures CRDs are installed before other gateway-api resources (-1, 0, 1, etc.)
-name: gateway-api-crds
-project: infra
-destNamespace: gateway-api
-syncPolicy:
-  syncOptions:
-    - CreateNamespace=true
