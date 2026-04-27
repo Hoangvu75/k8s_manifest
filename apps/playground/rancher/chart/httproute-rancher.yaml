@@ -9,7 +9,7 @@ spec:
       namespace: gateway-api
   hostnames:
     - "rancher.hoangvu75.space"
-    # - "rancher.localhost"
+    - "rancher.localhost"
   rules:
     - matches:
         - path:
