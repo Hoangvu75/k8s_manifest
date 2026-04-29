@@ -28,6 +28,18 @@ datadog:
   apm:
     socketEnabled: true
     portEnabled: true
+    otlp_config:
+      receiver:
+        protocols:
+          http:
+            enabled: true
+          grpc:
+            enabled: true
+
+  # Prometheus scraping for Traefik metrics
+  prometheusScrape:
+    enabled: true
+    serviceEndpoints: true
 
   processAgent:
     enabled: true

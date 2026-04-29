@@ -72,6 +72,10 @@ spec:
     metadata:
       labels:
         app: traefik
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9082"
+        prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: traefik
       volumes:
@@ -116,6 +120,9 @@ metadata:
   namespace: gateway-api
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9082"
+    prometheus.io/path: "/metrics"
 spec:
   type: NodePort
   selector:
