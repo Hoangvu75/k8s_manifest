@@ -70,8 +70,8 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 3. **`bootstrap/root.yaml`** — root Application syncs `projects/`, which defines AppProjects and ApplicationSets
 4. **`bootstrap/cluster-resources.yaml`** — creates namespaces and shared cluster objects (sync-wave `-1`)
 5. **`bootstrap/secrets.yaml`** — syncs secrets from private repo (sync-wave `1`)
-6. **`projects/infra.yaml`** + **`projects/playground.yaml`** — ApplicationSets discover apps via `config.yaml` files
-7. **`apps/infra/**/config.yaml`** + **`apps/playground/**/config.yaml`** — each discovered app is rendered by Kustomize (`--enable-helm`) and synced
+6. **`projects/infra.yaml`** + **`projects/applications.yaml`** — ApplicationSets discover apps via `config.yaml` files
+7. **`apps/infra/**/config.yaml`** + **`apps/applications/**/config.yaml`** — each discovered app is rendered by Kustomize (`--enable-helm`) and synced
 
 ### Sync Order (by sync-wave)
 
@@ -100,19 +100,18 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 ├── projects/                    # AppProjects + ApplicationSets
 │   ├── kustomization.yaml       # Uses components/repo-url, replaces PLACEHOLDERs
 │   ├── infra.yaml               # Infrastructure project
-│   └── playground.yaml          # Experimental/user apps project
+│   └── applications.yaml        # Application apps project
 ├── cluster-resources/           # Shared cluster resources
 │   └── default/                 # Namespace definitions
 ├── apps/
 │   ├── infra/                   # Platform/infrastructure components
-│   │   ├── gateway-api-crds/    # Gateway API CRDs (install first)
 │   │   ├── gateway-api/         # Traefik + Gateway + wildcard TLS
 │   │   ├── cloudflared/         # Cloudflare tunnel connector
-│   │   └── datadog/             # Monitoring agent
-│   └── playground/              # Experimental and user-facing apps
-│       ├── cert-manager/        # Certificate management
-│       ├── argocd-ingress/      # ArgoCD HTTPRoute exposure
-│       └── rancher/             # Rancher management UI
+│   │   ├── datadog/             # Monitoring agent
+│   │   ├── rancher/             # Rancher management UI (includes cert-manager)
+│   │   └── argocd-ingress/      # ArgoCD HTTPRoute exposure
+│   └── applications/            # User-facing application apps
+│       └── hello-api/           # Hello API demo app
 ├── guide/                       # Setup guides and troubleshooting
 └── .opencode/                   # OpenCode config, rules, agents, skills
 ```
@@ -127,7 +126,7 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 
 ## Adding a New App
 
-1. Create a folder under `apps/infra/<name>/` or `apps/playground/<name>/`
+1. Create a folder under `apps/infra/<name>/` or `apps/applications/<name>/`
 2. Add `config.yaml` for ApplicationSet discovery (set `destNamespace` if needed)
 3. Add `kustomization.yaml` and optional `chart/` directory
 4. If using Helm, reference charts via Kustomize `helmCharts` blocks with `--enable-helm`
@@ -153,9 +152,9 @@ Shared namespaces are defined in `cluster-resources/default/namespace.yaml` with
 | Traefik + Gateway | infra | Ingress controller via Gateway API |
 | Cloudflared | infra | Cloudflare tunnel for external access |
 | Datadog | infra | Monitoring and observability agent |
-| cert-manager | playground | TLS certificate automation |
-| ArgoCD Ingress | playground | Expose ArgoCD UI via HTTPRoute |
-| Rancher | playground | Cluster management UI |
+| Rancher (incl. cert-manager) | infra | Cluster management UI + TLS cert automation |
+| ArgoCD Ingress | infra | Expose ArgoCD UI via HTTPRoute |
+| Hello API | applications | Demo API application |
 
 ## Private Secrets
 

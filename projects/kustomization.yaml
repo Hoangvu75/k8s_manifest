@@ -6,7 +6,7 @@ components:
 
 resources:
   - infra.yaml
-  - playground.yaml
+  - applications.yaml
 
 replacements:
   - source:

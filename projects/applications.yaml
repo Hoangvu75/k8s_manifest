@@ -4,7 +4,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: PruneLast=true
     argocd.argoproj.io/sync-wave: "-2"
-  name: playground
+  name: applications
   namespace: argocd
 spec:
   clusterResourceWhitelist:
@@ -25,7 +25,7 @@ kind: ApplicationSet
 metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
-  name: playground
+  name: applications
   namespace: argocd
 spec:
   goTemplate: true
@@ -36,7 +36,7 @@ spec:
         revision: PLACEHOLDER
         requeueAfterSeconds: 20
         files:
-          - path: "apps/playground/**/config.yaml"
+          - path: "apps/applications/**/config.yaml"
         values:
           cluster: "{{index .path.segments 1}}"
           project: "{{index .path.segments 1}}"
