@@ -32,22 +32,24 @@ The `INTERNAL-IP` column shows each node's IP address. Pick one that's reachable
 Then test:
 
 ```bash
-# Get first node's internal IP and test in one command
+# Get first node's internal IP
 NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-nc $NODE_IP 30900
+
+# Use curl (works in Git Bash on Windows)
+echo "hello" | curl -s telnet://$NODE_IP:30900
+# You should see: hello echoed back
+
+# Or if you have netcat installed:
+# nc $NODE_IP 30900
 ```
 
-Type anything and press Enter — the server echoes it back immediately.
+With `curl`, type your message, press Enter, and the echo response appears in the output.
 
 **Example session:**
-```
+```bash
 $ NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-$ nc $NODE_IP 30900
+$ echo "hello" | curl -s telnet://$NODE_IP:30900
 hello
-hello
-how are you?
-how are you?
-^C
 ```
 
 ### From inside the cluster (any pod):
@@ -68,20 +70,34 @@ The Traefik NodePort service exposes UDP traffic on port **30901**.
 
 ### From a machine on the same network as the cluster:
 
+`nc -u` is not available in Git Bash. Use Python instead:
+
 ```bash
 NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-nc -u $NODE_IP 30901
+
+# Using Python (works in Git Bash if Python is installed)
+python3 -c "
+import socket
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.settimeout(3)
+s.sendto(b'hello\\n', ('$NODE_IP', 30901))
+try:
+    data, addr = s.recvfrom(1024)
+    print('Got:', data.decode().strip())
+except socket.timeout:
+    print('Timeout (UDP first packet often lost - try again)')
+"
+
+# Or using PowerShell (always available on Windows):
+# powershell -Command "`$c=New-Object System.Net.Sockets.UdpClient; `$c.Connect('$NODE_IP',30901); `$b=[Text.Encoding]::ASCII.GetBytes('hello'); `$c.Send(`$b,`$b.Length); `$r=`$c.Receive([ref]''); Write-Host 'Got:' ([Text.Encoding]::ASCII.GetString(`$r))"
 ```
 
-Type anything and press Enter — the server echoes it back.
+> **Note:** UDP is connectionless, so the first packet may be lost while socat sets up the listener. Run the command twice if the first attempt times out.
 
 **Example session:**
-```
-$ NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-$ nc -u $NODE_IP 30901
+```bash
+$ python3 -c "import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.settimeout(3); s.sendto(b'hello',('192.168.1.100',30901)); print(s.recvfrom(1024)[0].decode())"
 hello
-hello
-^C
 ```
 
 ### From inside the cluster (any pod):
@@ -100,7 +116,7 @@ hello
 
 ## 3. Testing via ClusterIP (from any pod)
 
-If you don't want to use NodePorts, test directly against the ClusterIP services:
+If you don't want to use NodePorts, test directly against the ClusterIP services from within the cluster. This is the **easiest and most reliable** option since it doesn't depend on your local OS tools:
 
 ```bash
 # TCP
@@ -108,6 +124,15 @@ kubectl run -it --rm debug --image=alpine -- sh -c "apk add netcat-openbsd && nc
 
 # UDP
 kubectl run -it --rm debug --image=alpine -- sh -c "apk add netcat-openbsd && nc -u udp-echo.udp-demo 7778"
+```
+
+Type your message after the shell starts — the echo server sends it right back.
+
+**Example:**
+```
+/ # nc tcp-echo.tcp-demo 7777
+hello
+hello
 ```
 
 ---
