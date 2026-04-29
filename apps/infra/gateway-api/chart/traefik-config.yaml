@@ -52,13 +52,11 @@ data:
       fields:
         defaultMode: keep
 
-    # --- Distributed Tracing (OpenTelemetry to Datadog APM) ---
+    # --- Distributed Tracing (OpenTelemetry via OTLP HTTP to Datadog APM) ---
     tracing:
-      openTelemetry:
-        address: "datadog-agent.datadog:4318"
-        grpc: false
-        resourceAttributes:
-          service.name: "traefik"
+      otlp:
+        http:
+          endpoint: http://datadog-agent.datadog:4318/v1/traces
 
     # --- Log Level ---
     log:
