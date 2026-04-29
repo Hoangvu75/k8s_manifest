@@ -15,9 +15,18 @@
 - [gateway.yaml](file://apps/infra/gateway-api/chart/gateway.yaml)
 - [gatewayclass.yaml](file://apps/infra/gateway-api/chart/gatewayclass.yaml)
 - [traefik.yaml](file://apps/infra/gateway-api/chart/traefik.yaml)
-- [traefik-config.yaml](file://apps/infra/gateway-api/chart/traefik-config.yaml)
+- [traefik-static.yaml](file://apps/infra/gateway-api/chart/traefik-static.yaml)
 - [README.md](file://guide/tcp-udp-demo/README.md)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Completely rewritten to reflect architectural shift from Gateway API-based routing to Traefik's native CRD-based routing (IngressRouteTCP/IngressRouteUDP)
+- Updated core components section to clarify Traefik now uses native CRDs instead of Gateway API
+- Revised architecture overview to show direct CRD-to-service routing without Gateway dependency
+- Enhanced testing instructions with Git Bash compatible commands for both TCP and UDP protocols
+- Improved troubleshooting guidance focusing on CRD validation and Traefik configuration
+- Updated dependency analysis to reflect sync wave ordering for CRD-based routing
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -31,10 +40,10 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
-This document describes the TCP Echo Demo Application, a minimal demonstration of Layer 4 routing using Traefik Gateway API. It deploys a TCP echo service backed by socat and exposes it externally via a Gateway TCP listener and NodePort. The guide includes testing instructions, dashboard observation, and verification of access logs and metrics.
+This document describes the TCP Echo Demo Application, a minimal demonstration of Layer 4 routing using Traefik's native CRD-based routing system. It deploys TCP and UDP echo services backed by socat and exposes them externally via Traefik's IngressRouteTCP and IngressRouteUDP resources. The application showcases direct CRD-to-service routing without requiring Gateway API infrastructure, making it more straightforward for Layer 4 traffic management. The guide includes comprehensive testing instructions, dashboard observation, and verification of access logs and metrics.
 
 ## Project Structure
-The TCP Echo Demo is organized as a Kustomize overlay that composes Kubernetes manifests for a Deployment, Service, and IngressRouteTCP. It is placed under the applications layer alongside a similar UDP demo. The infrastructure layer provides a shared Gateway with TCP/UDP listeners and a Traefik implementation configured for Gateway API.
+The TCP Echo Demo is organized as a Kustomize overlay that composes Kubernetes manifests for TCP and UDP echo applications. Each application consists of a Deployment, Service, and Traefik-native IngressRoute resource. The infrastructure layer provides a Traefik deployment with native CRD support and NodePort exposure for external access.
 
 ```mermaid
 graph TB
@@ -52,30 +61,30 @@ end
 end
 subgraph "Infrastructure Layer"
 subgraph "gateway-api"
-GWClass["GatewayClass: traefik"]
-GW["Gateway: shared-gateway<br/>Listeners: tcp (9000), udp (9001)"]
 TRDeploy["Deployment: traefik"]
 TRSvc["Service: traefik<br/>NodePorts: 30900 (TCP), 30901 (UDP)"]
-TRCfg["ConfigMap: traefik-config"]
+TRStatic["ConfigMap: traefik-static"]
 end
 end
 TCDep --> TCService
 TCService --> TCRoute
-TCRoute --> GW
-GW --> TRSvc
+TCRoute --> TRSvc
+UDDep --> UDService
+UDService --> UDRoute
+UDRoute --> TRSvc
 TRDeploy --> TRSvc
-TRDeploy --> TRCfg
-GWClass --> GW
+TRDeploy --> TRStatic
 ```
 
 **Diagram sources**
 - [deployment.yaml:1-28](file://apps/applications/tcp-demo/chart/deployment.yaml#L1-L28)
 - [service.yaml:1-14](file://apps/applications/tcp-demo/chart/service.yaml#L1-L14)
 - [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [gateway.yaml:1-51](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L51)
-- [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-- [traefik.yaml:1-144](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L144)
-- [traefik-config.yaml:1-66](file://apps/infra/gateway-api/chart/traefik-config.yaml#L1-L66)
+- [deployment.yaml:1-29](file://apps/applications/udp-demo/chart/deployment.yaml#L1-L29)
+- [service.yaml:1-15](file://apps/applications/udp-demo/chart/service.yaml#L1-L15)
+- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
+- [traefik.yaml:1-147](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L147)
+- [traefik-static.yaml:1-66](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L66)
 
 **Section sources**
 - [kustomization.yaml:1-8](file://apps/applications/tcp-demo/kustomization.yaml#L1-L8)
@@ -85,78 +94,84 @@ GWClass --> GW
 
 ## Core Components
 - TCP Echo Service
-  - Deployment runs a single replica of socat listening on TCP port 7777.
+  - Deployment runs a single replica of socat listening on TCP port 7777 with fork/reuseaddr capabilities.
   - Service targets the Deployment with ClusterIP and port 7777.
-  - IngressRouteTCP matches any SNI host and forwards to the Service on port 7777.
+  - IngressRouteTCP directly routes TCP traffic from Traefik's tcp entryPoint to the Service on port 7777.
+- UDP Echo Service
+  - Deployment runs a single replica of socat listening on UDP port 7778 with fork/reuseaddr capabilities.
+  - Service targets the Deployment with ClusterIP and port 7778 (UDP).
+  - IngressRouteUDP directly routes UDP traffic from Traefik's udp entryPoint to the Service on port 7778.
 - Infrastructure
-  - GatewayClass defines the Traefik controller.
-  - Gateway exposes TCP and UDP listeners on ports 9000 and 9001 respectively.
-  - Traefik Deployment mounts static configuration and exposes NodePorts 30900 (TCP) and 30901 (UDP).
-  - Traefik static config enables Gateway CRD provider and defines entry points for web, websecure, tcp, udp, and metrics.
+  - Traefik Deployment exposes NodePorts 30900 (TCP) and 30901 (UDP) for external access.
+  - Traefik static configuration enables native CRD providers and defines entry points for tcp and udp protocols.
+  - No Gateway API dependency - routing handled directly by Traefik's CRD controllers.
 
 **Section sources**
 - [deployment.yaml:1-28](file://apps/applications/tcp-demo/chart/deployment.yaml#L1-L28)
 - [service.yaml:1-14](file://apps/applications/tcp-demo/chart/service.yaml#L1-L14)
 - [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-- [gateway.yaml:1-51](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L51)
-- [traefik.yaml:1-144](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L144)
-- [traefik-config.yaml:1-66](file://apps/infra/gateway-api/chart/traefik-config.yaml#L1-L66)
+- [deployment.yaml:1-29](file://apps/applications/udp-demo/chart/deployment.yaml#L1-L29)
+- [service.yaml:1-15](file://apps/applications/udp-demo/chart/service.yaml#L1-L15)
+- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
+- [traefik.yaml:1-147](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L147)
+- [traefik-static.yaml:1-66](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L66)
 
 ## Architecture Overview
-The TCP Echo Demo demonstrates Layer 4 routing from external clients to the tcp-echo service:
-- External client connects to NodePort 30900.
-- Traefik Gateway receives TCP traffic on entry point tcp (port 9000) and forwards to the IngressRouteTCP route.
-- The route resolves to the tcp-echo Service on port 7777.
-- The Deployment pod responds with an echo of the received data.
+The TCP Echo Demo demonstrates Layer 4 routing using Traefik's native CRD-based approach:
+- External client connects to NodePort 30900 (TCP) or 30901 (UDP).
+- Traefik receives traffic on the appropriate entryPoint (tcp:9000 or udp:9001) and processes CRD rules.
+- IngressRouteTCP/IngressRouteUDP directly match traffic patterns and forward to the respective Service.
+- The Service load-balances to the Deployment pods running socat echo servers.
 
 ```mermaid
 sequenceDiagram
 participant Client as "External Client"
-participant NodePort as "NodePort 30900"
-participant Traefik as "Traefik Gateway"
-participant Route as "IngressRouteTCP"
-participant Svc as "Service : tcp-echo"
-participant Pod as "Pod : tcp-echo"
-Client->>NodePort : "Connect TCP to NodePort 30900"
-NodePort->>Traefik : "Forward to entryPoint tcp (9000)"
-Traefik->>Route : "Match HostSNI (*)"
-Route->>Svc : "Forward to Service port 7777"
+participant NodePort as "NodePort 30900/30901"
+participant Traefik as "Traefik CRD Router"
+participant CRD as "IngressRouteTCP/UDP"
+participant Svc as "Service : tcp-echo/udp-echo"
+participant Pod as "Pod : tcp-echo/udp-echo"
+Client->>NodePort : "Connect TCP/UDP to NodePort"
+NodePort->>Traefik : "Forward to entryPoint tcp/udp (9000/9001)"
+Traefik->>CRD : "Match CRD rules (HostSNI for TCP)"
+CRD->>Svc : "Forward to Service port 7777/7778"
 Svc->>Pod : "Load balance to Pod"
 Pod-->>Client : "Echo response"
 ```
 
 **Diagram sources**
-- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [service.yaml:1-14](file://apps/applications/tcp-demo/chart/service.yaml#L1-L14)
-- [deployment.yaml:1-28](file://apps/applications/tcp-demo/chart/deployment.yaml#L1-L28)
-- [traefik.yaml:117-140](file://apps/infra/gateway-api/chart/traefik.yaml#L117-L140)
-- [gateway.yaml:34-42](file://apps/infra/gateway-api/chart/gateway.yaml#L34-L42)
+- [ingressroutetcp.yaml:14-20](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L14-L20)
+- [ingressrouteudp.yaml:17-19](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L17-L19)
+- [service.yaml:7-13](file://apps/applications/tcp-demo/chart/service.yaml#L7-L13)
+- [service.yaml:7-14](file://apps/applications/udp-demo/chart/service.yaml#L7-L14)
+- [deployment.yaml:16-19](file://apps/applications/tcp-demo/chart/deployment.yaml#L16-L19)
+- [deployment.yaml:16-19](file://apps/applications/udp-demo/chart/deployment.yaml#L16-L19)
+- [traefik.yaml:135-143](file://apps/infra/gateway-api/chart/traefik.yaml#L135-L143)
 
 ## Detailed Component Analysis
 
 ### TCP Echo Application Stack
 - Deployment
   - Container name: socat
-  - Image: alpine/socat
+  - Image: alpine/socat:latest
   - Arguments: TCP echo listener on 7777 with fork/reuseaddr and exec cat
-  - Resources: CPU and memory requests/limits defined
+  - Resources: CPU and memory requests/limits defined for lightweight workload
 - Service
   - Type: ClusterIP
   - Selector: app=tcp-echo
   - Ports: name=tcp-echo, port=7777, targetPort=7777
 - IngressRouteTCP
-  - EntryPoints: tcp
-  - Match: HostSNI(*)
+  - EntryPoints: tcp (directly from Traefik entryPoint)
+  - Match: HostSNI(*) for flexible hostname handling
   - Services: tcp-echo port 7777
-  - Annotation: sync wave 3
+  - Annotation: sync wave 3 for proper sequencing
 
 ```mermaid
 flowchart TD
 Start(["TCP Client Connects"]) --> NP["NodePort 30900"]
 NP --> EP["Traefik entryPoint tcp:9000"]
-EP --> IR["IngressRouteTCP HostSNI(*)"]
-IR --> SVC["Service tcp-echo:7777"]
+EP --> CRD["IngressRouteTCP HostSNI(*)"]
+CRD --> SVC["Service tcp-echo:7777"]
 SVC --> POD["Pod tcp-echo:7777"]
 POD --> RESP["Echo Response"]
 RESP --> End(["Client Receives Echo"])
@@ -174,11 +189,20 @@ RESP --> End(["Client Receives Echo"])
 - [config.yaml:1-4](file://apps/applications/tcp-demo/config.yaml#L1-L4)
 - [kustomization.yaml:1-8](file://apps/applications/tcp-demo/kustomization.yaml#L1-L8)
 
-### UDP Echo Application Stack (Reference)
-- Deployment: socat UDP echo on 7778
-- Service: ClusterIP UDP port 7778
-- IngressRouteUDP: entryPoint udp, service port 7778
-- Namespace: udp-demo
+### UDP Echo Application Stack
+- Deployment
+  - Container name: socat
+  - Image: alpine/socat:latest
+  - Arguments: UDP echo listener on 7778 with fork/reuseaddr and exec cat
+  - Resources: CPU and memory requests/limits defined for lightweight workload
+- Service
+  - Type: ClusterIP
+  - Selector: app=udp-echo
+  - Ports: name=udp-echo, port=7778, targetPort=7778 (UDP)
+- IngressRouteUDP
+  - EntryPoints: udp (directly from Traefik entryPoint)
+  - Services: udp-echo port 7778
+  - Annotation: sync wave 3 for proper sequencing
 
 **Section sources**
 - [deployment.yaml:1-29](file://apps/applications/udp-demo/chart/deployment.yaml#L1-L29)
@@ -187,90 +211,84 @@ RESP --> End(["Client Receives Echo"])
 - [config.yaml:1-4](file://apps/applications/udp-demo/config.yaml#L1-L4)
 - [kustomization.yaml:1-8](file://apps/applications/udp-demo/kustomization.yaml#L1-L8)
 
-### Gateway and Traefik Infrastructure
-- GatewayClass: defines controllerName "traefik.io/gateway-controller"
-- Gateway: shared-gateway with listeners:
-  - http:80, https:443 (TLS terminate)
-  - tcp:9000, udp:9001
-  - Allowed routes from namespaces labeled with routing.hoangvu75.space/expose=true
+### Traefik Infrastructure with Native CRD Support
 - Traefik Deployment:
-  - Container ports: 80, 443, 8080, 9000 (TCP), 9001 (UDP), 9082 (metrics)
+  - Container ports: 80 (web), 443 (websecure), 8080 (admin), 9000 (TCP), 9001 (UDP), 9082 (metrics)
   - NodePort Service exposing tcp:9000 (30900) and udp:9001 (30901)
-  - Static config mounted via ConfigMap enabling Gateway CRD provider and entryPoints
+  - Static config mounted via ConfigMap enabling native CRD providers
+- CRD Providers:
+  - IngressRouteTCP: handles TCP Layer 4 routing
+  - IngressRouteUDP: handles UDP Layer 4 routing
+  - No Gateway API dependency - direct CRD processing
 
 ```mermaid
 classDiagram
-class GatewayClass {
-+string name
-+string controllerName
-}
-class Gateway {
-+string name
-+string gatewayClassName
-+Listener[] listeners
-}
-class Listener {
-+string name
-+int port
-+string protocol
-+AllowedRoutes allowedRoutes
-}
 class TraefikDeployment {
 +string name
 +ContainerPort[] ports
 +NodePort[] exposed
++CRDProviders[] enabled
 }
 class TraefikService {
 +string name
 +NodePort tcp
 +NodePort udp
 }
-GatewayClass <.. Gateway : "referenced by"
-Gateway --> Listener : "has many"
+class IngressRouteTCP {
++string name
++EntryPoints[] tcp
++Route[] routes
++ServiceRef[] services
+}
+class IngressRouteUDP {
++string name
++EntryPoints[] udp
++Route[] routes
++ServiceRef[] services
+}
 TraefikDeployment --> TraefikService : "exposes"
+TraefikDeployment --> IngressRouteTCP : "processes"
+TraefikDeployment --> IngressRouteUDP : "processes"
 ```
 
 **Diagram sources**
-- [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-- [gateway.yaml:1-51](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L51)
-- [traefik.yaml:56-144](file://apps/infra/gateway-api/chart/traefik.yaml#L56-L144)
+- [traefik.yaml:59-147](file://apps/infra/gateway-api/chart/traefik.yaml#L59-L147)
+- [traefik-static.yaml:1-66](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L66)
+- [ingressroutetcp.yaml:6-20](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L6-L20)
+- [ingressrouteudp.yaml:6-19](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L6-L19)
 
 **Section sources**
-- [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-- [gateway.yaml:1-51](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L51)
-- [traefik.yaml:1-144](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L144)
-- [traefik-config.yaml:1-66](file://apps/infra/gateway-api/chart/traefik-config.yaml#L1-L66)
+- [traefik.yaml:1-147](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L147)
+- [traefik-static.yaml:1-66](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L66)
 
 ## Dependency Analysis
-- Namespace scoping
-  - tcp-demo and udp-demo namespaces must be labeled to allow routes from shared-gateway.
 - Sync ordering
-  - Argo CD sync waves ensure proper sequencing: traefik (wave 0) → gateway-class (wave 1) → gateway (wave 2) → apps (wave 3).
-- Routing chain
-  - IngressRouteTCP → Service → Deployment → Pod
+  - Argo CD sync waves ensure proper sequencing: traefik (wave 0) → apps (wave 3) - Gateway API components are not required
+- CRD-based routing chain
+  - IngressRouteTCP/UDP → Service → Deployment → Pod
+- Resource dependencies
+  - Both applications share the same Traefik instance but use separate entryPoints and services
 
 ```mermaid
 graph LR
-NS1["Namespace: tcp-demo"] --> IR["IngressRouteTCP"]
-NS2["Namespace: udp-demo"] --> IRU["IngressRouteUDP"]
-IR --> SVC["Service"]
-IRU --> SVCU["Service UDP"]
+TR["Traefik Deployment"] --> EP["entryPoints tcp/udp"]
+EP --> IRT["IngressRouteTCP"]
+EP --> IRU["IngressRouteUDP"]
+IRT --> SVC["Service tcp-echo"]
+IRU --> SVCU["Service udp-echo"]
 SVC --> DEP["Deployment tcp-echo"]
 SVCU --> DEPU["Deployment udp-echo"]
-GW["Gateway shared-gateway"] --> EP["entryPoints tcp/udp"]
-EP --> IR
-EP --> IRU
 ```
 
 **Diagram sources**
-- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
-- [gateway.yaml:14-42](file://apps/infra/gateway-api/chart/gateway.yaml#L14-L42)
+- [traefik.yaml:135-143](file://apps/infra/gateway-api/chart/traefik.yaml#L135-L143)
+- [ingressroutetcp.yaml:14-20](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L14-L20)
+- [ingressrouteudp.yaml:17-19](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L17-L19)
 
 **Section sources**
 - [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
 - [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
-- [gateway.yaml:14-42](file://apps/infra/gateway-api/chart/gateway.yaml#L14-L42)
+- [traefik.yaml:64-65](file://apps/infra/gateway-api/chart/traefik.yaml#L64-L65)
 - [config.yaml:1-4](file://apps/applications/tcp-demo/config.yaml#L1-L4)
 - [config.yaml:1-4](file://apps/applications/udp-demo/config.yaml#L1-L4)
 
@@ -278,32 +296,34 @@ EP --> IRU
 - Resource limits
   - Both tcp-demo and udp-demo pods define CPU and memory requests/limits suitable for lightweight echo workloads.
 - Concurrency model
-  - socat uses fork and reuseaddr, allowing concurrent connections per pod.
+  - socat uses fork and reuseaddr, allowing concurrent connections per pod for both TCP and UDP protocols.
 - Observability
   - Access logs are emitted in JSON format and filtered for relevant status codes.
   - Prometheus metrics are exposed on the metrics endpoint for monitoring open connections and router statistics.
 
 **Section sources**
 - [deployment.yaml:22-27](file://apps/applications/tcp-demo/chart/deployment.yaml#L22-L27)
-- [deployment.yaml:23-28](file://apps/applications/udp-demo/chart/deployment.yaml#L23-L28)
-- [traefik-config.yaml:47-65](file://apps/infra/gateway-api/chart/traefik-config.yaml#L47-L65)
-- [traefik.yaml:101-107](file://apps/infra/gateway-api/chart/traefik.yaml#L101-L107)
+- [deployment.yaml:24-28](file://apps/applications/udp-demo/chart/deployment.yaml#L24-L28)
+- [traefik.yaml:196-202](file://apps/infra/gateway-api/chart/traefik.yaml#L196-L202)
 
 ## Troubleshooting Guide
 - No echo response
-  - Verify NodePort connectivity to 30900 and that the Gateway listener accepts routes from the namespace.
-  - Confirm IngressRouteTCP exists and matches HostSNI(*) to the Service.
+  - Verify NodePort connectivity to 30900 (TCP) and 30901 (UDP) and that Traefik is running.
+  - Confirm IngressRouteTCP/UDP exists and matches entryPoints to the Service.
+  - Check that socat pods are running and ready.
 - Dashboard shows no routers
-  - Ensure Argo CD sync waves completed and Gateway CRDs are installed.
-  - Check Traefik logs for discovery errors.
+  - Ensure Argo CD sync waves completed and Traefik CRDs are installed.
+  - Verify Traefik logs for CRD processing errors.
+- Protocol-specific issues
+  - TCP: Use curl with telnet scheme or netcat for testing
+  - UDP: First packet may be lost during socat initialization, retry the command
 - Logs and metrics verification
-  - Use kubectl logs to filter tcp-related entries.
-  - Query Prometheus metrics endpoint for tcp router and service metrics.
+  - Use kubectl logs to filter tcp/udp-related entries.
+  - Query Prometheus metrics endpoint for tcp/udp router and service metrics.
 
 **Section sources**
-- [README.md:115-184](file://guide/tcp-udp-demo/README.md#L115-L184)
-- [traefik.yaml:117-140](file://apps/infra/gateway-api/chart/traefik.yaml#L117-L140)
-- [traefik-config.yaml:40-65](file://apps/infra/gateway-api/chart/traefik-config.yaml#L40-L65)
+- [README.md:115-206](file://guide/tcp-udp-demo/README.md#L115-L206)
+- [traefik.yaml:196-202](file://apps/infra/gateway-api/chart/traefik.yaml#L196-L202)
 
 ## Conclusion
-The TCP Echo Demo Application provides a concise example of Layer 4 routing with Traefik Gateway API. By combining a simple socat-based echo service with a Gateway TCP listener and NodePort exposure, it demonstrates end-to-end forwarding from external clients to a Kubernetes Service and Pod. The included guide offers practical testing steps, dashboard inspection, and observability checks to validate correct operation.
+The TCP Echo Demo Application provides a concise example of Layer 4 routing using Traefik's native CRD-based approach. By combining simple socat-based echo services with Traefik's IngressRouteTCP and IngressRouteUDP resources, it demonstrates direct routing from external clients to Kubernetes Services and Pods without Gateway API dependencies. The included guide offers practical testing steps using Git Bash compatible commands, dashboard inspection, and observability checks to validate correct operation of both TCP and UDP echo services.

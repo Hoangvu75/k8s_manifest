@@ -2,13 +2,13 @@
 
 <cite>
 **Referenced Files in This Document**
-- [gatewayclass.yaml](file://apps/infra/gateway-api/chart/gatewayclass.yaml)
 - [gateway.yaml](file://apps/infra/gateway-api/chart/gateway.yaml)
+- [gatewayclass.yaml](file://apps/infra/gateway-api/chart/gatewayclass.yaml)
 - [traefik.yaml](file://apps/infra/gateway-api/chart/traefik.yaml)
-- [traefik-config.yaml](file://apps/infra/gateway-api/chart/traefik-config.yaml)
+- [traefik-static.yaml](file://apps/infra/gateway-api/chart/traefik-static.yaml)
 - [httproute-traefik-dashboard.yaml](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml)
 - [kustomization.yaml (gateway-api):1-10](file://apps/infra/gateway-api/kustomization.yaml#L1-L10)
-- [kustomization.yaml (gateway-api-chart):1-9](file://apps/infra/gateway-api/chart/kustomization.yaml#L1-L9)
+- [kustomization.yaml (gateway-api-chart):1-13](file://apps/infra/gateway-api/chart/kustomization.yaml#L1-L13)
 - [kustomization.yaml (gateway-api-crds):1-9](file://apps/infra/gateway-api/crds/kustomization.yaml#L1-L9)
 - [ingressroutetcp.yaml](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml)
 - [ingressrouteudp.yaml](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml)
@@ -27,18 +27,18 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced Gateway API implementation with experimental channel enabled for KubernetesGateway provider
-- Updated CRDs directory structure with dedicated crds subdirectory and proper sync ordering
-- Expanded RBAC permissions to include comprehensive gateway.networking.k8s.io resources
-- Fixed critical config file argument to use --configFile instead of deprecated --config
-- Added Traefik CRD definitions for advanced routing capabilities
+- Traefik configuration restructured with new modular approach using traefik-static.yaml for static configuration separation
+- Gateway API switched to standard installation (v1.5.1) from experimental channel
+- RBAC permissions adjusted to use standard Gateway API resources instead of experimental ones
+- CRD-based routing approach implemented replacing experimental Gateway API listeners
+- GatewayClass controller updated to use standard traefik.io/gateway-controller
 
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
-5. [Enhanced Gateway API Configuration](#enhanced-gateway-api-configuration)
+5. [Standard Gateway API Configuration](#standard-gateway-api-configuration)
 6. [Layer 4 Routing Implementation](#layer-4-routing-implementation)
 7. [Traefik v3.x Deployment and Configuration](#traefik-v3x-deployment-and-configuration)
 8. [Demo Applications](#demo-applications)
@@ -52,10 +52,10 @@
 16. [Appendices](#appendices)
 
 ## Introduction
-This document explains the enhanced Gateway API controller implementation using Traefik v3.3 as the ingress controller, featuring comprehensive Layer 4 routing capabilities with full Traefik v3.x compatibility. The system extends beyond traditional HTTP/HTTPS routing to include TCP and UDP entrypoints, significantly expanding networking capabilities through enhanced CRD integration and modernized distributed tracing configuration.
+This document explains the Gateway API controller implementation using Traefik v3.3 as the ingress controller, featuring a streamlined configuration approach with standard Gateway API v1.5.1 installation and modular Traefik configuration. The system provides comprehensive HTTP/HTTPS routing with optional TCP/UDP capabilities through CRD-based routing patterns, eliminating the need for experimental Gateway API listeners while maintaining full Traefik v3.x compatibility.
 
 ## Project Structure
-The enhanced Gateway API stack now includes dedicated TCP and UDP demo applications alongside the existing HTTP/HTTPS infrastructure, all running on Traefik v3.3 with improved CRD support and modernized observability features. The project structure has been reorganized with a dedicated CRDs directory and proper sync ordering.
+The Gateway API stack now uses a simplified structure with standard CRD installation and modular configuration separation. The project maintains dedicated HTTP/HTTPS infrastructure alongside optional TCP/UDP demo applications, all running on Traefik v3.3 with improved CRD integration and modernized observability features.
 
 ```mermaid
 graph TB
@@ -64,12 +64,13 @@ ROOT["kustomization.yaml"]
 end
 subgraph "Gateway API Infrastructure"
 GA_K["apps/infra/gateway-api/kustomization.yaml"]
+GA_STD["Standard Installation v1.5.1"]
 GA_CRDS["apps/infra/gateway-api/crds/kustomization.yaml"]
-GA_KCHART["apps/infra/gateway-api/chart/kustomization.yaml"]
+GA_CHART["apps/infra/gateway-api/chart/kustomization.yaml"]
 GA_GC["apps/infra/gateway-api/chart/gatewayclass.yaml"]
 GA_GW["apps/infra/gateway-api/chart/gateway.yaml"]
 GA_TR["apps/infra/gateway-api/chart/traefik.yaml"]
-GA_TC["apps/infra/gateway-api/chart/traefik-config.yaml"]
+GA_TS["apps/infra/gateway-api/chart/traefik-static.yaml"]
 GA_HD["apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml"]
 end
 subgraph "HTTP/HTTPS Applications"
@@ -77,7 +78,7 @@ HTTP_RN["apps/infra/rancher/chart/httproute-rancher.yaml"]
 HTTP_AD["apps/infra/argocd-ingress/chart/httproute-argocd.yaml"]
 HTTP_HL["apps/applications/hello-api/chart/values-httproute.yaml"]
 end
-subgraph "TCP/UDP Demo Applications"
+subgraph "Optional TCP/UDP Demo Applications"
 TCP_DEMO["apps/applications/tcp-demo/"]
 UDP_DEMO["apps/applications/udp-demo/"]
 TCP_IR["apps/applications/tcp-demo/chart/ingressroutetcp.yaml"]
@@ -91,19 +92,20 @@ subgraph "Cert Management"
 CM_CA["apps/infra/rancher/chart/tls-rancher-ca.yaml"]
 end
 ROOT --> GA_K
+GA_K --> GA_STD
 GA_K --> GA_CRDS
-GA_K --> GA_KCHART
-GA_KCHART --> GA_GC
-GA_KCHART --> GA_GW
-GA_KCHART --> GA_TR
-GA_KCHART --> GA_TC
-GA_KCHART --> GA_HD
-GA_KCHART --> HTTP_RN
-GA_KCHART --> HTTP_AD
-GA_KCHART --> HTTP_HL
-GA_KCHART --> TCP_DEMO
-GA_KCHART --> UDP_DEMO
-GA_KCHART --> CM_CA
+GA_K --> GA_CHART
+GA_STD --> GA_GC
+GA_STD --> GA_GW
+GA_CHART --> GA_TR
+GA_CHART --> GA_TS
+GA_CHART --> GA_HD
+GA_CHART --> HTTP_RN
+GA_CHART --> HTTP_AD
+GA_CHART --> HTTP_HL
+GA_CHART --> TCP_DEMO
+GA_CHART --> UDP_DEMO
+GA_CHART --> CM_CA
 TCP_DEMO --> TCP_IR
 TCP_DEMO --> TCP_DEP
 TCP_DEMO --> TCP_SVC
@@ -115,112 +117,94 @@ UDP_DEMO --> UDP_SVC
 **Diagram sources**
 - [kustomization.yaml (gateway-api):1-10](file://apps/infra/gateway-api/kustomization.yaml#L1-L10)
 - [kustomization.yaml (gateway-api-crds):1-9](file://apps/infra/gateway-api/crds/kustomization.yaml#L1-L9)
-- [kustomization.yaml (gateway-api-chart):1-9](file://apps/infra/gateway-api/chart/kustomization.yaml#L1-L9)
+- [kustomization.yaml (gateway-api-chart):1-13](file://apps/infra/gateway-api/chart/kustomization.yaml#L1-L13)
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-- [gateway.yaml:1-51](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L51)
+- [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 - [traefik.yaml:1-147](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L147)
-- [traefik-config.yaml:1-64](file://apps/infra/gateway-api/chart/traefik-config.yaml#L1-L64)
+- [traefik-static.yaml:1-52](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L52)
 - [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
 - [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
 
 **Section sources**
 - [kustomization.yaml (gateway-api):1-10](file://apps/infra/gateway-api/kustomization.yaml#L1-L10)
 - [kustomization.yaml (gateway-api-crds):1-9](file://apps/infra/gateway-api/crds/kustomization.yaml#L1-L9)
-- [kustomization.yaml (gateway-api-chart):1-9](file://apps/infra/gateway-api/chart/kustomization.yaml#L1-L9)
+- [kustomization.yaml (gateway-api-chart):1-13](file://apps/infra/gateway-api/chart/kustomization.yaml#L1-L13)
 - [README.md:108-161](file://README.md#L108-L161)
 
 ## Core Components
-The enhanced system now includes comprehensive Layer 4 routing capabilities alongside traditional HTTP/HTTPS routing, powered by Traefik v3.3 with expanded RBAC permissions and experimental Gateway API support:
+The system now uses standard Gateway API v1.5.1 with a streamlined configuration approach, featuring Traefik v3.3 with modular static configuration separation and comprehensive CRD integration:
 
-- **GatewayClass**: Defines the controller that implements the Gateway API with Traefik v3.3 as the provider
-- **Gateway**: Extended with HTTP, HTTPS, TCP, and UDP listeners supporting diverse traffic types
-- **Traefik v3.3 Deployment**: Enhanced with dedicated TCP/UDP container ports and NodePort exposure
-- **Static Configuration**: Supports TCP/UDP entrypoints with proper protocol handling and experimental Gateway provider
-- **Enhanced RBAC**: Expanded permissions for gateway.networking.k8s.io resources including gateways/status
-- **Demo Applications**: TCP and UDP echo servers demonstrating Layer 4 routing capabilities
+- **GatewayClass**: Standard implementation using traefik.io/gateway-controller as the provider
+- **Gateway**: HTTP and HTTPS listeners with namespace-based routing control
+- **Traefik v3.3 Deployment**: Modular configuration with separate static and dynamic config files
+- **Standard CRD Installation**: Official Gateway API v1.5.1 CRDs for stable resource definitions
+- **Enhanced RBAC**: Updated permissions for standard Gateway API resources
+- **Optional TCP/UDP Support**: CRD-based routing for Layer 4 protocols when needed
 
-**Updated** Enhanced RBAC permissions now include comprehensive gateway.networking.k8s.io resources with status update capabilities
+**Updated** GatewayClass now uses standard controller name and CRD-based routing replaces experimental listeners
 
 **Section sources**
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-- [gateway.yaml:1-51](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L51)
+- [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 - [traefik.yaml:10-45](file://apps/infra/gateway-api/chart/traefik.yaml#L10-L45)
-- [traefik-config.yaml:24-25](file://apps/infra/gateway-api/chart/traefik-config.yaml#L24-L25)
+- [traefik-static.yaml:10-14](file://apps/infra/gateway-api/chart/traefik-static.yaml#L10-L14)
 
 ## Architecture Overview
-The enhanced architecture now supports both Layer 7 HTTP/HTTPS and Layer 4 TCP/UDP traffic routing through Traefik v3.3 with improved CRD integration and modernized observability.
+The streamlined architecture now focuses on standard Gateway API v1.5.1 with modular Traefik configuration, supporting HTTP/HTTPS routing with optional TCP/UDP capabilities through CRD-based patterns.
 
 ```mermaid
 graph TB
 INT["Internet"] --> CF["Cloudflare Tunnel<br/>cloudflared"]
-CF --> NP["NodePort 30080/30443/30900/30901<br/>Traefik v3.3 Multi-Protocol"]
-NP --> GW["Gateway.shared-gateway<br/>Listeners: 80/443/TCP:9000/UDP:9001"]
+CF --> NP["NodePort 30080/30443<br/>Traefik v3.3 HTTP/HTTPS"]
+NP --> GW["Gateway.shared-gateway<br/>Listeners: 80/443"]
 GW --> HTTP_ROUTE["HTTPRoute rules<br/>hostnames + pathPrefix"]
-GW --> TCP_ROUTE["IngressRouteTCP rules<br/>HostSNI/TCP matching"]
-GW --> UDP_ROUTE["IngressRouteUDP rules<br/>UDP services"]
 HTTP_ROUTE --> SVC_HTTP["Backend Service<br/>HTTP Apps:port"]
-TCP_ROUTE --> SVC_TCP["Backend Service<br/>TCP Demo:7777"]
-UDP_ROUTE --> SVC_UDP["Backend Service<br/>UDP Demo:7778"]
 SVC_HTTP --> POD_HTTP["Pod(s)"]
-SVC_TCP --> POD_TCP["TCP Echo Pod"]
-SVC_UDP --> POD_UDP["UDP Echo Pod"]
 subgraph "Cluster"
 NP
 GW
 HTTP_ROUTE
-TCP_ROUTE
-UDP_ROUTE
 SVC_HTTP
-SVC_TCP
-SVC_UDP
 end
 ```
 
 **Diagram sources**
 - [README.md:5-48](file://README.md#L5-L48)
-- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
+- [gateway.yaml:10-34](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L34)
 - [traefik.yaml:120-147](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L147)
-- [ingressroutetcp.yaml:14-20](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L14-L20)
-- [ingressrouteudp.yaml:14-19](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L14-L19)
 
 **Section sources**
 - [README.md:5-48](file://README.md#L5-L48)
-- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
+- [gateway.yaml:10-34](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L34)
 - [traefik.yaml:120-147](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L147)
 
-## Enhanced Gateway API Configuration
+## Standard Gateway API Configuration
 
-### Gateway Resource Extensions
-The Gateway resource now includes four distinct listeners supporting different protocols:
+### Gateway Resource Definition
+The Gateway resource now uses standard HTTP and HTTPS listeners with namespace-based routing control:
 
 ```mermaid
 flowchart TD
 Start(["Gateway.spec.listeners"]) --> HTTP["Listener: HTTP<br/>port 80<br/>protocol HTTP<br/>allowedRoutes: Selector with routing.hoangvu75.space/expose=true"]
 Start --> HTTPS["Listener: HTTPS<br/>port 443<br/>protocol HTTPS<br/>tls: Terminate<br/>certificateRefs: wildcard-tls"]
-Start --> TCP["Listener: TCP<br/>port 9000<br/>protocol TCP<br/>allowedRoutes: Selector with routing.hoangvu75.space/expose=true"]
-Start --> UDP["Listener: UDP<br/>port 9001<br/>protocol UDP<br/>allowedRoutes: Selector with routing.hoangvu75.space/expose=true"]
 HTTP --> End(["Ready"])
 HTTPS --> End
-TCP --> End
-UDP --> End
 ```
 
 **Diagram sources**
-- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
+- [gateway.yaml:10-34](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L34)
 
 **Section sources**
-- [gateway.yaml:1-51](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L51)
+- [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 
 ### Listener Protocol Support
 Each listener type serves specific traffic patterns:
 
 - **HTTP Listener (port 80)**: Standard HTTP routing for web applications
 - **HTTPS Listener (port 443)**: Secure HTTP with TLS termination and certificate management
-- **TCP Listener (port 9000)**: Layer 4 TCP forwarding for databases, message queues, and custom TCP services
-- **UDP Listener (port 9001)**: Layer 4 UDP forwarding for DNS, DHCP, and real-time applications
 
 **Section sources**
-- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
+- [gateway.yaml:10-34](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L34)
 
 ## Layer 4 Routing Implementation
 
@@ -288,8 +272,8 @@ Traefik-->>Client : "UDP packet response"
 
 ## Traefik v3.x Deployment and Configuration
 
-### Enhanced Container Configuration
-The Traefik v3.3 deployment now includes dedicated ports for TCP and UDP protocols with improved CRD support:
+### Modular Configuration Approach
+The Traefik v3.3 deployment now uses a modular configuration approach with separate static and dynamic configuration files:
 
 ```mermaid
 classDiagram
@@ -300,27 +284,34 @@ class TraefikV3Deployment {
 +containerPorts : web( : 80), websecure( : 443), admin( : 8080), tcp( : 9000), udp( : 9001), metrics( : 9082)
 +nodePorts : 30080, 30443, 8080, 30900, 30901, 30082
 }
-class Service {
-+type : NodePort
-+ports : 80(HTTP), 443(HTTPS), 8080(Admin), 9000(TCP), 9001(UDP), 9082(Metrics)
-+nodePorts : 30080, 30443, 3080, 30900, 30901, 30082
+class StaticConfig {
++traefik-static.yaml : providers, entryPoints, metrics
++Separate from dynamic config
++Modular approach
+}
+class DynamicConfig {
++traefik.yaml : RBAC, Deployment, Service
++Mounted as ConfigMap
 }
 class RBAC {
 +ClusterRole : get/list/watch on services, endpoints, secrets, ingresses, gateway.api resources
 +ClusterRoleBinding : bind ServiceAccount to ClusterRole
 }
-TraefikV3Deployment --> Service : "exposes all protocols"
+TraefikV3Deployment --> StaticConfig : "uses"
+TraefikV3Deployment --> DynamicConfig : "mounts"
 TraefikV3Deployment --> RBAC : "requires"
 ```
 
 **Diagram sources**
 - [traefik.yaml:78-147](file://apps/infra/gateway-api/chart/traefik.yaml#L78-L147)
+- [traefik-static.yaml:10-14](file://apps/infra/gateway-api/chart/traefik-static.yaml#L10-L14)
 
 **Section sources**
 - [traefik.yaml:78-147](file://apps/infra/gateway-api/chart/traefik.yaml#L78-L147)
+- [traefik-static.yaml:1-52](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L52)
 
 ### Static Configuration Extensions
-The Traefik v3.3 static configuration now supports dedicated entrypoints for each protocol with enhanced CRD integration and experimental channel:
+The Traefik v3.3 static configuration now supports dedicated entrypoints with standard provider configuration:
 
 - **web**: HTTP entrypoint (:80) for standard web traffic
 - **websecure**: HTTPS entrypoint (:443) with TLS termination
@@ -328,10 +319,20 @@ The Traefik v3.3 static configuration now supports dedicated entrypoints for eac
 - **udp**: UDP entrypoint (:9001/udp) for Layer 4 UDP forwarding
 - **metrics**: Prometheus metrics entrypoint (:9082) for monitoring
 
-**Updated** Enhanced with experimental KubernetesGateway provider channel and modernized distributed tracing configuration
+**Updated** Static configuration separated into dedicated traefik-static.yaml file for better modularity
 
 **Section sources**
-- [traefik-config.yaml:27-45](file://apps/infra/gateway-api/chart/traefik-config.yaml#L27-L45)
+- [traefik-static.yaml:15-27](file://apps/infra/gateway-api/chart/traefik-static.yaml#L15-L27)
+
+### Standard Provider Configuration
+The Traefik deployment now uses standard providers for stable operation:
+
+- **kubernetesCRD**: Standard CRD provider for IngressRoute resources
+- **kubernetesGateway**: Standard Gateway API provider for Gateway resources
+- **Allow Cross Namespace**: Enabled for flexible routing across namespaces
+
+**Section sources**
+- [traefik-static.yaml:10-14](file://apps/infra/gateway-api/chart/traefik-static.yaml#L10-L14)
 
 ### Critical Config File Argument Fix
 The Traefik deployment now uses the correct --configFile argument instead of the deprecated --config flag:
@@ -362,15 +363,15 @@ E --> F["Structured JSON"]
 ```
 
 **Diagram sources**
-- [traefik-config.yaml:55-60](file://apps/infra/gateway-api/chart/traefik-config.yaml#L55-L60)
+- [traefik-static.yaml:43-48](file://apps/infra/gateway-api/chart/traefik-static.yaml#L43-L48)
 
 **Section sources**
-- [traefik-config.yaml:55-60](file://apps/infra/gateway-api/chart/traefik-config.yaml#L55-L60)
+- [traefik-static.yaml:43-48](file://apps/infra/gateway-api/chart/traefik-static.yaml#L43-L48)
 
 ## Enhanced RBAC Permissions
 
-### Comprehensive Gateway Resource Access
-The RBAC configuration has been expanded to include comprehensive permissions for all Gateway API resources:
+### Standard Gateway Resource Access
+The RBAC configuration has been updated to use standard Gateway API resources:
 
 ```mermaid
 flowchart TD
@@ -388,10 +389,10 @@ B --> L["httproutes/status: get, list, watch, update"]
 ```
 
 **Diagram sources**
-- [traefik.yaml:27-32](file://apps/infra/gateway-api/chart/traefik.yaml#L27-L32)
+- [traefik.yaml:27-38](file://apps/infra/gateway-api/chart/traefik.yaml#L27-L38)
 
 **Section sources**
-- [traefik.yaml:27-32](file://apps/infra/gateway-api/chart/traefik.yaml#L27-L32)
+- [traefik.yaml:27-38](file://apps/infra/gateway-api/chart/traefik.yaml#L27-L38)
 
 ### Traefik CRD Resource Access
 Additional permissions for Traefik-specific CRDs ensure full routing functionality:
@@ -402,36 +403,41 @@ Additional permissions for Traefik-specific CRDs ensure full routing functionali
 **Section sources**
 - [traefik.yaml:36-38](file://apps/infra/gateway-api/chart/traefik.yaml#L36-L38)
 
-## CRDs Directory Structure
+## Standard CRDs Installation
 
-### Dedicated CRDs Subdirectory
-The Gateway API implementation now includes a dedicated CRDs directory with proper sync ordering:
+### Gateway API v1.5.1 Installation
+The Gateway API implementation now uses the official standard installation:
 
 ```mermaid
 flowchart TD
-A["apps/infra/gateway-api/kustomization.yaml"] --> B["crds/kustomization.yaml"]
-B --> C["https://raw.githubusercontent.com/traefik/traefik/v3.3/docs/.../kubernetes-crd-definition-v1.yml"]
+A["apps/infra/gateway-api/kustomization.yaml"] --> B["Standard v1.5.1 Installation"]
+B --> C["https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml"]
 C --> D["ArgoCD Sync Wave: -1"]
 D --> E["Gateway API CRDs"]
 ```
 
 **Diagram sources**
-- [kustomization.yaml (gateway-api):7-8](file://apps/infra/gateway-api/kustomization.yaml#L7-L8)
+- [kustomization.yaml (gateway-api):7](file://apps/infra/gateway-api/kustomization.yaml#L7)
+
+**Section sources**
+- [kustomization.yaml (gateway-api):7](file://apps/infra/gateway-api/kustomization.yaml#L7)
+
+### Dedicated CRDs Subdirectory
+The Gateway API implementation includes a dedicated CRDs directory with proper sync ordering:
+
+```mermaid
+flowchart TD
+A["apps/infra/gateway-api/crds/kustomization.yaml"] --> B["Traefik CRD Definitions"]
+B --> C["https://raw.githubusercontent.com/traefik/traefik/v3.3/docs/.../kubernetes-crd-definition-v1.yml"]
+C --> D["ArgoCD Sync Wave: -1"]
+D --> E["Traefik CRDs"]
+```
+
+**Diagram sources**
 - [kustomization.yaml (gateway-api-crds):5](file://apps/infra/gateway-api/crds/kustomization.yaml#L5)
 
 **Section sources**
-- [kustomization.yaml (gateway-api):7-8](file://apps/infra/gateway-api/kustomization.yaml#L7-L8)
 - [kustomization.yaml (gateway-api-crds):5](file://apps/infra/gateway-api/crds/kustomization.yaml#L5)
-
-### Experimental Channel Configuration
-The KubernetesGateway provider now operates with experimental channel enabled for enhanced functionality:
-
-- **experimentalChannel: true** enables advanced Gateway API features
-- **Provider Priority**: kubernetesGateway takes precedence over kubernetesCRD
-- **Sync Ordering**: Proper sequencing ensures CRDs are available before controllers
-
-**Section sources**
-- [traefik-config.yaml:24-25](file://apps/infra/gateway-api/chart/traefik-config.yaml#L24-L25)
 
 ## Demo Applications
 
@@ -463,39 +469,32 @@ The udp-demo application showcases UDP routing with connectionless communication
 
 ## Traffic Routing Patterns
 
-### Multi-Protocol Traffic Flow
-The enhanced system supports diverse traffic routing patterns with Traefik v3.3:
+### HTTP/HTTPS Traffic Flow
+The system supports standard HTTP/HTTPS traffic routing with Traefik v3.3:
 
 ```mermaid
 flowchart LR
 A["External Traffic"] --> B["Cloudflare Tunnel"]
 B --> C["Traefik v3.3 NodePort Service"]
 C --> D["Gateway.shared-gateway"]
-D --> E["Protocol Detection"]
-E --> F["HTTP/HTTPS Routes"]
-E --> G["TCP Routes"]
-E --> H["UDP Routes"]
-F --> I["HTTP Backend Services"]
-G --> J["TCP Backend Services"]
-H --> K["UDP Backend Services"]
+D --> E["HTTP/HTTPS Routes"]
+E --> F["HTTP Backend Services"]
+F --> G["Application Pods"]
 ```
 
 **Diagram sources**
-- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
+- [gateway.yaml:10-34](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L34)
 - [traefik.yaml:120-147](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L147)
 
 ### Namespace-Based Routing Control
-All protocol listeners use namespace selectors to control traffic routing:
+The HTTP listener uses namespace selectors to control traffic routing:
 
 - **Selector Pattern**: `routing.hoangvu75.space/expose: "true"`
-- **Scope**: Controls which namespaces can send traffic to each listener type
-- **Security**: Prevents unauthorized namespace access to specific entrypoints
+- **Scope**: Controls which namespaces can send traffic to the Gateway
+- **Security**: Prevents unauthorized namespace access to the Gateway
 
 **Section sources**
 - [gateway.yaml:14-19](file://apps/infra/gateway-api/chart/gateway.yaml#L14-L19)
-- [gateway.yaml:23-28](file://apps/infra/gateway-api/chart/gateway.yaml#L23-L28)
-- [gateway.yaml:37-42](file://apps/infra/gateway-api/chart/gateway.yaml#L37-L42)
-- [gateway.yaml:46-51](file://apps/infra/gateway-api/chart/gateway.yaml#L46-L51)
 
 ## Load Balancing and High Availability
 
@@ -524,7 +523,7 @@ The HTTPS listener utilizes wildcard certificates for secure HTTP routing:
 - **Certificate Validation**: Ensure certificate SANs match configured hostnames
 
 **Section sources**
-- [gateway.yaml:29-33](file://apps/infra/gateway-api/chart/gateway.yaml#L29-L33)
+- [gateway.yaml:29-34](file://apps/infra/gateway-api/chart/gateway.yaml#L29-L34)
 
 ### Certificate Automation
 Integrate with cert-manager for automated certificate management:
@@ -536,18 +535,11 @@ Integrate with cert-manager for automated certificate management:
 ## Monitoring and Observability
 
 ### Enhanced Metrics Collection
-Traefik v3.3 provides comprehensive metrics for all protocol types:
+Traefik v3.3 provides comprehensive metrics for HTTP/HTTPS traffic:
 
 - **Prometheus Metrics**: Exposed on port 9082 with protocol-specific metrics
-- **Access Logs**: Structured JSON logs for all traffic types
-- **Dashboard Integration**: Web-based dashboard showing HTTP/TCP/UDP routers
-
-### Protocol-Specific Monitoring
-Monitor traffic patterns for each protocol type:
-
-- **TCP Metrics**: Connection counts, throughput, and latency
-- **UDP Metrics**: Packet counts, error rates, and connectionless metrics
-- **Combined Metrics**: Overall Traefik v3.3 performance across all protocols
+- **Access Logs**: Structured JSON logs for HTTP/HTTPS traffic
+- **Dashboard Integration**: Web-based dashboard showing HTTP routers
 
 ### Distributed Tracing
 Enhanced observability with modernized tracing:
@@ -557,48 +549,42 @@ Enhanced observability with modernized tracing:
 - **Structured Traces**: Detailed trace information for debugging
 
 **Section sources**
-- [traefik-config.yaml:40-65](file://apps/infra/gateway-api/chart/traefik-config.yaml#L40-L65)
+- [traefik-static.yaml:28-48](file://apps/infra/gateway-api/chart/traefik-static.yaml#L28-L48)
 
 ## Performance Optimization
 
 ### Resource Allocation
-Optimize Traefik v3.3 performance for multi-protocol workloads:
+Optimize Traefik v3.3 performance for HTTP/HTTPS workloads:
 
 - **CPU Resources**: Scale CPU requests/limits based on expected concurrent connections
-- **Memory Management**: Monitor memory usage for TCP/UDP connection tracking
-- **Connection Limits**: Configure max connections per protocol type
+- **Memory Management**: Monitor memory usage for connection handling
+- **Connection Limits**: Configure max connections for HTTP/HTTPS traffic
 
 ### Network Optimization
 Implement network-level optimizations:
 
-- **Connection Pooling**: Reuse connections for persistent TCP services
-- **UDP Buffer Management**: Optimize buffer sizes for high-throughput UDP applications
-- **Protocol-Specific Tuning**: Tune kernel parameters for TCP/UDP performance
+- **Connection Pooling**: Reuse connections for persistent HTTP services
+- **Protocol-Specific Tuning**: Tune kernel parameters for optimal HTTP/HTTPS performance
 
 ## Troubleshooting Guide
 
-### Multi-Protocol Issues
-Common problems and solutions for enhanced routing:
+### Standard Installation Issues
+Common problems and solutions for standard Gateway API v1.5.1:
 
-- **TCP/UDP Not Receiving Traffic**:
+- **Gateway Not Ready**:
+  - Verify standard CRDs are installed before GatewayClass
+  - Check ArgoCD sync waves for proper ordering
+  - Confirm GatewayClass controller name matches traefik.io/gateway-controller
+
+- **HTTP/HTTPS Not Working**:
+  - Verify Gateway listeners accept traffic from target namespaces
+  - Check HTTPRoute parentRefs reference correct Gateway
+  - Confirm certificate references are valid
+
+- **TCP/UDP Issues**:
   - Verify NodePort service exposes ports 30900/30901
   - Check Traefik v3.3 container ports include tcp/udp entries
-  - Confirm Gateway listeners accept traffic from target namespaces
-
-- **TCP Echo Not Working**:
-  - Test with netcat: `nc <node-ip> 30900`
-  - Verify socat container is running and listening on port 7777
-  - Check IngressRouteTCP entryPoints match Gateway TCP listener
-
-- **UDP Echo Issues**:
-  - Test with UDP flag: `nc -u <node-ip> 30901`
-  - UDP may lose initial packets during listener setup
-  - Verify socat UDP listener configuration
-
-- **Mixed Protocol Conflicts**:
-  - Ensure different protocols use non-conflicting ports
-  - Check namespace selectors don't overlap incorrectly
-  - Verify Traefik entrypoint addresses are unique
+  - Confirm IngressRouteTCP/UDP entryPoints match Gateway listeners
 
 - **Tracing Issues**:
   - Verify OTLP HTTP endpoint connectivity
@@ -617,13 +603,13 @@ Common problems and solutions for enhanced routing:
 
 **Section sources**
 - [traefik.yaml:120-147](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L147)
-- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
+- [gateway.yaml:10-34](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L34)
 - [ingressroutetcp.yaml:14-20](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L14-L20)
 - [ingressrouteudp.yaml:14-19](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L14-L19)
-- [traefik-config.yaml:24-25](file://apps/infra/gateway-api/chart/traefik-config.yaml#L24-L25)
+- [traefik-static.yaml:10-14](file://apps/infra/gateway-api/chart/traefik-static.yaml#L10-L14)
 
 ## Conclusion
-The enhanced Gateway API controller implementation with Traefik v3.3 provides comprehensive multi-protocol routing capabilities, supporting HTTP/HTTPS for traditional web applications and TCP/UDP for modern cloud-native services. This expansion significantly broadens the system's networking capabilities while maintaining the proven reliability and performance of the Traefik ingress controller. The implementation demonstrates best practices for Layer 4 routing, multi-protocol traffic management, and comprehensive observability across all supported protocols, with full Traefik v3.x compatibility and modernized distributed tracing configuration.
+The Gateway API controller implementation with Traefik v3.3 provides a streamlined, production-ready solution using standard Gateway API v1.5.1 installation and modular configuration approach. The system focuses on reliable HTTP/HTTPS routing while maintaining the flexibility for optional TCP/UDP capabilities through CRD-based patterns. This approach eliminates the complexity of experimental features while preserving full Traefik v3.x compatibility and comprehensive observability across all supported protocols.
 
 ## Appendices
 
@@ -636,36 +622,36 @@ The enhanced Gateway API controller implementation with Traefik v3.3 provides co
 | UDP | udp | :9001/udp | 30901 | DNS, DHCP, Real-time | No Connection |
 
 **Section sources**
-- [traefik-config.yaml:27-38](file://apps/infra/gateway-api/chart/traefik-config.yaml#L27-L38)
+- [traefik-static.yaml:15-27](file://apps/infra/gateway-api/chart/traefik-static.yaml#L15-L27)
 - [traefik.yaml:120-147](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L147)
 
-### Traefik v3.x Compatibility Features
-- **Version**: traefik:v3.3 for latest features and security updates
-- **CRD Integration**: Enhanced support for TCP/UDP ingress routing
-- **Experimental Provider**: KubernetesGateway experimental channel enabled
-- **Modern Tracing**: OTLP HTTP format for compatibility with modern APM systems
+### Standard Installation Features
+- **Version**: Gateway API v1.5.1 for stability and long-term support
+- **CRD Integration**: Standard CRDs for HTTPRoute, TCPRoute, UDPRoute
+- **Controller**: traefik.io/gateway-controller for official support
+- **Modular Config**: Separate static and dynamic configuration files
+- **Enhanced RBAC**: Updated permissions for standard resources
 - **Improved Performance**: Optimized resource usage and connection handling
-- **Enhanced RBAC**: Comprehensive permissions for all Gateway API resources
 
 ### Testing Procedures
-Comprehensive testing for multi-protocol environments:
+Comprehensive testing for standard Gateway API environment:
 
 - **HTTP/HTTPS Testing**: Validate certificate installation and TLS termination
-- **TCP Testing**: Verify connection persistence and echo functionality
-- **UDP Testing**: Confirm packet delivery despite connectionless nature
-- **Mixed Protocol Testing**: Ensure coexistence without conflicts
+- **Gateway Readiness**: Verify GatewayClass and Gateway status
+- **Route Validation**: Confirm HTTPRoute routing to backend services
 - **Tracing Verification**: Validate OTLP HTTP export to Datadog Agent
-- **RBAC Testing**: Verify access to all gateway.networking.k8s.io resources
+- **RBAC Testing**: Verify access to standard gateway.networking.k8s.io resources
 - **Config Validation**: Confirm --configFile argument works correctly
+- **CRD Testing**: Verify standard CRD installation and functionality
 
 **Section sources**
 - [README.md (tcp-udp-demo):18-98](file://guide/tcp-udp-demo/README.md#L18-L98)
 
 ### Configuration Best Practices
-- **Namespace Segregation**: Use namespace selectors to control protocol access
+- **Namespace Segregation**: Use namespace selectors to control Gateway access
 - **Resource Planning**: Allocate appropriate resources for expected concurrent connections
-- **Monitoring Setup**: Implement comprehensive metrics collection for all protocols
+- **Monitoring Setup**: Implement comprehensive metrics collection for HTTP/HTTPS
 - **Security Hardening**: Apply appropriate security measures for each protocol type
 - **Tracing Configuration**: Ensure proper OTLP HTTP endpoint connectivity
 - **RBAC Management**: Regularly review and update permissions for gateway resources
-- **CRD Synchronization**: Monitor experimental channel functionality and CRD availability
+- **CRD Synchronization**: Monitor standard CRD functionality and availability

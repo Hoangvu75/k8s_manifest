@@ -1,0 +1,28 @@
+# Debug / cluster-check pod
+# Exec into this pod to run networking tools: curl, nc, telnet, dig, tcpdump, etc.
+# No Service needed — this is a jump pod, not serving traffic.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-check
+  namespace: cluster-check
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-check
+  template:
+    metadata:
+      labels:
+        app: cluster-check
+    spec:
+      containers:
+      - name: netshoot
+        image: nicolaka/netshoot:latest
+        command: ["sleep", "infinity"]
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            memory: 64Mi

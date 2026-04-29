@@ -113,7 +113,8 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 │   └── applications/            # User-facing application apps
 │       ├── hello-api/           # Hello API demo app
 │       ├── tcp-demo/            # TCP echo demo (Traefik TCP routing)
-│       └── udp-demo/            # UDP echo demo (Traefik UDP routing)
+│       ├── udp-demo/            # UDP echo demo (Traefik UDP routing)
+│       └── cluster-check/       # Debug jump pod (netshoot: curl, nc, dig, etc.)
 ├── guide/                       # Setup guides and troubleshooting
 └── .opencode/                   # OpenCode config, rules, agents, skills
 ```
@@ -159,6 +160,7 @@ Shared namespaces are defined in `cluster-resources/default/namespace.yaml` with
 | Hello API | applications | Demo API application |
 | TCP Echo Demo | applications | TCP echo server via Traefik IngressRouteTCP (NodePort 30900) |
 | UDP Echo Demo | applications | UDP echo server via Traefik IngressRouteUDP (NodePort 30901) |
+| Cluster Check | applications | Debug jump pod with networking tools (curl, nc, telnet, dig) |
 
 ## Private Secrets
 
