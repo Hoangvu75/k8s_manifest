@@ -11,7 +11,7 @@ Two echo-server apps have been created to demonstrate Traefik's Layer 4 routing 
 | tcp-demo | `tcp` (:9000) | **30900** | `alpine/socat` TCP echo (socat TCP-LISTEN) | 7777 |
 | udp-demo | `udp` (:9001/UDP) | **30901** | `alpine/socat` UDP echo (socat UDP-LISTEN) | 7778 |
 
-Both are routed via the `shared-gateway` Gateway in `gateway-api` namespace. The Gateway's TCP/UDP listeners only accept routes from namespaces labeled `routing.hoangvu75.space/expose: "true"` — both `tcp-demo` and `udp-demo` namespaces have this label.
+Both are routed via Traefik's **native CRDs** (`IngressRouteTCP`/`IngressRouteUDP`), not through the Gateway API Gateway. Traefik listens for TCP/UDP traffic on its `tcp` (:9000) and `udp` (:9001/UDP) entryPoints, and routes it directly to the backend services based on the CRD rules.
 
 ---
 
@@ -137,18 +137,15 @@ Then open: [http://localhost:8080/dashboard/](http://localhost:8080/dashboard/)
 Once the tcp-demo and udp-demo apps are synced, the dashboard shows:
 
 #### HTTP Section
-- `tcp-echo-tcp-demo-tcp-echo` — TCP router (only if Traefik detects the IngressRouteTCP)
-- `udp-echo-udp-demo-udp-echo` — UDP router (only if Traefik detects the IngressRouteUDP)
+- Shows only HTTP routers/services (dashboard, rancher, argocd ingress routes)
 
-#### TCP Section
-- **tcp-echo-tcp-demo-tcp-echo** (if shown here instead) — routes traffic to `tcp-echo:7777` service
+#### TCP Section (what you see on the dashboard)
+- **tcp-echo-tcp-demo-tcp-echo** — routes TCP traffic from entryPoint `tcp` (:9000) to `tcp-echo:7777` service
+- **tcp-echo-tcp-demo-tcp-echo** — the backend Service with 1 server (the tcp-echo pod)
 
 #### UDP Section
-- **udp-echo-udp-demo-udp-echo** — routes traffic to `udp-echo:7778` service
-
-#### Services Section
-- `tcp-echo-tcp-demo-tcp-echo` — backend service with 1 server (the tcp-echo pod)
-- `udp-echo-udp-demo-udp-echo` — backend service with 1 server (the udp-echo pod)
+- **udp-echo-udp-demo-udp-echo** — routes UDP traffic from entryPoint `udp` (:9001/UDP) to `udp-echo:7778` service
+- **udp-echo-udp-demo-udp-echo** — the backend Service with 1 server (the udp-echo pod)
 
 > The exact section (HTTP vs TCP vs UDP) depends on how Traefik organizes its dashboard. The key point is that after syncing, you'll see new routers and services corresponding to these demo apps, confirming that Traefik has discovered and is routing TCP/UDP traffic correctly.
 
