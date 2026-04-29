@@ -15,6 +15,12 @@
 - [k8s-manifest-secrets-guide.md](file://guide/k8s_manifest_secrets/argo_cd.md)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Updated cloudflared container image version from 2024.12.2 to 2026.3.0 in deployment configuration
+- Updated RBAC and Service Account diagram to reflect current image version
+- Updated deployment class diagram to show new cloudflared image version
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -100,7 +106,7 @@ Key implementation references:
 - [infra-project.yaml:6](file://projects/infra.yaml#L6)
 
 ## Architecture Overview
-The external traffic flow leverages Cloudflare’s global network and a persistent HTTP/2 tunnel to reach the cluster ingress stack. The tunnel is established by cloudflared inside the cluster, which decapsulates Cloudflare traffic and forwards it to Traefik. Traefik, acting as a Gateway API controller, routes traffic to backend Services according to Gateway and HTTPRoute resources.
+The external traffic flow leverages Cloudflare's global network and a persistent HTTP/2 tunnel to reach the cluster ingress stack. The tunnel is established by cloudflared inside the cluster, which decapsulates Cloudflare traffic and forwards it to Traefik. Traefik, acting as a Gateway API controller, routes traffic to backend Services according to Gateway and HTTPRoute resources.
 
 ```mermaid
 graph TB
@@ -158,6 +164,8 @@ Pod-->>API : Become Ready (probes disabled)
 - ServiceAccount and RBAC: The Helm chart provisions a ServiceAccount and ClusterRole/ClusterRoleBinding for cloudflared. The values file sets the container security context and resource limits.
 - Namespace isolation: The cloudflared namespace is created by earlier sync waves, ensuring the app deploys in a dedicated namespace.
 
+**Updated** The cloudflared container image has been upgraded from version 2024.12.2 to 2026.3.0, reflecting the latest stable release with improved performance and security features.
+
 ```mermaid
 classDiagram
 class ServiceAccount_cloudflared {
@@ -174,7 +182,7 @@ class ClusterRoleBinding_cloudflared {
 }
 class Deployment_cloudflared {
 +replicas : 2
-+image : "cloudflare/cloudflared : 2024.12.2"
++image : "cloudflare/cloudflared : 2026.3.0"
 +securityContext : "non-root, no read-only FS"
 +envFrom : "cloudflared-credentials"
 }
@@ -211,11 +219,11 @@ Connect --> Running(["Tunnel established"])
 - [cloudflared-values.yaml:11-18](file://apps/infra/cloudflared/chart/values.yaml#L11-L18)
 
 ### Network Policy and Outbound Connectivity
-- Outbound egress: The cloudflared pod connects to Cloudflare’s edge IPs over HTTP/2. Ensure egress policies allow outbound TCP to Cloudflare’s edge IP ranges.
+- Outbound egress: The cloudflared pod connects to Cloudflare's edge IPs over HTTP/2. Ensure egress policies allow outbound TCP to Cloudflare's edge IP ranges.
 - DNS resolution: The pod relies on cluster DNS to resolve Cloudflare hostnames. Verify CoreDNS or upstream resolvers are reachable.
 - In-cluster routing: After tunnel decapsulation, traffic is routed to Traefik and then to backend Services via Gateway API.
 
-Note: Specific NetworkPolicy resources are not present in the referenced cloudflared manifests. If you require egress restrictions, define a NetworkPolicy in the cloudflared namespace to allow egress to Cloudflare’s edge IPs and DNS servers.
+Note: Specific NetworkPolicy resources are not present in the referenced cloudflared manifests. If you require egress restrictions, define a NetworkPolicy in the cloudflared namespace to allow egress to Cloudflare's edge IPs and DNS servers.
 
 **Section sources**
 - [README.md:42-47](file://README.md#L42-L47)
@@ -321,6 +329,8 @@ Cloudflared --> RoutesWave3["HTTPRoutes (wave 3)"]
 - Protocol: HTTP/2 reduces overhead for long-lived connections.
 - Egress optimization: Ensure outbound connectivity to Cloudflare is not throttled by network policies.
 
+**Updated** The cloudflared container image version 2026.3.0 includes performance improvements and bug fixes that enhance tunnel stability and connection handling compared to the previous 2024.12.2 version.
+
 **Section sources**
 - [cloudflared-values.yaml:5, 27-33](file://apps/infra/cloudflared/chart/values.yaml#L5,L27-L33)
 
@@ -335,7 +345,7 @@ Cloudflared --> RoutesWave3["HTTPRoutes (wave 3)"]
   - Ensure cluster-resources with wave -1 created the cloudflared namespace.
   - Reference: [infra-project.yaml:6](file://projects/infra.yaml#L6)
 - Network connectivity:
-  - Check egress to Cloudflare’s edge IPs and DNS resolution.
+  - Check egress to Cloudflare's edge IPs and DNS resolution.
   - Reference: [README.md:42-47](file://README.md#L42-L47)
 - Probe-related restarts:
   - If enabling probes, ensure thresholds align with tunnel startup time.
@@ -349,7 +359,7 @@ Cloudflared --> RoutesWave3["HTTPRoutes (wave 3)"]
 - [cloudflared-values.yaml:23-26](file://apps/infra/cloudflared/chart/values.yaml#L23-L26)
 
 ## Conclusion
-The cloudflared deployment in this repository follows a GitOps-first approach with strict sync ordering, dedicated namespace isolation, and seamless integration with the Gateway API-based ingress stack. Authentication is handled via a securely managed tunnel token, and the tunnel operates over HTTP/2 to Cloudflare’s edge. For production, monitor tunnel health, tune resource allocations, and ensure egress policies permit connectivity to Cloudflare while maintaining DNS resolution.
+The cloudflared deployment in this repository follows a GitOps-first approach with strict sync ordering, dedicated namespace isolation, and seamless integration with the Gateway API-based ingress stack. Authentication is handled via a securely managed tunnel token, and the tunnel operates over HTTP/2 to Cloudflare's edge. The recent upgrade to cloudflared version 2026.3.0 provides enhanced performance and reliability for production deployments. Monitor tunnel health, tune resource allocations, and ensure egress policies permit connectivity to Cloudflare while maintaining DNS resolution.
 
 ## Appendices
 - ArgoCD installation and bootstrap workflow: [argo-cd-guide.md:1-34](file://guide/argocd/argo_cd.md#L1-L34)

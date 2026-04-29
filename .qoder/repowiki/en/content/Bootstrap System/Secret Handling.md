@@ -16,6 +16,13 @@
 - [apps/infra/datadog/config.yaml](file://apps/infra/datadog/config.yaml)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Enhanced documentation structure and formatting improvements in k8s_manifest_secrets guide
+- Improved readability and organization of secret examples and explanations
+- Better separation of different secret types with clearer naming conventions
+- Updated formatting standards for YAML examples and code blocks
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -31,11 +38,13 @@
 ## Introduction
 This document explains the secret management system used during bootstrap and ongoing operations. It details how bootstrap/secrets.yaml coordinates with ArgoCD repository secrets to securely access private repositories, how secrets are created and named, and how bootstrap secrets relate to application-specific secrets. It also covers security implications, credential rotation, least-privilege access patterns, compliance and audit considerations, and practical operational guidance.
 
+**Updated** Enhanced documentation structure with improved formatting and organization for better readability and clarity.
+
 ## Project Structure
 The secret management system spans three layers:
 - Bootstrap layer: Defines the root Application and the secrets Application that syncs a private secrets repository.
 - Repository configuration layer: Centralizes repository URLs and injects them into Applications and ApplicationSets.
-- Application layer: Consumes secrets from the private repository via ArgoCD’s repository secrets and mounts them into workloads.
+- Application layer: Consumes secrets from the private repository via ArgoCD's repository secrets and mounts them into workloads.
 
 ```mermaid
 graph TB
@@ -72,26 +81,26 @@ AppDatadogCfg --> PrivDoc
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [bootstrap/secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
 - [bootstrap.yaml:1-26](file://bootstrap.yaml#L1-L26)
-- [components/repo-url/kustomization.yaml:1-11](file://components/repo-url/kustomization.yaml#L1-L11)
-- [projects/kustomization.yaml:1-22](file://projects/kustomization.yaml#L1-L22)
-- [apps/infra/cloudflared/chart/values.yaml:1-39](file://apps/infra/cloudflared/chart/values.yaml#L1-L39)
-- [apps/infra/datadog/config.yaml:1-5](file://apps/infra/datadog/config.yaml#L1-L5)
+- [components/repo-url/kustomization.yaml:1-13](file://components/repo-url/kustomization.yaml#L1-L13)
+- [projects/kustomization.yaml:1-31](file://projects/kustomization.yaml#L1-L31)
+- [apps/infra/cloudflared/chart/values.yaml:1-40](file://apps/infra/cloudflared/chart/values.yaml#L1-L40)
+- [apps/infra/datadog/config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 - [guide/argocd/argocd-repository-secrets.yaml:1-30](file://guide/argocd/argocd-repository-secrets.yaml#L1-L30)
-- [guide/k8s_manifest_secrets/argo_cd.md:1-46](file://guide/k8s_manifest_secrets/argo_cd.md#L1-L46)
+- [guide/k8s_manifest_secrets/argo_cd.md:1-42](file://guide/k8s_manifest_secrets/argo_cd.md#L1-L42)
 
 **Section sources**
 - [README.md:57-118](file://README.md#L57-L118)
 - [bootstrap.yaml:1-26](file://bootstrap.yaml#L1-L26)
-- [bootstrap/kustomization.yaml:1-38](file://bootstrap/kustomization.yaml#L1-L38)
+- [bootstrap/kustomization.yaml:1-63](file://bootstrap/kustomization.yaml#L1-L63)
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [bootstrap/secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
-- [components/repo-url/kustomization.yaml:1-11](file://components/repo-url/kustomization.yaml#L1-L11)
-- [projects/kustomization.yaml:1-22](file://projects/kustomization.yaml#L1-L22)
+- [components/repo-url/kustomization.yaml:1-13](file://components/repo-url/kustomization.yaml#L1-L13)
+- [projects/kustomization.yaml:1-31](file://projects/kustomization.yaml#L1-L31)
 - [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
 - [guide/argocd/argocd-repository-secrets.yaml:1-30](file://guide/argocd/argocd-repository-secrets.yaml#L1-L30)
-- [guide/k8s_manifest_secrets/argo_cd.md:1-46](file://guide/k8s_manifest_secrets/argo_cd.md#L1-L46)
-- [apps/infra/cloudflared/chart/values.yaml:1-39](file://apps/infra/cloudflared/chart/values.yaml#L1-L39)
-- [apps/infra/datadog/config.yaml:1-5](file://apps/infra/datadog/config.yaml#L1-L5)
+- [guide/k8s_manifest_secrets/argo_cd.md:1-42](file://guide/k8s_manifest_secrets/argo_cd.md#L1-L42)
+- [apps/infra/cloudflared/chart/values.yaml:1-40](file://apps/infra/cloudflared/chart/values.yaml#L1-L40)
+- [apps/infra/datadog/config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 
 ## Core Components
 - Bootstrap root Application: Declares the projects directory as source and automates synchronization with pruning and self-healing.
@@ -108,11 +117,11 @@ Key behaviors:
 **Section sources**
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [bootstrap/secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
-- [bootstrap/kustomization.yaml:12-38](file://bootstrap/kustomization.yaml#L12-L38)
-- [components/repo-url/kustomization.yaml:4-10](file://components/repo-url/kustomization.yaml#L4-L10)
-- [projects/kustomization.yaml:11-22](file://projects/kustomization.yaml#L11-L22)
+- [bootstrap/kustomization.yaml:12-63](file://bootstrap/kustomization.yaml#L12-L63)
+- [components/repo-url/kustomization.yaml:4-13](file://components/repo-url/kustomization.yaml#L4-L13)
+- [projects/kustomization.yaml:11-31](file://projects/kustomization.yaml#L11-L31)
 - [guide/argocd/argocd-repository-secrets.yaml:5-29](file://guide/argocd/argocd-repository-secrets.yaml#L5-L29)
-- [guide/k8s_manifest_secrets/argo_cd.md:6-45](file://guide/k8s_manifest_secrets/argo_cd.md#L6-L45)
+- [guide/k8s_manifest_secrets/argo_cd.md:6-42](file://guide/k8s_manifest_secrets/argo_cd.md#L6-L42)
 - [README.md:76-85](file://README.md#L76-L85)
 
 ## Architecture Overview
@@ -146,7 +155,7 @@ Argo-->>Dev : "Cluster reflects desired state"
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [bootstrap/secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
 - [guide/argocd/argocd-repository-secrets.yaml:5-29](file://guide/argocd/argocd-repository-secrets.yaml#L5-L29)
-- [guide/k8s_manifest_secrets/argo_cd.md:6-45](file://guide/k8s_manifest_secrets/argo_cd.md#L6-L45)
+- [guide/k8s_manifest_secrets/argo_cd.md:6-42](file://guide/k8s_manifest_secrets/argo_cd.md#L6-L42)
 - [apps/infra/cloudflared/chart/values.yaml:19-21](file://apps/infra/cloudflared/chart/values.yaml#L19-L21)
 
 ## Detailed Component Analysis
@@ -171,13 +180,13 @@ Mount --> End(["Desired state achieved"])
 
 **Diagram sources**
 - [bootstrap/secrets.yaml:10-24](file://bootstrap/secrets.yaml#L10-L24)
-- [bootstrap/kustomization.yaml:32-37](file://bootstrap/kustomization.yaml#L32-L37)
-- [components/repo-url/kustomization.yaml:4-10](file://components/repo-url/kustomization.yaml#L4-L10)
+- [bootstrap/kustomization.yaml:32-63](file://bootstrap/kustomization.yaml#L32-L63)
+- [components/repo-url/kustomization.yaml:4-13](file://components/repo-url/kustomization.yaml#L4-L13)
 
 **Section sources**
 - [bootstrap/secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
-- [bootstrap/kustomization.yaml:32-37](file://bootstrap/kustomization.yaml#L32-L37)
-- [components/repo-url/kustomization.yaml:4-10](file://components/repo-url/kustomization.yaml#L4-L10)
+- [bootstrap/kustomization.yaml:32-63](file://bootstrap/kustomization.yaml#L32-L63)
+- [components/repo-url/kustomization.yaml:4-13](file://components/repo-url/kustomization.yaml#L4-L13)
 - [README.md:70-74](file://README.md#L70-L74)
 
 ### Repository Secrets and Access Control
@@ -220,6 +229,8 @@ Naming conventions:
 - Secrets are named semantically (for example, application-specific names).
 - TLS secrets use the standard Kubernetes TLS type and include appropriate keys.
 
+**Updated** Enhanced documentation structure with improved formatting and clearer organization of secret examples.
+
 ```mermaid
 erDiagram
 SECRET_MANIFEST {
@@ -236,11 +247,11 @@ SECRET_MANIFEST ||--o{ APP_WORKLOAD : "mounted by"
 ```
 
 **Diagram sources**
-- [guide/k8s_manifest_secrets/argo_cd.md:10-45](file://guide/k8s_manifest_secrets/argo_cd.md#L10-L45)
+- [guide/k8s_manifest_secrets/argo_cd.md:10-42](file://guide/k8s_manifest_secrets/argo_cd.md#L10-L42)
 - [apps/infra/cloudflared/chart/values.yaml:19-21](file://apps/infra/cloudflared/chart/values.yaml#L19-L21)
 
 **Section sources**
-- [guide/k8s_manifest_secrets/argo_cd.md:6-45](file://guide/k8s_manifest_secrets/argo_cd.md#L6-L45)
+- [guide/k8s_manifest_secrets/argo_cd.md:6-42](file://guide/k8s_manifest_secrets/argo_cd.md#L6-L42)
 - [apps/infra/cloudflared/chart/values.yaml:17-21](file://apps/infra/cloudflared/chart/values.yaml#L17-L21)
 
 ### Relationship Between Bootstrap Secrets and Application-Specific Secrets
@@ -265,13 +276,13 @@ Argocd-->>App : "Mount secret into pod"
 **Diagram sources**
 - [bootstrap/secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
 - [guide/argocd/argocd-repository-secrets.yaml:5-29](file://guide/argocd/argocd-repository-secrets.yaml#L5-L29)
-- [guide/k8s_manifest_secrets/argo_cd.md:10-45](file://guide/k8s_manifest_secrets/argo_cd.md#L10-L45)
+- [guide/k8s_manifest_secrets/argo_cd.md:10-42](file://guide/k8s_manifest_secrets/argo_cd.md#L10-L42)
 - [apps/infra/cloudflared/chart/values.yaml:19-21](file://apps/infra/cloudflared/chart/values.yaml#L19-L21)
 
 **Section sources**
 - [README.md:72-74](file://README.md#L72-L74)
 - [apps/infra/cloudflared/chart/values.yaml:19-21](file://apps/infra/cloudflared/chart/values.yaml#L19-L21)
-- [apps/infra/datadog/config.yaml:1-5](file://apps/infra/datadog/config.yaml#L1-L5)
+- [apps/infra/datadog/config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 
 ## Dependency Analysis
 - Centralized repository URLs: The repo-config ConfigMap drives URL substitution across bootstrap and projects Kustomizations.
@@ -288,21 +299,21 @@ SecApp --> Apps["Applications"]
 ```
 
 **Diagram sources**
-- [components/repo-url/kustomization.yaml:4-10](file://components/repo-url/kustomization.yaml#L4-L10)
-- [bootstrap/kustomization.yaml:12-38](file://bootstrap/kustomization.yaml#L12-L38)
-- [projects/kustomization.yaml:11-22](file://projects/kustomization.yaml#L11-L22)
+- [components/repo-url/kustomization.yaml:4-13](file://components/repo-url/kustomization.yaml#L4-L13)
+- [bootstrap/kustomization.yaml:12-63](file://bootstrap/kustomization.yaml#L12-L63)
+- [projects/kustomization.yaml:11-31](file://projects/kustomization.yaml#L11-L31)
 - [guide/argocd/argocd-repository-secrets.yaml:5-29](file://guide/argocd/argocd-repository-secrets.yaml#L5-L29)
 - [bootstrap/secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
 
 **Section sources**
-- [components/repo-url/kustomization.yaml:4-10](file://components/repo-url/kustomization.yaml#L4-L10)
-- [bootstrap/kustomization.yaml:12-38](file://bootstrap/kustomization.yaml#L12-L38)
-- [projects/kustomization.yaml:11-22](file://projects/kustomization.yaml#L11-L22)
+- [components/repo-url/kustomization.yaml:4-13](file://components/repo-url/kustomization.yaml#L4-L13)
+- [bootstrap/kustomization.yaml:12-63](file://bootstrap/kustomization.yaml#L12-L63)
+- [projects/kustomization.yaml:11-31](file://projects/kustomization.yaml#L11-L31)
 - [guide/argocd/argocd-repository-secrets.yaml:5-29](file://guide/argocd/argocd-repository-secrets.yaml#L5-L29)
 
 ## Performance Considerations
 - Minimize repeated cloning: Use repository secrets to avoid repeated authentication overhead.
-- Reduce sync frequency: Tune ApplicationSet generators’ requeue intervals appropriately.
+- Reduce sync frequency: Tune ApplicationSet generators' requeue intervals appropriately.
 - Limit secret scope: Keep the private secrets repository small and focused to reduce sync time.
 - Use pruning judiciously: Ensure pruning aligns with operational needs to avoid unnecessary churn.
 
@@ -327,8 +338,8 @@ Operational steps:
 
 **Section sources**
 - [guide/argocd/argocd-repository-secrets.yaml:1-30](file://guide/argocd/argocd-repository-secrets.yaml#L1-L30)
-- [bootstrap/kustomization.yaml:12-38](file://bootstrap/kustomization.yaml#L12-L38)
-- [projects/kustomization.yaml:11-22](file://projects/kustomization.yaml#L11-L22)
+- [bootstrap/kustomization.yaml:12-63](file://bootstrap/kustomization.yaml#L12-L63)
+- [projects/kustomization.yaml:11-31](file://projects/kustomization.yaml#L11-L31)
 - [README.md:76-85](file://README.md#L76-L85)
 
 ## Conclusion
