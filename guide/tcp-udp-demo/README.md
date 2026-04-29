@@ -15,135 +15,72 @@ Both are routed via Traefik's **native CRDs** (`IngressRouteTCP`/`IngressRouteUD
 
 ---
 
-## 1. Testing TCP Echo (NodePort)
+## 1. Testing via cluster-check (easiest — recommended)
 
-The Traefik NodePort service exposes TCP traffic on port **30900**.
+The `cluster-check` pod is a persistent debug jump pod with all networking tools pre-installed (`curl`, `nc`, `telnet`, `dig`, `tcpdump`...). It's the simplest way to test from inside the cluster.
 
-### From a machine on the same network as the cluster:
-
-First find the node IP:
+### Exec into the pod
 
 ```bash
-kubectl get nodes -o wide
+kubectl exec -it -n cluster-check deploy/cluster-check -- bash
 ```
 
-The `INTERNAL-IP` column shows each node's IP address. Pick one that's reachable from your machine.
-
-Then test:
+### Test TCP echo
 
 ```bash
-# Get first node's internal IP
+echo "hello" | nc tcp-echo.tcp-demo 7777
+```
+Expected: `hello` echoed back.
+
+### Test UDP echo
+
+```bash
+echo "hello" | nc -u udp-echo.udp-demo 7778
+```
+
+> UDP first packet may be lost — run twice if needed.
+
+**Full session:**
+```
+cluster-check:~$ echo "hello" | nc tcp-echo.tcp-demo 7777
+hello
+cluster-check:~$ echo "hello" | nc -u udp-echo.udp-demo 7778
+hello
+```
+
+---
+
+## 2. Testing via NodePort (from outside the cluster)
+
+For machines on the same network as the cluster:
+
+```bash
 NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
 
-# Use curl (works in Git Bash on Windows)
+# TCP (uses curl, works in Git Bash)
 echo "hello" | curl -s telnet://$NODE_IP:30900
-# You should see: hello echoed back
 
-# Or if you have netcat installed:
-# nc $NODE_IP 30900
-```
-
-With `curl`, type your message, press Enter, and the echo response appears in the output.
-
-**Example session:**
-```bash
-$ NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-$ echo "hello" | curl -s telnet://$NODE_IP:30900
-hello
-```
-
-### From inside the cluster (any pod):
-
-```bash
-kubectl run -it --rm debug --image=alpine -- sh
-/ # apk add netcat-openbsd
-/ # nc tcp-echo.tcp-demo 7777
-hello
-hello
+# UDP (uses Python)
+python3 -c "import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.settimeout(3); s.sendto(b'hello',('$NODE_IP',30901)); print('Got:', s.recvfrom(1024)[0].decode())"
 ```
 
 ---
 
-## 2. Testing UDP Echo (NodePort)
-
-The Traefik NodePort service exposes UDP traffic on port **30901**.
-
-### From a machine on the same network as the cluster:
-
-`nc -u` is not available in Git Bash. Use Python instead:
-
-```bash
-NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-
-# Using Python (works in Git Bash if Python is installed)
-python3 -c "
-import socket
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.settimeout(3)
-s.sendto(b'hello\\n', ('$NODE_IP', 30901))
-try:
-    data, addr = s.recvfrom(1024)
-    print('Got:', data.decode().strip())
-except socket.timeout:
-    print('Timeout (UDP first packet often lost - try again)')
-"
-
-# Or using PowerShell (always available on Windows):
-# powershell -Command "`$c=New-Object System.Net.Sockets.UdpClient; `$c.Connect('$NODE_IP',30901); `$b=[Text.Encoding]::ASCII.GetBytes('hello'); `$c.Send(`$b,`$b.Length); `$r=`$c.Receive([ref]''); Write-Host 'Got:' ([Text.Encoding]::ASCII.GetString(`$r))"
-```
-
-> **Note:** UDP is connectionless, so the first packet may be lost while socat sets up the listener. Run the command twice if the first attempt times out.
-
-**Example session:**
-```bash
-$ python3 -c "import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.settimeout(3); s.sendto(b'hello',('192.168.1.100',30901)); print(s.recvfrom(1024)[0].decode())"
-hello
-```
-
-### From inside the cluster (any pod):
-
-```bash
-kubectl run -it --rm debug --image=alpine -- sh
-/ # apk add netcat-openbsd
-/ # nc -u udp-echo.udp-demo 7778
-hello
-hello
-```
-
-**Note:** UDP is connectionless, so the first packet may be lost while socat sets up the listener. Send a couple of test messages if the first one doesn't echo.
-
----
-
-## 3. Testing via ClusterIP (from any pod)
-
-If you don't want to use NodePorts, test directly against the ClusterIP services from within the cluster. This is the **easiest and most reliable** option since it doesn't depend on your local OS tools:
+## 3. Quick one-shot test (no cluster-check needed)
 
 ```bash
 # TCP
-kubectl run -it --rm debug --image=alpine -- sh -c "apk add netcat-openbsd && nc tcp-echo.tcp-demo 7777"
+kubectl run -it --rm debug --image=nicolaka/netshoot -- bash -c "echo 'hello' | nc tcp-echo.tcp-demo 7777"
 
 # UDP
-kubectl run -it --rm debug --image=alpine -- sh -c "apk add netcat-openbsd && nc -u udp-echo.udp-demo 7778"
-```
-
-Type your message after the shell starts — the echo server sends it right back.
-
-**Example:**
-```
-/ # nc tcp-echo.tcp-demo 7777
-hello
-hello
+kubectl run -it --rm debug --image=nicolaka/netshoot -- bash -c "echo 'hello' | nc -u udp-echo.udp-demo 7778"
 ```
 
 ---
 
 ## 4. Viewing Routes on the Traefik Dashboard
 
-The Traefik dashboard shows all discovered routers (HTTP, TCP, UDP) and their backend services.
-
 ### Access via Cloudflare (if DNS is configured):
-
-Open your browser and go to:
 
 ```
 https://traefik.hoangvu75.space/dashboard/
@@ -164,7 +101,7 @@ Once the tcp-demo and udp-demo apps are synced, the dashboard shows:
 #### HTTP Section
 - Shows only HTTP routers/services (dashboard, rancher, argocd ingress routes)
 
-#### TCP Section (what you see on the dashboard)
+#### TCP Section
 - **tcp-echo-tcp-demo-tcp-echo** — routes TCP traffic from entryPoint `tcp` (:9000) to `tcp-echo:7777` service
 - **tcp-echo-tcp-demo-tcp-echo** — the backend Service with 1 server (the tcp-echo pod)
 
@@ -172,7 +109,7 @@ Once the tcp-demo and udp-demo apps are synced, the dashboard shows:
 - **udp-echo-udp-demo-udp-echo** — routes UDP traffic from entryPoint `udp` (:9001/UDP) to `udp-echo:7778` service
 - **udp-echo-udp-demo-udp-echo** — the backend Service with 1 server (the udp-echo pod)
 
-> The exact section (HTTP vs TCP vs UDP) depends on how Traefik organizes its dashboard. The key point is that after syncing, you'll see new routers and services corresponding to these demo apps, confirming that Traefik has discovered and is routing TCP/UDP traffic correctly.
+> After successful tests, these dashboard counters will show traffic data (connection counts, bytes transferred).
 
 ---
 
@@ -191,15 +128,14 @@ You should see JSON log entries like:
 {"ClientAddr":"10.42.0.X:xxxxx","ClientHost":"10.42.0.X","DownstreamContentSize":5,..."RequestAddr":"tcp-echo.tcp-demo:7777","RouterName":"tcp-echo-tcp-demo-tcp-echo","ServiceName":"tcp-echo-tcp-demo-tcp-echo","StartUTC":"...","level":"info","msg":""}
 ```
 
-### Prometheus Metrics (via curl):
+### Prometheus Metrics (via curl from cluster-check):
 
 ```bash
-kubectl run -it --rm debug --image=curlimages/curl -- sh
-/ $ curl http://traefik.gateway-api:9082/metrics | grep "tcp"
+kubectl exec -it -n cluster-check deploy/cluster-check -- curl -s http://traefik.gateway-api:9082/metrics | grep "tcp\\|udp"
 ```
 
 You'll see metrics like:
 ```
 traefik_tcp_router_server_open_connections{router="tcp-echo-tcp-demo-tcp-echo"} 0
-traefik_tcp_service_open_connections{service="tcp-echo-tcp-demo-tcp-echo"} 0
+traefik_udp_router_server_open_connections{router="udp-echo-udp-demo-udp-echo"} 0
 ```
