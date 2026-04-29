@@ -5,435 +5,520 @@
 - [gatewayclass.yaml](file://apps/infra/gateway-api/chart/gatewayclass.yaml)
 - [gateway.yaml](file://apps/infra/gateway-api/chart/gateway.yaml)
 - [traefik.yaml](file://apps/infra/gateway-api/chart/traefik.yaml)
+- [traefik-config.yaml](file://apps/infra/gateway-api/chart/traefik-config.yaml)
 - [httproute-traefik-dashboard.yaml](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml)
 - [httproute-rancher.yaml](file://apps/playground/rancher/chart/httproute-rancher.yaml)
 - [httproute-argocd.yaml](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml)
 - [values-httproute.yaml](file://apps/playground/hello-api/chart/values-httproute.yaml)
+- [ingressroutetcp.yaml](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml)
+- [ingressrouteudp.yaml](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml)
+- [deployment.yaml (tcp-demo)](file://apps/applications/tcp-demo/chart/deployment.yaml)
+- [deployment.yaml (udp-demo)](file://apps/applications/udp-demo/chart/deployment.yaml)
+- [service.yaml (tcp-demo)](file://apps/applications/tcp-demo/chart/service.yaml)
+- [service.yaml (udp-demo)](file://apps/applications/udp-demo/chart/service.yaml)
 - [kustomization.yaml (gateway-api)](file://apps/infra/gateway-api/kustomization.yaml)
+- [kustomization.yaml (tcp-demo)](file://apps/applications/tcp-demo/kustomization.yaml)
+- [kustomization.yaml (udp-demo)](file://apps/applications/udp-demo/kustomization.yaml)
 - [kustomization.yaml (root)](file://kustomization.yaml)
 - [README.md](file://README.md)
+- [README.md (tcp-udp-demo)](file://guide/tcp-udp-demo/README.md)
 - [config.yaml (gateway-api)](file://apps/infra/gateway-api/config.yaml)
 - [tls-rancher-ca.yaml](file://apps/playground/cert-manager/chart/tls-rancher-ca.yaml)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated Gateway API version reference from v1.2.0 to v1.5.1 in kustomization.yaml
-- Enhanced Gateway API specification compliance documentation
-- Added information about newer API specifications and security enhancements
-- Updated installation methodology to reflect standard Kubernetes Gateway API upgrade process
+- Enhanced Traefik configuration to support TCP and UDP entrypoints alongside HTTP/HTTPS routing
+- Added comprehensive TCP and UDP routing capabilities through IngressRouteTCP and IngressRouteUDP resources
+- Expanded Gateway API listener configuration to include TCP (port 9000) and UDP (port 9001) protocols
+- Integrated Layer 4 routing demonstration through tcp-demo and udp-demo applications
+- Updated Traefik deployment with dedicated TCP/UDP container ports and NodePort exposure
+- Enhanced static configuration to support TCP/UDP entrypoints with proper protocol handling
 
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
-5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Gateway API Version Upgrade](#gateway-api-version-upgrade)
-7. [Dependency Analysis](#dependency-analysis)
-8. [Performance Considerations](#performance-considerations)
-9. [Troubleshooting Guide](#troubleshooting-guide)
-10. [Conclusion](#conclusion)
-11. [Appendices](#appendices)
+5. [Enhanced Gateway API Configuration](#enhanced-gateway-api-configuration)
+6. [Layer 4 Routing Implementation](#layer-4-routing-implementation)
+7. [Traefik Deployment and Configuration](#traefik-deployment-and-configuration)
+8. [Demo Applications](#demo-applications)
+9. [Traffic Routing Patterns](#traffic-routing-patterns)
+10. [Load Balancing and High Availability](#load-balancing-and-high-availability)
+11. [Certificate Management](#certificate-management)
+12. [Monitoring and Observability](#monitoring-and-observability)
+13. [Performance Optimization](#performance-optimization)
+14. [Troubleshooting Guide](#troubleshooting-guide)
+15. [Conclusion](#conclusion)
+16. [Appendices](#appendices)
 
 ## Introduction
-This document explains the Gateway API controller implementation using Traefik as the ingress controller. It covers the GatewayClass and Gateway resources, listener configurations, and HTTPRoute definitions. It also documents the Traefik deployment with service annotations and ingress class configuration, demonstrates dashboard integration, and outlines compliance with the Gateway API specification. The implementation has been upgraded to use Gateway API v1.5.1, incorporating newer API specifications and security enhancements while maintaining existing infrastructure compatibility.
+This document explains the enhanced Gateway API controller implementation using Traefik as the ingress controller, now supporting comprehensive Layer 4 routing capabilities. The system extends beyond traditional HTTP/HTTPS routing to include TCP and UDP entrypoints, significantly expanding networking capabilities. The implementation demonstrates production-ready configurations for modern cloud-native applications requiring both Layer 7 HTTP routing and Layer 4 TCP/UDP forwarding.
 
 ## Project Structure
-The Gateway API stack is organized under apps/infra/gateway-api and integrates with playground applications that expose services via HTTPRoute. The root kustomization installs the Gateway API CRDs before deploying the controller and resources.
+The enhanced Gateway API stack now includes dedicated TCP and UDP demo applications alongside the existing HTTP/HTTPS infrastructure. The architecture supports seamless integration of Layer 7 and Layer 4 routing patterns within a unified Traefik deployment.
 
 ```mermaid
 graph TB
 subgraph "Root"
 ROOT["kustomization.yaml"]
 end
-subgraph "Gateway API"
+subgraph "Gateway API Infrastructure"
 GA_K["apps/infra/gateway-api/kustomization.yaml"]
 GA_GC["apps/infra/gateway-api/chart/gatewayclass.yaml"]
 GA_GW["apps/infra/gateway-api/chart/gateway.yaml"]
 GA_TR["apps/infra/gateway-api/chart/traefik.yaml"]
+GA_TC["apps/infra/gateway-api/chart/traefik-config.yaml"]
 GA_HD["apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml"]
 end
-subgraph "Playground"
-PR_RN["apps/playground/rancher/chart/httproute-rancher.yaml"]
-PR_AD["apps/playground/argocd-ingress/chart/httproute-argocd.yaml"]
-PR_HL["apps/playground/hello-api/chart/values-httproute.yaml"]
+subgraph "HTTP/HTTPS Applications"
+HTTP_RN["apps/playground/rancher/chart/httproute-rancher.yaml"]
+HTTP_AD["apps/playground/argocd-ingress/chart/httproute-argocd.yaml"]
+HTTP_HL["apps/playground/hello-api/chart/values-httproute.yaml"]
+end
+subgraph "TCP/UDP Demo Applications"
+TCP_DEMO["apps/applications/tcp-demo/"]
+UDP_DEMO["apps/applications/udp-demo/"]
+TCP_IR["apps/applications/tcp-demo/chart/ingressroutetcp.yaml"]
+UDP_IR["apps/applications/udp-demo/chart/ingressrouteudp.yaml"]
+TCP_DEP["apps/applications/tcp-demo/chart/deployment.yaml"]
+UDP_DEP["apps/applications/udp-demo/chart/deployment.yaml"]
+TCP_SVC["apps/applications/tcp-demo/chart/service.yaml"]
+UDP_SVC["apps/applications/udp-demo/chart/service.yaml"]
+end
+subgraph "Cert Management"
 CM_CA["apps/playground/cert-manager/chart/tls-rancher-ca.yaml"]
 end
 ROOT --> GA_K
 GA_K --> GA_GC
 GA_K --> GA_GW
 GA_K --> GA_TR
+GA_K --> GA_TC
 GA_K --> GA_HD
-GA_K --> PR_RN
-GA_K --> PR_AD
-GA_K --> PR_HL
+GA_K --> HTTP_RN
+GA_K --> HTTP_AD
+GA_K --> HTTP_HL
+GA_K --> TCP_DEMO
+GA_K --> UDP_DEMO
 GA_K --> CM_CA
+TCP_DEMO --> TCP_IR
+TCP_DEMO --> TCP_DEP
+TCP_DEMO --> TCP_SVC
+UDP_DEMO --> UDP_IR
+UDP_DEMO --> UDP_DEP
+UDP_DEMO --> UDP_SVC
 ```
 
 **Diagram sources**
 - [kustomization.yaml (root):1-21](file://kustomization.yaml#L1-L21)
 - [kustomization.yaml (gateway-api):1-9](file://apps/infra/gateway-api/kustomization.yaml#L1-L9)
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-- [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
-- [traefik.yaml:1-120](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L120)
-- [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
-- [httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
-- [tls-rancher-ca.yaml:1-34](file://apps/playground/cert-manager/chart/tls-rancher-ca.yaml#L1-L34)
+- [gateway.yaml:1-51](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L51)
+- [traefik.yaml:1-144](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L144)
+- [traefik-config.yaml:1-66](file://apps/infra/gateway-api/chart/traefik-config.yaml#L1-L66)
+- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
+- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
 
 **Section sources**
 - [kustomization.yaml (root):1-21](file://kustomization.yaml#L1-L21)
 - [kustomization.yaml (gateway-api):1-9](file://apps/infra/gateway-api/kustomization.yaml#L1-L9)
-- [README.md:1-163](file://README.md#L1-L163)
+- [README.md:108-161](file://README.md#L108-L161)
 
 ## Core Components
-- GatewayClass: Defines the controller that implements the Gateway API. The controller name identifies Traefik's Gateway API implementation.
-- Gateway: Declares listeners for HTTP and HTTPS, enables TLS termination, and references a certificate Secret.
-- Traefik Deployment: Runs Traefik with Gateway API providers, exposes admin and entrypoint ports, and binds RBAC permissions.
-- HTTPRoute: Routes traffic to backend Services based on hostnames and path prefixes, and sets forwarded headers for HTTPS.
+The enhanced system now includes comprehensive Layer 4 routing capabilities alongside traditional HTTP/HTTPS routing:
 
-Key implementation references:
-- GatewayClass definition: [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-- Gateway listeners and TLS: [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
-- Traefik deployment and RBAC: [traefik.yaml:1-120](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L120)
-- Dashboard HTTPRoute: [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
-- Playground HTTPRoutes: [httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30), [httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29), [values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
+- **GatewayClass**: Defines the controller that implements the Gateway API with Traefik as the provider
+- **Gateway**: Extended with HTTP, HTTPS, TCP, and UDP listeners supporting diverse traffic types
+- **Traefik Deployment**: Enhanced with dedicated TCP/UDP container ports and NodePort exposure
+- **Static Configuration**: Supports TCP/UDP entrypoints with proper protocol handling
+- **Demo Applications**: TCP and UDP echo servers demonstrating Layer 4 routing capabilities
 
 **Section sources**
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-- [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
-- [traefik.yaml:1-120](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L120)
-- [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
-- [httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
+- [gateway.yaml:1-51](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L51)
+- [traefik.yaml:78-144](file://apps/infra/gateway-api/chart/traefik.yaml#L78-L144)
+- [traefik-config.yaml:27-38](file://apps/infra/gateway-api/chart/traefik-config.yaml#L27-L38)
 
 ## Architecture Overview
-The system uses Cloudflare tunnel to forward traffic into the cluster, which reaches Traefik via NodePorts. Traefik, configured as the Gateway API controller, routes traffic to backend Services according to Gateway and HTTPRoute resources.
+The enhanced architecture now supports both Layer 7 HTTP/HTTPS and Layer 4 TCP/UDP traffic routing through a unified Traefik deployment with multiple entrypoints.
 
 ```mermaid
 graph TB
 INT["Internet"] --> CF["Cloudflare Tunnel<br/>cloudflared"]
-CF --> NP["NodePort 30080/30443<br/>Traefik"]
-NP --> GW["Gateway.shared-gateway<br/>Listeners: 80/443"]
-GW --> HR["HTTPRoute rules<br/>hostnames + pathPrefix"]
-HR --> SVC["Backend Service<br/>app Service:port"]
-SVC --> POD["Pod(s)"]
+CF --> NP["NodePort 30080/30443/30900/30901<br/>Traefik Multi-Protocol"]
+NP --> GW["Gateway.shared-gateway<br/>Listeners: 80/443/TCP:9000/UDP:9001"]
+GW --> HTTP_ROUTE["HTTPRoute rules<br/>hostnames + pathPrefix"]
+GW --> TCP_ROUTE["IngressRouteTCP rules<br/>HostSNI/TCP matching"]
+GW --> UDP_ROUTE["IngressRouteUDP rules<br/>UDP services"]
+HTTP_ROUTE --> SVC_HTTP["Backend Service<br/>HTTP Apps:port"]
+TCP_ROUTE --> SVC_TCP["Backend Service<br/>TCP Demo:7777"]
+UDP_ROUTE --> SVC_UDP["Backend Service<br/>UDP Demo:7778"]
+SVC_HTTP --> POD_HTTP["Pod(s)"]
+SVC_TCP --> POD_TCP["TCP Echo Pod"]
+SVC_UDP --> POD_UDP["UDP Echo Pod"]
 subgraph "Cluster"
 NP
 GW
-HR
-SVC
+HTTP_ROUTE
+TCP_ROUTE
+UDP_ROUTE
+SVC_HTTP
+SVC_TCP
+SVC_UDP
 end
 ```
 
 **Diagram sources**
 - [README.md:5-48](file://README.md#L5-L48)
-- [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
-- [traefik.yaml:74-96](file://apps/infra/gateway-api/chart/traefik.yaml#L74-L96)
-- [httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
+- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
+- [traefik.yaml:120-144](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L144)
+- [ingressroutetcp.yaml:14-20](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L14-L20)
+- [ingressrouteudp.yaml:14-19](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L14-L19)
 
 **Section sources**
 - [README.md:5-48](file://README.md#L5-L48)
-- [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
-- [traefik.yaml:74-96](file://apps/infra/gateway-api/chart/traefik.yaml#L74-L96)
+- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
+- [traefik.yaml:120-144](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L144)
 
-## Detailed Component Analysis
+## Enhanced Gateway API Configuration
 
-### GatewayClass
-- Purpose: Declares the controller that implements the Gateway API.
-- Controller name: Identifies Traefik's Gateway API implementation.
-- Sync order: Installed early to ensure CRDs and controller readiness.
-
-Implementation reference:
-- [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-
-**Section sources**
-- [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-
-### Gateway
-- Purpose: Defines listeners for HTTP and HTTPS protocols.
-- Listeners:
-  - HTTP: Port 80 with cross-namespace route allowance.
-  - HTTPS: Port 443 with TLS termination and certificate reference.
-- Allowed routes: Namespaces.from: All to allow routes across namespaces.
-
-Implementation reference:
-- [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
+### Gateway Resource Extensions
+The Gateway resource now includes four distinct listeners supporting different protocols:
 
 ```mermaid
 flowchart TD
-Start(["Gateway.spec.listeners"]) --> HTTP["Listener: HTTP<br/>port 80<br/>protocol HTTP<br/>allowedRoutes.namespaces.from: All"]
-Start --> HTTPS["Listener: HTTPS<br/>port 443<br/>protocol HTTPS<br/>tls.mode: Terminate<br/>tls.certificateRefs: Secret wildcard-tls"]
+Start(["Gateway.spec.listeners"]) --> HTTP["Listener: HTTP<br/>port 80<br/>protocol HTTP<br/>allowedRoutes: Selector with routing.hoangvu75.space/expose=true"]
+Start --> HTTPS["Listener: HTTPS<br/>port 443<br/>protocol HTTPS<br/>tls: Terminate<br/>certificateRefs: wildcard-tls"]
+Start --> TCP["Listener: TCP<br/>port 9000<br/>protocol TCP<br/>allowedRoutes: Selector with routing.hoangvu75.space/expose=true"]
+Start --> UDP["Listener: UDP<br/>port 9001<br/>protocol UDP<br/>allowedRoutes: Selector with routing.hoangvu75.space/expose=true"]
 HTTP --> End(["Ready"])
 HTTPS --> End
+TCP --> End
+UDP --> End
 ```
 
 **Diagram sources**
-- [gateway.yaml:10-26](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L26)
+- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
 
 **Section sources**
-- [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
+- [gateway.yaml:1-51](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L51)
 
-### Traefik Deployment and RBAC
-- Provider configuration:
-  - Kubernetes Gateway provider enabled.
-  - Kubernetes CRD provider enabled.
-- Entrypoints:
-  - web: :80
-  - websecure: :443
-- Ports:
-  - Container ports: web, websecure, admin (8080).
-- Service:
-  - NodePort service exposing 80, 443, and 8080.
-- RBAC:
-  - Permissions for services, endpoints, secrets, EndpointSlices, ingresses, Gateway API resources, and Traefik CRDs.
-  - Lease coordination for leader election.
+### Listener Protocol Support
+Each listener type serves specific traffic patterns:
 
-Implementation reference:
-- [traefik.yaml:56-120](file://apps/infra/gateway-api/chart/traefik.yaml#L56-L120)
+- **HTTP Listener (port 80)**: Standard HTTP routing for web applications
+- **HTTPS Listener (port 443)**: Secure HTTP with TLS termination and certificate management
+- **TCP Listener (port 9000)**: Layer 4 TCP forwarding for databases, message queues, and custom TCP services
+- **UDP Listener (port 9001)**: Layer 4 UDP forwarding for DNS, DHCP, and real-time applications
+
+**Section sources**
+- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
+
+## Layer 4 Routing Implementation
+
+### TCP Routing Configuration
+The IngressRouteTCP resource demonstrates TCP traffic forwarding from Traefik's TCP entrypoint to backend services:
+
+```mermaid
+sequenceDiagram
+participant Client as "TCP Client"
+participant Traefik as "Traefik TCP EP : 9000"
+participant Gateway as "Gateway TCP Listener"
+participant Route as "IngressRouteTCP"
+participant Service as "TCP Backend Service"
+participant Pod as "TCP Echo Pod"
+Client->>Traefik : "TCP Connection to NodePort 30900"
+Traefik->>Gateway : "Route to TCP listener"
+Traefik->>Route : "Match HostSNI wildcard"
+Route->>Service : "Forward to tcp-echo : 7777"
+Service->>Pod : "Connect to pod"
+Pod-->>Service : "Echo response"
+Service-->>Traefik : "TCP stream"
+Traefik-->>Client : "TCP connection established"
+```
+
+**Diagram sources**
+- [ingressroutetcp.yaml:14-20](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L14-L20)
+- [deployment.yaml (tcp-demo):19](file://apps/applications/tcp-demo/chart/deployment.yaml#L19)
+- [service.yaml (tcp-demo):12-13](file://apps/applications/tcp-demo/chart/service.yaml#L12-L13)
+
+**Section sources**
+- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
+- [deployment.yaml (tcp-demo):1-28](file://apps/applications/tcp-demo/chart/deployment.yaml#L1-L28)
+- [service.yaml (tcp-demo):1-14](file://apps/applications/tcp-demo/chart/service.yaml#L1-L14)
+
+### UDP Routing Configuration
+The IngressRouteUDP resource handles UDP traffic forwarding with proper protocol considerations:
+
+```mermaid
+sequenceDiagram
+participant Client as "UDP Client"
+participant Traefik as "Traefik UDP EP : 9001"
+participant Gateway as "Gateway UDP Listener"
+participant Route as "IngressRouteUDP"
+participant Service as "UDP Backend Service"
+participant Pod as "UDP Echo Pod"
+Client->>Traefik : "UDP Packet to NodePort 30901"
+Traefik->>Gateway : "Route to UDP listener"
+Traefik->>Route : "Match UDP services"
+Route->>Service : "Forward to udp-echo : 7778"
+Service->>Pod : "Connect to pod"
+Pod-->>Service : "Echo response"
+Service-->>Traefik : "UDP response"
+Traefik-->>Client : "UDP packet response"
+```
+
+**Diagram sources**
+- [ingressrouteudp.yaml:14-19](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L14-L19)
+- [deployment.yaml (udp-demo):19](file://apps/applications/udp-demo/chart/deployment.yaml#L19)
+- [service.yaml (udp-demo):12-15](file://apps/applications/udp-demo/chart/service.yaml#L12-L15)
+
+**Section sources**
+- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
+- [deployment.yaml (udp-demo):1-29](file://apps/applications/udp-demo/chart/deployment.yaml#L1-L29)
+- [service.yaml (udp-demo):1-15](file://apps/applications/udp-demo/chart/service.yaml#L1-L15)
+
+## Traefik Deployment and Configuration
+
+### Enhanced Container Configuration
+The Traefik deployment now includes dedicated ports for TCP and UDP protocols:
 
 ```mermaid
 classDiagram
 class TraefikDeployment {
 +replicas : 1
 +providerArgs : kubernetesgateway, kubernetescrd
-+entrypoints : web( : 80), websecure( : 443)
-+ports : web, websecure, admin
++containerPorts : web( : 80), websecure( : 443), admin( : 8080), tcp( : 9000), udp( : 9001), metrics( : 9082)
++nodePorts : 30080, 30443, 8080, 30900, 30901, 30082
 }
 class Service {
 +type : NodePort
-+ports : 80, 443, 8080
-+nodePorts : 30080, 30443
++ports : 80(HTTP), 443(HTTPS), 8080(Admin), 9000(TCP), 9001(UDP), 9082(Metrics)
++nodePorts : 30080, 30443, 3080, 30900, 30901, 30082
 }
 class RBAC {
 +ClusterRole : get/list/watch on services, endpoints, secrets, ingresses, gateway.api resources
 +ClusterRoleBinding : bind ServiceAccount to ClusterRole
 }
-TraefikDeployment --> Service : "exposes"
+TraefikDeployment --> Service : "exposes all protocols"
 TraefikDeployment --> RBAC : "requires"
 ```
 
 **Diagram sources**
-- [traefik.yaml:56-120](file://apps/infra/gateway-api/chart/traefik.yaml#L56-L120)
+- [traefik.yaml:78-144](file://apps/infra/gateway-api/chart/traefik.yaml#L78-L144)
 
 **Section sources**
-- [traefik.yaml:56-120](file://apps/infra/gateway-api/chart/traefik.yaml#L56-L120)
+- [traefik.yaml:78-144](file://apps/infra/gateway-api/chart/traefik.yaml#L78-L144)
 
-### HTTPRoute Definitions and Dashboard Integration
-- Dashboard HTTPRoute:
-  - Parent: shared-gateway in gateway-api namespace.
-  - Hostname: traefik.hoangvu75.space.
-  - Path: PathPrefix "/".
-  - Filters: Sets X-Forwarded-Proto and X-Forwarded-Port for HTTPS.
-  - Backend: traefik:8080 (admin endpoint).
-- Rancher HTTPRoute:
-  - Hostname: rancher.hoangvu75.space.
-  - Path: PathPrefix "/".
-  - Backend: rancher:80 in cattle-system namespace.
-- ArgoCD HTTPRoute:
-  - Hostname: argocd.hoangvu75.space.
-  - Path: PathPrefix "/".
-  - Backend: argocd-server:80 in argocd namespace.
-- Hello API HTTPRoute (values):
-  - Hostname: api.hoangvu75.space.
-  - Path: PathPrefix "/helloworld".
-  - Backend: hello-api:5678.
+### Static Configuration Extensions
+The Traefik static configuration now supports dedicated entrypoints for each protocol:
 
-Implementation references:
-- [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
-- [httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
+- **web**: HTTP entrypoint (:80) for standard web traffic
+- **websecure**: HTTPS entrypoint (:443) with TLS termination
+- **tcp**: TCP entrypoint (:9000) for Layer 4 TCP forwarding
+- **udp**: UDP entrypoint (:9001/udp) for Layer 4 UDP forwarding
+- **metrics**: Prometheus metrics entrypoint (:9082) for monitoring
+
+**Section sources**
+- [traefik-config.yaml:27-45](file://apps/infra/gateway-api/chart/traefik-config.yaml#L27-L45)
+
+## Demo Applications
+
+### TCP Echo Server
+The tcp-demo application demonstrates TCP routing capabilities with a simple echo service:
+
+- **Service**: ClusterIP service exposing port 7777
+- **Deployment**: Alpine socat container listening on TCP port 7777
+- **Routing**: IngressRouteTCP forwards traffic from Traefik's TCP entrypoint to the service
+- **Testing**: Netcat client connects to NodePort 30900 for TCP echo functionality
+
+**Section sources**
+- [deployment.yaml (tcp-demo):16-28](file://apps/applications/tcp-demo/chart/deployment.yaml#L16-L28)
+- [service.yaml (tcp-demo):7-14](file://apps/applications/tcp-demo/chart/service.yaml#L7-L14)
+- [ingressroutetcp.yaml:14-20](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L14-L20)
+
+### UDP Echo Server
+The udp-demo application showcases UDP routing with connectionless communication:
+
+- **Service**: ClusterIP service with UDP protocol on port 7778
+- **Deployment**: Alpine socat container listening on UDP port 7778
+- **Routing**: IngressRouteUDP forwards UDP packets from Traefik's UDP entrypoint
+- **Testing**: Netcat client uses UDP flag (-u) to connect to NodePort 30901
+
+**Section sources**
+- [deployment.yaml (udp-demo):16-29](file://apps/applications/udp-demo/chart/deployment.yaml#L16-L29)
+- [service.yaml (udp-demo):7-15](file://apps/applications/udp-demo/chart/service.yaml#L7-L15)
+- [ingressrouteudp.yaml:14-19](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L14-L19)
+
+## Traffic Routing Patterns
+
+### Multi-Protocol Traffic Flow
+The enhanced system supports diverse traffic routing patterns:
 
 ```mermaid
-sequenceDiagram
-participant Client as "Client"
-participant Traefik as "Traefik"
-participant Gateway as "Gateway.shared-gateway"
-participant Route as "HTTPRoute"
-participant Service as "Backend Service"
-participant Pod as "Pod"
-Client->>Traefik : "HTTPS to hostname"
-Traefik->>Gateway : "Resolve listener (443)"
-Traefik->>Route : "Match hostname + path"
-Route->>Service : "backendRef"
-Service->>Pod : "forward request"
-Pod-->>Service : "response"
-Service-->>Traefik : "response"
-Traefik-->>Client : "final response"
+flowchart LR
+A["External Traffic"] --> B["Cloudflare Tunnel"]
+B --> C["Traefik NodePort Service"]
+C --> D["Gateway.shared-gateway"]
+D --> E["Protocol Detection"]
+E --> F["HTTP/HTTPS Routes"]
+E --> G["TCP Routes"]
+E --> H["UDP Routes"]
+F --> I["HTTP Backend Services"]
+G --> J["TCP Backend Services"]
+H --> K["UDP Backend Services"]
 ```
 
 **Diagram sources**
-- [gateway.yaml:10-26](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L26)
-- [httproute-traefik-dashboard.yaml:9-29](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L9-L29)
-- [httproute-rancher.yaml:9-29](file://apps/playground/rancher/chart/httproute-rancher.yaml#L9-L29)
-- [httproute-argocd.yaml:9-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L9-L29)
+- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
+- [traefik.yaml:120-144](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L144)
+
+### Namespace-Based Routing Control
+All protocol listeners use namespace selectors to control traffic routing:
+
+- **Selector Pattern**: `routing.hoangvu75.space/expose: "true"`
+- **Scope**: Controls which namespaces can send traffic to each listener type
+- **Security**: Prevents unauthorized namespace access to specific entrypoints
 
 **Section sources**
-- [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
-- [httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
+- [gateway.yaml:14-19](file://apps/infra/gateway-api/chart/gateway.yaml#L14-L19)
+- [gateway.yaml:23-28](file://apps/infra/gateway-api/chart/gateway.yaml#L23-L28)
+- [gateway.yaml:37-42](file://apps/infra/gateway-api/chart/gateway.yaml#L37-L42)
+- [gateway.yaml:46-51](file://apps/infra/gateway-api/chart/gateway.yaml#L46-L51)
 
-### Certificate Management
-- Wildcard certificate reference is attached to the Gateway's HTTPS listener.
-- A local CA and Certificate are defined via cert-manager for internal testing.
-- The certificate Secret referenced by the Gateway must exist in the gateway-api namespace.
+## Load Balancing and High Availability
 
-Implementation references:
-- [gateway.yaml:23-26](file://apps/infra/gateway-api/chart/gateway.yaml#L23-L26)
-- [tls-rancher-ca.yaml:1-34](file://apps/playground/cert-manager/chart/tls-rancher-ca.yaml#L1-L34)
+### Multi-Instance Deployment
+For high-traffic scenarios, implement horizontal scaling:
 
-**Section sources**
-- [gateway.yaml:23-26](file://apps/infra/gateway-api/chart/gateway.yaml#L23-L26)
-- [tls-rancher-ca.yaml:1-34](file://apps/playground/cert-manager/chart/tls-rancher-ca.yaml#L1-L34)
+- **Replica Scaling**: Increase Traefik replicas beyond 1 for redundancy
+- **NodePort Distribution**: Each instance receives traffic on designated NodePorts
+- **Health Checks**: Implement readiness probes for graceful scaling
+- **Resource Limits**: Configure appropriate CPU/memory requests/limits
 
-## Gateway API Version Upgrade
+### Load Balancer Integration
+Consider using LoadBalancer services for external traffic distribution:
 
-**Updated** The Gateway API has been upgraded from v1.2.0 to v1.5.1, representing a standard Kubernetes Gateway API upgrade that maintains existing infrastructure while incorporating newer API specifications and security enhancements.
+- **External Load Balancer**: Distribute traffic across multiple Traefik instances
+- **Session Persistence**: Configure sticky sessions for stateful applications
+- **Health Monitoring**: Integrate with cloud provider health checks
 
-### Installation Methodology
-The upgrade utilizes the standard Kubernetes Gateway API installation approach through GitHub releases. The kustomization.yaml file now references the v1.5.1 standard-install.yaml, ensuring compatibility with the latest API specifications.
+## Certificate Management
 
-### API Specification Compliance
-- All Gateway API resources maintain v1 API version compatibility
-- Enhanced security features and bug fixes included in v1.5.1
-- Improved stability and performance optimizations
-- Backward compatibility maintained for existing configurations
+### TLS Configuration
+The HTTPS listener utilizes wildcard certificates for secure HTTP routing:
 
-### Upgrade Benefits
-- Latest security patches and vulnerability fixes
-- Enhanced API validation and error handling
-- Improved performance characteristics
-- Better observability and debugging capabilities
-- Expanded feature support for advanced routing scenarios
+- **Certificate Reference**: wildcard-tls Secret in gateway-api namespace
+- **TLS Mode**: Terminate TLS at the Gateway level
+- **Certificate Validation**: Ensure certificate SANs match configured hostnames
 
 **Section sources**
-- [kustomization.yaml (gateway-api):7](file://apps/infra/gateway-api/kustomization.yaml#L7)
+- [gateway.yaml:29-33](file://apps/infra/gateway-api/chart/gateway.yaml#L29-L33)
 
-## Dependency Analysis
-- GatewayClass depends on the Gateway API CRDs being installed prior to controller deployment.
-- Gateway depends on the GatewayClass controller name and the presence of TLS certificates.
-- HTTPRoute depends on the Gateway existing and matching hostnames and paths.
-- Traefik depends on RBAC permissions and the Gateway API providers being enabled.
+### Certificate Automation
+Integrate with cert-manager for automated certificate management:
 
-```mermaid
-graph LR
-CRDs["Gateway API CRDs v1.5.1"] --> GC["GatewayClass"]
-GC --> GW["Gateway.shared-gateway"]
-GW --> HR["HTTPRoute"]
-TR["Traefik Deployment"] --> GW
-TR --> HR
-CERT["TLS Secret"] --> GW
-```
+- **ACME Integration**: Automatic certificate issuance and renewal
+- **DNS Challenges**: Configure DNS01 challenges for wildcard certificates
+- **Secret Rotation**: Automated certificate rotation without downtime
 
-**Diagram sources**
-- [kustomization.yaml (gateway-api):7](file://apps/infra/gateway-api/kustomization.yaml#L7)
-- [gatewayclass.yaml:8-8](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L8-L8)
-- [gateway.yaml:9-9](file://apps/infra/gateway-api/chart/gateway.yaml#L9-L9)
-- [httproute-traefik-dashboard.yaml:9-11](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L9-L11)
-- [traefik.yaml:77-82](file://apps/infra/gateway-api/chart/traefik.yaml#L77-L82)
+## Monitoring and Observability
+
+### Enhanced Metrics Collection
+Traefik provides comprehensive metrics for all protocol types:
+
+- **Prometheus Metrics**: Exposed on port 9082 with protocol-specific metrics
+- **Access Logs**: Structured JSON logs for all traffic types
+- **Dashboard Integration**: Web-based dashboard showing HTTP/TCP/UDP routers
+
+### Protocol-Specific Monitoring
+Monitor traffic patterns for each protocol type:
+
+- **TCP Metrics**: Connection counts, throughput, and latency
+- **UDP Metrics**: Packet counts, error rates, and connectionless metrics
+- **Combined Metrics**: Overall Traefik performance across all protocols
 
 **Section sources**
-- [kustomization.yaml (gateway-api):7](file://apps/infra/gateway-api/kustomization.yaml#L7)
-- [gatewayclass.yaml:8-8](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L8-L8)
-- [gateway.yaml:9-9](file://apps/infra/gateway-api/chart/gateway.yaml#L9-L9)
-- [httproute-traefik-dashboard.yaml:9-11](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L9-L11)
-- [traefik.yaml:77-82](file://apps/infra/gateway-api/chart/traefik.yaml#L77-L82)
+- [traefik-config.yaml:40-65](file://apps/infra/gateway-api/chart/traefik-config.yaml#L40-L65)
 
-## Performance Considerations
-- Horizontal scaling: Increase Traefik replicas and ensure leader election via Leases is functional.
-- Resource limits: Adjust CPU/memory requests/limits in the Deployment to handle traffic spikes.
-- Load balancing: Use multiple Traefik instances behind a LoadBalancer or Ingress to distribute load.
-- Caching: Enable caching at the application layer where applicable.
-- Observability: Monitor Traefik metrics and logs to identify bottlenecks.
-- TLS offload: Keep TLS termination at the Gateway level to reduce backend workload.
+## Performance Optimization
 
-[No sources needed since this section provides general guidance]
+### Resource Allocation
+Optimize Traefik performance for multi-protocol workloads:
+
+- **CPU Resources**: Scale CPU requests/limits based on expected concurrent connections
+- **Memory Management**: Monitor memory usage for TCP/UDP connection tracking
+- **Connection Limits**: Configure max connections per protocol type
+
+### Network Optimization
+Implement network-level optimizations:
+
+- **Connection Pooling**: Reuse connections for persistent TCP services
+- **UDP Buffer Management**: Optimize buffer sizes for high-throughput UDP applications
+- **Protocol-Specific Tuning**: Tune kernel parameters for TCP/UDP performance
 
 ## Troubleshooting Guide
-Common issues and resolutions:
-- GatewayClass not found:
-  - Ensure Gateway API CRDs are installed before applying GatewayClass.
-  - Verify controllerName matches the installed controller.
-- Gateway not ready:
-  - Confirm listeners are defined and TLS certificate Secret exists.
-  - Check that allowedRoutes.namespaces.from is set appropriately.
-- HTTPRoute not routing:
-  - Verify parentRefs point to the correct Gateway and namespace.
-  - Ensure hostnames match the incoming request and pathPrefix aligns with the request path.
-  - Confirm backendRefs target the correct Service and port.
-- TLS errors:
-  - Validate the referenced TLS Secret exists and is accessible to the Gateway.
-  - Check certificate validity and SANs.
-- Traefik not receiving traffic:
-  - Confirm NodePort service is reachable and Traefik is running.
-  - Verify provider arguments include Kubernetes Gateway and CRD providers.
-  - Check RBAC permissions for Gateway API resources.
+
+### Multi-Protocol Issues
+Common problems and solutions for enhanced routing:
+
+- **TCP/UDP Not Receiving Traffic**:
+  - Verify NodePort service exposes ports 30900/30901
+  - Check Traefik container ports include tcp/udp entries
+  - Confirm Gateway listeners accept traffic from target namespaces
+
+- **TCP Echo Not Working**:
+  - Test with netcat: `nc <node-ip> 30900`
+  - Verify socat container is running and listening on port 7777
+  - Check IngressRouteTCP entryPoints match Gateway TCP listener
+
+- **UDP Echo Issues**:
+  - Test with UDP flag: `nc -u <node-ip> 30901`
+  - UDP may lose initial packets during listener setup
+  - Verify socat UDP listener configuration
+
+- **Mixed Protocol Conflicts**:
+  - Ensure different protocols use non-conflicting ports
+  - Check namespace selectors don't overlap incorrectly
+  - Verify Traefik entrypoint addresses are unique
 
 **Section sources**
-- [gatewayclass.yaml:8-8](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L8-L8)
-- [gateway.yaml:9-26](file://apps/infra/gateway-api/chart/gateway.yaml#L9-L26)
-- [httproute-traefik-dashboard.yaml:9-29](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L9-L29)
-- [httproute-rancher.yaml:9-29](file://apps/playground/rancher/chart/httproute-rancher.yaml#L9-L29)
-- [httproute-argocd.yaml:9-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L9-L29)
-- [traefik.yaml:77-82](file://apps/infra/gateway-api/chart/traefik.yaml#L77-L82)
+- [traefik.yaml:120-144](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L144)
+- [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
+- [ingressroutetcp.yaml:14-20](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L14-L20)
+- [ingressrouteudp.yaml:14-19](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L14-L19)
 
 ## Conclusion
-This implementation demonstrates a production-ready Gateway API setup using Traefik as the controller. The recent upgrade to Gateway API v1.5.1 incorporates the latest security enhancements and API improvements while maintaining backward compatibility. It includes secure HTTPS termination, path-based routing, and dashboard exposure. The configuration follows best practices for GitOps synchronization, RBAC, and certificate management. By leveraging the documented patterns, teams can confidently expose services while maintaining compliance with the Gateway API specification and benefiting from the latest API features.
-
-[No sources needed since this section summarizes without analyzing specific files]
+The enhanced Gateway API controller implementation with Traefik now provides comprehensive multi-protocol routing capabilities, supporting HTTP/HTTPS for traditional web applications and TCP/UDP for modern cloud-native services. This expansion significantly broadens the system's networking capabilities while maintaining the proven reliability and performance of the Traefik ingress controller. The implementation demonstrates best practices for Layer 4 routing, multi-protocol traffic management, and comprehensive observability across all supported protocols.
 
 ## Appendices
 
-### Sync Order and Namespace Management
-- Sync waves ensure proper ordering:
-  - CRDs installed first.
-  - Traefik Deployment and RBAC created.
-  - Gateway and Secrets synchronized.
-  - HTTPRoutes applied last.
-- Namespaces are created via shared cluster resources with negative sync waves.
+### Complete Protocol Matrix
+| Protocol | EntryPoint | Port | NodePort | Use Case | Security |
+|----------|------------|------|----------|----------|----------|
+| HTTP | web | :80 | 30080 | Traditional web apps | None |
+| HTTPS | websecure | :443 | 30443 | Secure web apps | TLS Termination |
+| TCP | tcp | :9000 | 30900 | Databases, APIs, Custom TCP | TLS Optional |
+| UDP | udp | :9001/udp | 30901 | DNS, DHCP, Real-time | No Connection |
 
 **Section sources**
-- [README.md:76-85](file://README.md#L76-L85)
-- [config.yaml (gateway-api):1-6](file://apps/infra/gateway-api/config.yaml#L1-L6)
+- [traefik-config.yaml:27-38](file://apps/infra/gateway-api/chart/traefik-config.yaml#L27-L38)
+- [traefik.yaml:120-144](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L144)
 
-### Example Workflows
+### Testing Procedures
+Comprehensive testing for multi-protocol environments:
 
-#### Service Exposure via HTTPRoute
-- Define an HTTPRoute with parentRefs to the shared Gateway.
-- Set hostnames and pathPrefix to match the desired domain and path.
-- Configure backendRefs to point to the target Service and port.
-
-References:
-- [httproute-rancher.yaml:9-29](file://apps/playground/rancher/chart/httproute-rancher.yaml#L9-L29)
-- [httproute-argocd.yaml:9-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L9-L29)
-- [values-httproute.yaml:5-25](file://apps/playground/hello-api/chart/values-httproute.yaml#L5-L25)
-
-#### SSL Termination
-- Configure HTTPS listener on the Gateway with TLS termination.
-- Reference a TLS Secret containing the certificate and key.
-- Ensure the Secret exists in the same namespace as the Gateway.
-
-References:
-- [gateway.yaml:17-26](file://apps/infra/gateway-api/chart/gateway.yaml#L17-L26)
-- [tls-rancher-ca.yaml:19-20](file://apps/playground/cert-manager/chart/tls-rancher-ca.yaml#L19-L20)
-
-#### Path-Based Routing
-- Use path.matches with type PathPrefix to route based on URL path segments.
-- Combine with hostnames to isolate domains to specific backends.
-
-References:
-- [httproute-traefik-dashboard.yaml:15-18](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L15-L18)
-- [values-httproute.yaml:11-14](file://apps/playground/hello-api/chart/values-httproute.yaml#L11-L14)
-
-### Gateway API Version History
-- **v1.5.1**: Latest stable release with enhanced security, improved performance, and expanded feature support
-- **v1.2.0**: Previous version providing baseline Gateway API functionality
-- **Upgrade Path**: Seamless upgrade process maintaining existing configurations and infrastructure compatibility
+- **HTTP/HTTPS Testing**: Validate certificate installation and TLS termination
+- **TCP Testing**: Verify connection persistence and echo functionality
+- **UDP Testing**: Confirm packet delivery despite connectionless nature
+- **Mixed Protocol Testing**: Ensure coexistence without conflicts
 
 **Section sources**
-- [kustomization.yaml (gateway-api):7](file://apps/infra/gateway-api/kustomization.yaml#L7)
+- [README.md (tcp-udp-demo):18-98](file://guide/tcp-udp-demo/README.md#L18-L98)
+
+### Configuration Best Practices
+- **Namespace Segregation**: Use namespace selectors to control protocol access
+- **Resource Planning**: Allocate appropriate resources for expected concurrent connections
+- **Monitoring Setup**: Implement comprehensive metrics collection for all protocols
+- **Security Hardening**: Apply appropriate security measures for each protocol type
