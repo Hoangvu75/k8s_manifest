@@ -9,3 +9,5 @@ helmCharts:
     version: "v1.14.4"
     valuesFile: values.yaml
 
+resources:
+  - tls-rancher-ca.yaml
