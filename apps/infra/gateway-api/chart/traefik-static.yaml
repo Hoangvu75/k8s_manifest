@@ -44,7 +44,7 @@ accessLog:
 tracing:
   otlp:
     http:
-      endpoint: http://datadog-agent.datadog:4318/v1/traces
+      endpoint: http://datadog.datadog:4318/v1/traces
 
 # --- Log Level ---
 log:
