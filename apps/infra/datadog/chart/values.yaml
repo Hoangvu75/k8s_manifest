@@ -48,6 +48,10 @@ clusterAgent:
 agents:
   image:
     tag: "7.77.1"
+  tolerations:
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Exists"
+      effect: "NoSchedule"
   containers:
     agent:
       env:
