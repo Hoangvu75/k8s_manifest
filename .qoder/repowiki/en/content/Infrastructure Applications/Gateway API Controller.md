@@ -28,12 +28,11 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced Traefik configuration to support TCP and UDP entrypoints alongside HTTP/HTTPS routing
-- Added comprehensive TCP and UDP routing capabilities through IngressRouteTCP and IngressRouteUDP resources
-- Expanded Gateway API listener configuration to include TCP (port 9000) and UDP (port 9001) protocols
-- Integrated Layer 4 routing demonstration through tcp-demo and udp-demo applications
-- Updated Traefik deployment with dedicated TCP/UDP container ports and NodePort exposure
-- Enhanced static configuration to support TCP/UDP entrypoints with proper protocol handling
+- Updated Traefik version to v3.3 with enhanced CRD integration for TCP/UDP ingress routing
+- Migrated distributed tracing configuration from openTelemetry to otlp.http format for Traefik v3.x compatibility
+- Added experimental KubernetesGateway provider channel for improved Gateway API support
+- Enhanced Traefik deployment with dedicated TCP/UDP container ports and NodePort exposure
+- Updated static configuration to support TCP/UDP entrypoints with proper protocol handling
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -42,7 +41,7 @@
 4. [Architecture Overview](#architecture-overview)
 5. [Enhanced Gateway API Configuration](#enhanced-gateway-api-configuration)
 6. [Layer 4 Routing Implementation](#layer-4-routing-implementation)
-7. [Traefik Deployment and Configuration](#traefik-deployment-and-configuration)
+7. [Traefik v3.x Deployment and Configuration](#traefik-v3x-deployment-and-configuration)
 8. [Demo Applications](#demo-applications)
 9. [Traffic Routing Patterns](#traffic-routing-patterns)
 10. [Load Balancing and High Availability](#load-balancing-and-high-availability)
@@ -54,10 +53,10 @@
 16. [Appendices](#appendices)
 
 ## Introduction
-This document explains the enhanced Gateway API controller implementation using Traefik as the ingress controller, now supporting comprehensive Layer 4 routing capabilities. The system extends beyond traditional HTTP/HTTPS routing to include TCP and UDP entrypoints, significantly expanding networking capabilities. The implementation demonstrates production-ready configurations for modern cloud-native applications requiring both Layer 7 HTTP routing and Layer 4 TCP/UDP forwarding.
+This document explains the enhanced Gateway API controller implementation using Traefik v3.3 as the ingress controller, featuring comprehensive Layer 4 routing capabilities with full Traefik v3.x compatibility. The system extends beyond traditional HTTP/HTTPS routing to include TCP and UDP entrypoints, significantly expanding networking capabilities through enhanced CRD integration and modernized distributed tracing configuration.
 
 ## Project Structure
-The enhanced Gateway API stack now includes dedicated TCP and UDP demo applications alongside the existing HTTP/HTTPS infrastructure. The architecture supports seamless integration of Layer 7 and Layer 4 routing patterns within a unified Traefik deployment.
+The enhanced Gateway API stack now includes dedicated TCP and UDP demo applications alongside the existing HTTP/HTTPS infrastructure, all running on Traefik v3.3 with improved CRD support and modernized observability features.
 
 ```mermaid
 graph TB
@@ -116,7 +115,7 @@ UDP_DEMO --> UDP_SVC
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
 - [gateway.yaml:1-51](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L51)
 - [traefik.yaml:1-144](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L144)
-- [traefik-config.yaml:1-66](file://apps/infra/gateway-api/chart/traefik-config.yaml#L1-L66)
+- [traefik-config.yaml:1-64](file://apps/infra/gateway-api/chart/traefik-config.yaml#L1-L64)
 - [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
 - [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
 
@@ -126,12 +125,12 @@ UDP_DEMO --> UDP_SVC
 - [README.md:108-161](file://README.md#L108-L161)
 
 ## Core Components
-The enhanced system now includes comprehensive Layer 4 routing capabilities alongside traditional HTTP/HTTPS routing:
+The enhanced system now includes comprehensive Layer 4 routing capabilities alongside traditional HTTP/HTTPS routing, powered by Traefik v3.3:
 
-- **GatewayClass**: Defines the controller that implements the Gateway API with Traefik as the provider
+- **GatewayClass**: Defines the controller that implements the Gateway API with Traefik v3.3 as the provider
 - **Gateway**: Extended with HTTP, HTTPS, TCP, and UDP listeners supporting diverse traffic types
-- **Traefik Deployment**: Enhanced with dedicated TCP/UDP container ports and NodePort exposure
-- **Static Configuration**: Supports TCP/UDP entrypoints with proper protocol handling
+- **Traefik v3.3 Deployment**: Enhanced with dedicated TCP/UDP container ports and NodePort exposure
+- **Static Configuration**: Supports TCP/UDP entrypoints with proper protocol handling and experimental Gateway provider
 - **Demo Applications**: TCP and UDP echo servers demonstrating Layer 4 routing capabilities
 
 **Section sources**
@@ -141,12 +140,12 @@ The enhanced system now includes comprehensive Layer 4 routing capabilities alon
 - [traefik-config.yaml:27-38](file://apps/infra/gateway-api/chart/traefik-config.yaml#L27-L38)
 
 ## Architecture Overview
-The enhanced architecture now supports both Layer 7 HTTP/HTTPS and Layer 4 TCP/UDP traffic routing through a unified Traefik deployment with multiple entrypoints.
+The enhanced architecture now supports both Layer 7 HTTP/HTTPS and Layer 4 TCP/UDP traffic routing through Traefik v3.3 with improved CRD integration and modernized observability.
 
 ```mermaid
 graph TB
 INT["Internet"] --> CF["Cloudflare Tunnel<br/>cloudflared"]
-CF --> NP["NodePort 30080/30443/30900/30901<br/>Traefik Multi-Protocol"]
+CF --> NP["NodePort 30080/30443/30900/30901<br/>Traefik v3.3 Multi-Protocol"]
 NP --> GW["Gateway.shared-gateway<br/>Listeners: 80/443/TCP:9000/UDP:9001"]
 GW --> HTTP_ROUTE["HTTPRoute rules<br/>hostnames + pathPrefix"]
 GW --> TCP_ROUTE["IngressRouteTCP rules<br/>HostSNI/TCP matching"]
@@ -223,7 +222,7 @@ The IngressRouteTCP resource demonstrates TCP traffic forwarding from Traefik's 
 ```mermaid
 sequenceDiagram
 participant Client as "TCP Client"
-participant Traefik as "Traefik TCP EP : 9000"
+participant Traefik as "Traefik v3.3 TCP EP : 9000"
 participant Gateway as "Gateway TCP Listener"
 participant Route as "IngressRouteTCP"
 participant Service as "TCP Backend Service"
@@ -254,7 +253,7 @@ The IngressRouteUDP resource handles UDP traffic forwarding with proper protocol
 ```mermaid
 sequenceDiagram
 participant Client as "UDP Client"
-participant Traefik as "Traefik UDP EP : 9001"
+participant Traefik as "Traefik v3.3 UDP EP : 9001"
 participant Gateway as "Gateway UDP Listener"
 participant Route as "IngressRouteUDP"
 participant Service as "UDP Backend Service"
@@ -279,15 +278,16 @@ Traefik-->>Client : "UDP packet response"
 - [deployment.yaml (udp-demo):1-29](file://apps/applications/udp-demo/chart/deployment.yaml#L1-L29)
 - [service.yaml (udp-demo):1-15](file://apps/applications/udp-demo/chart/service.yaml#L1-L15)
 
-## Traefik Deployment and Configuration
+## Traefik v3.x Deployment and Configuration
 
 ### Enhanced Container Configuration
-The Traefik deployment now includes dedicated ports for TCP and UDP protocols:
+The Traefik v3.3 deployment now includes dedicated ports for TCP and UDP protocols with improved CRD support:
 
 ```mermaid
 classDiagram
-class TraefikDeployment {
+class TraefikV3Deployment {
 +replicas : 1
++image : traefik : v3.3
 +providerArgs : kubernetesgateway, kubernetescrd
 +containerPorts : web( : 80), websecure( : 443), admin( : 8080), tcp( : 9000), udp( : 9001), metrics( : 9082)
 +nodePorts : 30080, 30443, 8080, 30900, 30901, 30082
@@ -301,8 +301,8 @@ class RBAC {
 +ClusterRole : get/list/watch on services, endpoints, secrets, ingresses, gateway.api resources
 +ClusterRoleBinding : bind ServiceAccount to ClusterRole
 }
-TraefikDeployment --> Service : "exposes all protocols"
-TraefikDeployment --> RBAC : "requires"
+TraefikV3Deployment --> Service : "exposes all protocols"
+TraefikV3Deployment --> RBAC : "requires"
 ```
 
 **Diagram sources**
@@ -312,7 +312,7 @@ TraefikDeployment --> RBAC : "requires"
 - [traefik.yaml:78-144](file://apps/infra/gateway-api/chart/traefik.yaml#L78-L144)
 
 ### Static Configuration Extensions
-The Traefik static configuration now supports dedicated entrypoints for each protocol:
+The Traefik v3.3 static configuration now supports dedicated entrypoints for each protocol with enhanced CRD integration:
 
 - **web**: HTTP entrypoint (:80) for standard web traffic
 - **websecure**: HTTPS entrypoint (:443) with TLS termination
@@ -320,8 +320,28 @@ The Traefik static configuration now supports dedicated entrypoints for each pro
 - **udp**: UDP entrypoint (:9001/udp) for Layer 4 UDP forwarding
 - **metrics**: Prometheus metrics entrypoint (:9082) for monitoring
 
+**Updated** Enhanced with experimental KubernetesGateway provider and modernized distributed tracing configuration
+
 **Section sources**
 - [traefik-config.yaml:27-45](file://apps/infra/gateway-api/chart/traefik-config.yaml#L27-L45)
+
+### Distributed Tracing Configuration
+Traefik v3.3 now uses OTLP HTTP format for distributed tracing compatibility:
+
+```mermaid
+flowchart LR
+A["Traefik v3.3"] --> B["OTLP HTTP Exporter"]
+B --> C["Datadog Agent"]
+C --> D["APM Tracing"]
+A --> E["Access Logs"]
+E --> F["Structured JSON"]
+```
+
+**Diagram sources**
+- [traefik-config.yaml:55-60](file://apps/infra/gateway-api/chart/traefik-config.yaml#L55-L60)
+
+**Section sources**
+- [traefik-config.yaml:55-60](file://apps/infra/gateway-api/chart/traefik-config.yaml#L55-L60)
 
 ## Demo Applications
 
@@ -354,12 +374,12 @@ The udp-demo application showcases UDP routing with connectionless communication
 ## Traffic Routing Patterns
 
 ### Multi-Protocol Traffic Flow
-The enhanced system supports diverse traffic routing patterns:
+The enhanced system supports diverse traffic routing patterns with Traefik v3.3:
 
 ```mermaid
 flowchart LR
 A["External Traffic"] --> B["Cloudflare Tunnel"]
-B --> C["Traefik NodePort Service"]
+B --> C["Traefik v3.3 NodePort Service"]
 C --> D["Gateway.shared-gateway"]
 D --> E["Protocol Detection"]
 E --> F["HTTP/HTTPS Routes"]
@@ -426,7 +446,7 @@ Integrate with cert-manager for automated certificate management:
 ## Monitoring and Observability
 
 ### Enhanced Metrics Collection
-Traefik provides comprehensive metrics for all protocol types:
+Traefik v3.3 provides comprehensive metrics for all protocol types:
 
 - **Prometheus Metrics**: Exposed on port 9082 with protocol-specific metrics
 - **Access Logs**: Structured JSON logs for all traffic types
@@ -437,7 +457,14 @@ Monitor traffic patterns for each protocol type:
 
 - **TCP Metrics**: Connection counts, throughput, and latency
 - **UDP Metrics**: Packet counts, error rates, and connectionless metrics
-- **Combined Metrics**: Overall Traefik performance across all protocols
+- **Combined Metrics**: Overall Traefik v3.3 performance across all protocols
+
+### Distributed Tracing
+Enhanced observability with modernized tracing:
+
+- **OTLP HTTP Format**: Compatible with modern APM systems
+- **Datadog Integration**: Direct export to Datadog Agent for APM
+- **Structured Traces**: Detailed trace information for debugging
 
 **Section sources**
 - [traefik-config.yaml:40-65](file://apps/infra/gateway-api/chart/traefik-config.yaml#L40-L65)
@@ -445,7 +472,7 @@ Monitor traffic patterns for each protocol type:
 ## Performance Optimization
 
 ### Resource Allocation
-Optimize Traefik performance for multi-protocol workloads:
+Optimize Traefik v3.3 performance for multi-protocol workloads:
 
 - **CPU Resources**: Scale CPU requests/limits based on expected concurrent connections
 - **Memory Management**: Monitor memory usage for TCP/UDP connection tracking
@@ -465,7 +492,7 @@ Common problems and solutions for enhanced routing:
 
 - **TCP/UDP Not Receiving Traffic**:
   - Verify NodePort service exposes ports 30900/30901
-  - Check Traefik container ports include tcp/udp entries
+  - Check Traefik v3.3 container ports include tcp/udp entries
   - Confirm Gateway listeners accept traffic from target namespaces
 
 - **TCP Echo Not Working**:
@@ -483,6 +510,11 @@ Common problems and solutions for enhanced routing:
   - Check namespace selectors don't overlap incorrectly
   - Verify Traefik entrypoint addresses are unique
 
+- **Tracing Issues**:
+  - Verify OTLP HTTP endpoint connectivity
+  - Check Datadog Agent availability
+  - Validate trace exporter configuration
+
 **Section sources**
 - [traefik.yaml:120-144](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L144)
 - [gateway.yaml:10-51](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L51)
@@ -490,7 +522,7 @@ Common problems and solutions for enhanced routing:
 - [ingressrouteudp.yaml:14-19](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L14-L19)
 
 ## Conclusion
-The enhanced Gateway API controller implementation with Traefik now provides comprehensive multi-protocol routing capabilities, supporting HTTP/HTTPS for traditional web applications and TCP/UDP for modern cloud-native services. This expansion significantly broadens the system's networking capabilities while maintaining the proven reliability and performance of the Traefik ingress controller. The implementation demonstrates best practices for Layer 4 routing, multi-protocol traffic management, and comprehensive observability across all supported protocols.
+The enhanced Gateway API controller implementation with Traefik v3.3 provides comprehensive multi-protocol routing capabilities, supporting HTTP/HTTPS for traditional web applications and TCP/UDP for modern cloud-native services. This expansion significantly broadens the system's networking capabilities while maintaining the proven reliability and performance of the Traefik ingress controller. The implementation demonstrates best practices for Layer 4 routing, multi-protocol traffic management, and comprehensive observability across all supported protocols, with full Traefik v3.x compatibility and modernized distributed tracing configuration.
 
 ## Appendices
 
@@ -506,6 +538,13 @@ The enhanced Gateway API controller implementation with Traefik now provides com
 - [traefik-config.yaml:27-38](file://apps/infra/gateway-api/chart/traefik-config.yaml#L27-L38)
 - [traefik.yaml:120-144](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L144)
 
+### Traefik v3.x Compatibility Features
+- **Version**: traefik:v3.3 for latest features and security updates
+- **CRD Integration**: Enhanced support for TCP/UDP ingress routing
+- **Experimental Provider**: KubernetesGateway experimental channel enabled
+- **Modern Tracing**: OTLP HTTP format for compatibility with modern APM systems
+- **Improved Performance**: Optimized resource usage and connection handling
+
 ### Testing Procedures
 Comprehensive testing for multi-protocol environments:
 
@@ -513,6 +552,7 @@ Comprehensive testing for multi-protocol environments:
 - **TCP Testing**: Verify connection persistence and echo functionality
 - **UDP Testing**: Confirm packet delivery despite connectionless nature
 - **Mixed Protocol Testing**: Ensure coexistence without conflicts
+- **Tracing Verification**: Validate OTLP HTTP export to Datadog Agent
 
 **Section sources**
 - [README.md (tcp-udp-demo):18-98](file://guide/tcp-udp-demo/README.md#L18-L98)
@@ -522,3 +562,4 @@ Comprehensive testing for multi-protocol environments:
 - **Resource Planning**: Allocate appropriate resources for expected concurrent connections
 - **Monitoring Setup**: Implement comprehensive metrics collection for all protocols
 - **Security Hardening**: Apply appropriate security measures for each protocol type
+- **Tracing Configuration**: Ensure proper OTLP HTTP endpoint connectivity

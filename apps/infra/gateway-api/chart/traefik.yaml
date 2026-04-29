@@ -25,7 +25,7 @@ rules:
     resources: ["ingresses/status"]
     verbs: ["update"]
   - apiGroups: ["gateway.networking.k8s.io"]
-    resources: ["gatewayclasses", "gateways", "httproutes", "grpcroutes", "referencegrants"]
+    resources: ["gatewayclasses", "gateways", "httproutes", "grpcroutes", "referencegrants", "tcproutes", "tlsroutes", "backendtlspolicies"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["gateway.networking.k8s.io"]
     resources: ["gateways/status", "httproutes/status"]
@@ -35,6 +35,9 @@ rules:
     verbs: ["get", "list", "watch"]
   - apiGroups: ["traefik.io"]
     resources: ["ingressroutes", "ingressroutetcps", "ingressrouteudps", "middlewares", "middlewaretcps", "serverstransports", "serverstransporttcps", "tlsoptions", "tlsstores", "traefikservices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
@@ -79,7 +82,7 @@ spec:
       - name: traefik
         image: traefik:v3.3
         args:
-          - --configfile=/etc/traefik/traefik.yaml
+          - --configFile=/etc/traefik/traefik.yaml
         ports:
         - name: web
           containerPort: 80
