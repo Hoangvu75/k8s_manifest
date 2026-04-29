@@ -33,7 +33,7 @@ spec:
   generators:
     - git:
         repoURL: PLACEHOLDER
-        revision: "base-manifest"
+        revision: PLACEHOLDER
         requeueAfterSeconds: 20
         files:
           - path: "apps/infra/**/config.yaml"
@@ -69,8 +69,9 @@ spec:
             duration: 20s
             factor: 1
             maxDuration: 20s
-        # syncOptions:
-        # - CreateNamespace=true
+        syncOptions:
+          - CreateNamespace=true
+          - SkipDryRunOnMissingResource=true
   templatePatch: |
     metadata:
       labels:
@@ -82,4 +83,3 @@ spec:
         {{- range $key, $value := .annotations }}
         {{ $key }}: {{ $value | quote }}
         {{- end }}
-  syncPolicy: {}

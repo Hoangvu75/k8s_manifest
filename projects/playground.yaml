@@ -33,7 +33,7 @@ spec:
   generators:
     - git:
         repoURL: PLACEHOLDER
-        revision: "base-manifest"
+        revision: PLACEHOLDER
         requeueAfterSeconds: 20
         files:
           - path: "apps/playground/**/config.yaml"
@@ -83,8 +83,3 @@ spec:
         {{- range $key, $value := .annotations }}
         {{ $key }}: {{ $value | quote }}
         {{- end }}
-    spec:
-      syncPolicy:
-        syncOptions:
-          - CreateNamespace=true
-          - SkipDryRunOnMissingResource=true

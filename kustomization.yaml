@@ -18,3 +18,13 @@ replacements:
           name: bootstrap
         fieldPaths:
           - spec.source.repoURL
+  - source:
+      kind: ConfigMap
+      name: repo-config
+      fieldPath: data.manifest_revision
+    targets:
+      - select:
+          kind: Application
+          name: bootstrap
+        fieldPaths:
+          - spec.source.targetRevision

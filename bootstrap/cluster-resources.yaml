@@ -25,7 +25,7 @@ spec:
       source:
         path: cluster-resources/{{name}}
         repoURL: PLACEHOLDER
-        targetRevision: base-manifest
+        targetRevision: PLACEHOLDER
       syncPolicy:
         automated:
           allowEmpty: true

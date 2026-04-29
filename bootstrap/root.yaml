@@ -15,7 +15,7 @@ spec:
   source:
     path: projects
     repoURL: PLACEHOLDER
-    targetRevision: base-manifest
+    targetRevision: PLACEHOLDER
   ignoreDifferences:
   - group: argoproj.io
     kind: ApplicationSet

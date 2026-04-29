@@ -8,3 +8,5 @@ configMapGenerator:
     literals:
       - url=https://github.com/Hoangvu75/k8s_manifest.git
       - secrets_url=https://github.com/Hoangvu75/k8s_manifest_secrets.git
+      - manifest_revision=base-manifest
+      - secrets_revision=main

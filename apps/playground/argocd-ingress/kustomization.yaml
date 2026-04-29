@@ -4,5 +4,8 @@ kind: Kustomization
 
 namespace: argocd
 
+components:
+  - ../../../components/httproute-defaults
+
 resources:
   - chart

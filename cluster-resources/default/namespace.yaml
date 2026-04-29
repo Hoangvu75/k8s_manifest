@@ -7,6 +7,8 @@ metadata:
   name: gateway-api
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    routing.hoangvu75.space/expose: "true"
 ---
 apiVersion: v1
 kind: Namespace
@@ -28,6 +30,8 @@ metadata:
   name: cattle-system
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    routing.hoangvu75.space/expose: "true"
 ---
 apiVersion: v1
 kind: Namespace
@@ -39,13 +43,17 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: gateway-api
+  name: hello-api
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    routing.hoangvu75.space/expose: "true"
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: hello-api
+  name: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    routing.hoangvu75.space/expose: "true"

@@ -19,3 +19,12 @@ replacements:
         fieldPaths:
           - spec.generators.0.git.repoURL
           - spec.generators.0.git.values.repoURL
+  - source:
+      kind: ConfigMap
+      name: repo-config
+      fieldPath: data.manifest_revision
+    targets:
+      - select:
+          kind: ApplicationSet
+        fieldPaths:
+          - spec.generators.0.git.revision

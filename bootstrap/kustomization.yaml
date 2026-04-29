@@ -35,3 +35,28 @@ replacements:
           name: secrets
         fieldPaths:
           - spec.source.repoURL
+  - source:
+      kind: ConfigMap
+      name: repo-config
+      fieldPath: data.manifest_revision
+    targets:
+      - select:
+          kind: Application
+          name: root
+        fieldPaths:
+          - spec.source.targetRevision
+      - select:
+          kind: ApplicationSet
+          name: cluster-resources
+        fieldPaths:
+          - spec.template.spec.source.targetRevision
+  - source:
+      kind: ConfigMap
+      name: repo-config
+      fieldPath: data.secrets_revision
+    targets:
+      - select:
+          kind: Application
+          name: secrets
+        fieldPaths:
+          - spec.source.targetRevision

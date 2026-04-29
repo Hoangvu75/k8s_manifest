@@ -13,13 +13,19 @@ spec:
       protocol: HTTP
       allowedRoutes:
         namespaces:
-          from: All
+          from: Selector
+          selector:
+            matchLabels:
+              routing.hoangvu75.space/expose: "true"
     - name: https
       port: 443
       protocol: HTTPS
       allowedRoutes:
         namespaces:
-          from: All
+          from: Selector
+          selector:
+            matchLabels:
+              routing.hoangvu75.space/expose: "true"
       tls:
         mode: Terminate
         certificateRefs:
