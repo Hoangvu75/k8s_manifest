@@ -28,13 +28,7 @@ datadog:
   apm:
     socketEnabled: true
     portEnabled: true
-    otlp_config:
-      receiver:
-        protocols:
-          http:
-            enabled: true
-          grpc:
-            enabled: true
+  # OTLP env vars are set directly via agents.containers.agent.env below
 
   # Prometheus scraping for Traefik metrics
   prometheusScrape:
@@ -76,6 +70,10 @@ agents:
             fieldRef:
               apiVersion: v1
               fieldPath: spec.nodeName
+        - name: DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENABLED
+          value: "true"
+        - name: DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENABLED
+          value: "true"
       resources:
         requests:
           cpu: 200m
