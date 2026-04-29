@@ -2,22 +2,38 @@
 
 <cite>
 **Referenced Files in This Document**
-- [apps/playground/cert-manager/kustomization.yaml](file://apps/playground/cert-manager/kustomization.yaml)
-- [apps/playground/cert-manager/chart/values.yaml](file://apps/playground/cert-manager/chart/values.yaml)
-- [apps/playground/cert-manager/config.yaml](file://apps/playground/cert-manager/config.yaml)
-- [apps/playground/argocd-ingress/kustomization.yaml](file://apps/playground/argocd-ingress/kustomization.yaml)
-- [apps/playground/argocd-ingress/chart/values.yaml](file://apps/playground/argocd-ingress/chart/values.yaml)
-- [apps/playground/argocd-ingress/chart/httproute-argocd.yaml](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml)
-- [apps/playground/rancher/kustomization.yaml](file://apps/playground/rancher/kustomization.yaml)
-- [apps/playground/rancher/chart/values.yaml](file://apps/playground/rancher/chart/values.yaml)
-- [apps/playground/rancher/chart/httproute-rancher.yaml](file://apps/playground/rancher/chart/httproute-rancher.yaml)
-- [apps/playground/hello-api/kustomization.yaml](file://apps/playground/hello-api/kustomization.yaml)
-- [apps/playground/hello-api/chart/values.yaml](file://apps/playground/hello-api/chart/values.yaml)
-- [apps/playground/hello-api/chart/values-service.yaml](file://apps/playground/hello-api/chart/values-service.yaml)
-- [apps/playground/hello-api/chart/values-httproute.yaml](file://apps/playground/hello-api/chart/values-httproute.yaml)
-- [projects/playground.yaml](file://projects/playground.yaml)
+- [apps/applications/hello-api/config.yaml](file://apps/applications/hello-api/config.yaml)
+- [apps/applications/hello-api/chart/kustomization.yaml](file://apps/applications/hello-api/chart/kustomization.yaml)
+- [apps/applications/hello-api/chart/values.yaml](file://apps/applications/hello-api/chart/values.yaml)
+- [apps/applications/hello-api/chart/values-service.yaml](file://apps/applications/hello-api/chart/values-service.yaml)
+- [apps/applications/hello-api/chart/values-httproute.yaml](file://apps/applications/hello-api/chart/values-httproute.yaml)
+- [apps/infra/argocd-ingress/config.yaml](file://apps/infra/argocd-ingress/config.yaml)
+- [apps/infra/argocd-ingress/chart/kustomization.yaml](file://apps/infra/argocd-ingress/chart/kustomization.yaml)
+- [apps/infra/argocd-ingress/chart/values.yaml](file://apps/infra/argocd-ingress/chart/values.yaml)
+- [apps/infra/argocd-ingress/chart/httproute-argocd.yaml](file://apps/infra/argocd-ingress/chart/httproute-argocd.yaml)
+- [apps/infra/rancher/config.yaml](file://apps/infra/rancher/config.yaml)
+- [apps/infra/rancher/chart/kustomization.yaml](file://apps/infra/rancher/chart/kustomization.yaml)
+- [apps/infra/rancher/chart/values.yaml](file://apps/infra/rancher/chart/values.yaml)
+- [apps/infra/rancher/chart/httproute-rancher.yaml](file://apps/infra/rancher/chart/httproute-rancher.yaml)
+- [apps/infra/gateway-api/config.yaml](file://apps/infra/gateway-api/config.yaml)
+- [apps/infra/gateway-api/chart/kustomization.yaml](file://apps/infra/gateway-api/chart/kustomization.yaml)
+- [apps/infra/gateway-api/chart/gateway.yaml](file://apps/infra/gateway-api/chart/gateway.yaml)
+- [apps/infra/gateway-api/chart/gatewayclass.yaml](file://apps/infra/gateway-api/chart/gatewayclass.yaml)
+- [apps/infra/gateway-api/chart/traefik.yaml](file://apps/infra/gateway-api/chart/traefik.yaml)
+- [apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml)
+- [projects/applications.yaml](file://projects/applications.yaml)
+- [projects/infra.yaml](file://projects/infra.yaml)
+- [projects/kustomization.yaml](file://projects/kustomization.yaml)
 - [bootstrap/root.yaml](file://bootstrap/root.yaml)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Removed all references to playground applications as the playground concept no longer exists
+- Updated project structure to reflect new categorization into infrastructure and applications projects
+- Replaced playground-specific orchestrations with new infrastructure and applications project configurations
+- Updated component organization to separate infrastructure applications (argocd-ingress, rancher, gateway-api) from user-facing applications (hello-api)
+- Revised architecture diagrams to show the new project-based organization
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -32,67 +48,85 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document explains the playground applications that provide user-facing services and experimental features in a Kubernetes cluster managed by ArgoCD. It covers:
+This document explains the infrastructure and applications projects that provide user-facing services and experimental features in a Kubernetes cluster managed by ArgoCD. The previous playground concept has been reorganized into two distinct project categories:
+
+- Infrastructure applications: Core platform services including ArgoCD ingress, Rancher management interface, and Gateway API infrastructure
+- Applications: User-facing services such as the hello-api demo application
+
+The documentation covers:
 - Automated TLS certificate management via cert-manager and Gateway API HTTPRoute
 - Secure exposure of ArgoCD UI through HTTPRoute backed by a shared gateway
 - Rancher management interface setup and HTTPRoute exposure
-- Demo application deployment patterns and how playground differs from production-grade infrastructure
-- Relationship between playground applications and main cluster resources, including namespace isolation and resource allocation strategies
+- Demo application deployment patterns and how infrastructure differs from user-facing applications
+- Relationship between infrastructure and applications projects, including namespace isolation and resource allocation strategies
 
 ## Project Structure
-Playground applications are organized under apps/playground and orchestrated by ArgoCD ApplicationSet and AppProject definitions. Each service is packaged as a Kustomize overlay with optional Helm charts and Gateway API manifests.
+Applications are now organized under apps/infra and apps/applications, each orchestrated by separate ArgoCD ApplicationSet and AppProject definitions. Infrastructure services are grouped together in the infra project, while user-facing applications are managed separately in the applications project.
 
 ```mermaid
 graph TB
 subgraph "ArgoCD Control Plane"
 Root["Application 'root'"]
-Proj["AppProject 'playground'"]
-AppSet["ApplicationSet 'playground'"]
+InfraProj["AppProject 'infra'"]
+AppsProj["AppProject 'applications'"]
+InfraAppSet["ApplicationSet 'infra'"]
+AppsAppSet["ApplicationSet 'applications'"]
 end
-subgraph "Playground Namespace Isolation"
-CM["cert-manager (namespace: cert-manager)"]
+subgraph "Infrastructure Namespace Isolation"
+GATEWAY["gateway-api (namespace: gateway-api)"]
 ARGO["argocd-ingress (namespace: argocd)"]
 RANCH["rancher (namespace: cattle-system)"]
+end
+subgraph "Applications Namespace Isolation"
 HELLO["hello-api (namespace: hello-api)"]
 end
-Root --> Proj
-Proj --> AppSet
-AppSet --> CM
-AppSet --> ARGO
-AppSet --> RANCH
-AppSet --> HELLO
+Root --> InfraProj
+Root --> AppsProj
+InfraProj --> InfraAppSet
+AppsProj --> AppsAppSet
+InfraAppSet --> GATEWAY
+InfraAppSet --> ARGO
+InfraAppSet --> RANCH
+AppsAppSet --> HELLO
 ```
 
 **Diagram sources**
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
-- [apps/playground/cert-manager/kustomization.yaml:1-6](file://apps/playground/cert-manager/kustomization.yaml#L1-L6)
-- [apps/playground/argocd-ingress/kustomization.yaml:1-9](file://apps/playground/argocd-ingress/kustomization.yaml#L1-L9)
-- [apps/playground/rancher/kustomization.yaml:1-9](file://apps/playground/rancher/kustomization.yaml#L1-L9)
-- [apps/playground/hello-api/kustomization.yaml:1-8](file://apps/playground/hello-api/kustomization.yaml#L1-L8)
+- [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
+- [projects/applications.yaml:1-85](file://projects/applications.yaml#L1-L85)
+- [apps/infra/gateway-api/config.yaml:1-6](file://apps/infra/gateway-api/config.yaml#L1-L6)
+- [apps/infra/argocd-ingress/config.yaml:1-4](file://apps/infra/argocd-ingress/config.yaml#L1-L4)
+- [apps/infra/rancher/config.yaml:1-5](file://apps/infra/rancher/config.yaml#L1-L5)
+- [apps/applications/hello-api/config.yaml:1-4](file://apps/applications/hello-api/config.yaml#L1-L4)
 
 **Section sources**
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
+- [projects/applications.yaml:1-85](file://projects/applications.yaml#L1-L85)
 
 ## Core Components
-- cert-manager: Installs CRDs and configures leader election and global settings for certificate management.
-- ArgoCD ingress: Exposes the ArgoCD UI via HTTPRoute attached to a shared gateway.
-- Rancher: Deploys the Rancher management plane with hostname and ingress disabled in favor of HTTPRoute.
-- hello-api: A minimal demo service with Deployment, Service, and HTTPRoute for path-based routing.
+- **Infrastructure Applications**:
+  - gateway-api: Installs Gateway API CRDs and configures Traefik as the gateway controller
+  - argocd-ingress: Exposes the ArgoCD UI via HTTPRoute attached to a shared gateway
+  - rancher: Deploys the Rancher management plane with hostname and ingress disabled in favor of HTTPRoute
+
+- **Applications**:
+  - hello-api: A minimal demo service with Deployment, Service, and HTTPRoute for path-based routing
 
 **Section sources**
-- [apps/playground/cert-manager/chart/values.yaml:1-6](file://apps/playground/cert-manager/chart/values.yaml#L1-L6)
-- [apps/playground/argocd-ingress/chart/values.yaml:1-7](file://apps/playground/argocd-ingress/chart/values.yaml#L1-L7)
-- [apps/playground/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [apps/playground/rancher/chart/values.yaml:1-9](file://apps/playground/rancher/chart/values.yaml#L1-L9)
-- [apps/playground/rancher/chart/httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [apps/playground/hello-api/chart/values.yaml:1-23](file://apps/playground/hello-api/chart/values.yaml#L1-L23)
-- [apps/playground/hello-api/chart/values-service.yaml:1-6](file://apps/playground/hello-api/chart/values-service.yaml#L1-L6)
-- [apps/playground/hello-api/chart/values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
+- [apps/infra/gateway-api/chart/gateway.yaml:1-20](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L20)
+- [apps/infra/gateway-api/chart/gatewayclass.yaml:1-15](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L15)
+- [apps/infra/gateway-api/chart/traefik.yaml:1-25](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L25)
+- [apps/infra/argocd-ingress/chart/values.yaml:1-7](file://apps/infra/argocd-ingress/chart/values.yaml#L1-L7)
+- [apps/infra/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/infra/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
+- [apps/infra/rancher/chart/values.yaml:1-9](file://apps/infra/rancher/chart/values.yaml#L1-L9)
+- [apps/infra/rancher/chart/httproute-rancher.yaml:1-30](file://apps/infra/rancher/chart/httproute-rancher.yaml#L1-L30)
+- [apps/applications/hello-api/chart/values.yaml:1-23](file://apps/applications/hello-api/chart/values.yaml#L1-L23)
+- [apps/applications/hello-api/chart/values-service.yaml:1-6](file://apps/applications/hello-api/chart/values-service.yaml#L1-L6)
+- [apps/applications/hello-api/chart/values-httproute.yaml:1-26](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L26)
 
 ## Architecture Overview
-The playground leverages a shared Gateway API gateway to expose services securely. cert-manager provisions certificates for domains used by HTTPRoute hosts. ArgoCD ApplicationSet and AppProject orchestrate deployments across namespaces with explicit sync waves and pruning policies.
+The infrastructure and applications projects leverage a shared Gateway API gateway to expose services securely. Gateway API CRDs are installed first, followed by the gateway controller (Traefik). Services are then exposed through HTTPRoute resources with automated certificate management.
 
 ```mermaid
 graph TB
@@ -103,13 +137,14 @@ ARGOHR["HTTPRoute 'argocd'<br/>host: argocd.hoangvu75.space"]
 RANCHHR["HTTPRoute 'rancher'<br/>host: rancher.hoangvu75.space"]
 HELLOHR["HTTPRoute 'hello-api'<br/>host: api.hoangvu75.space"]
 end
-subgraph "Services"
+subgraph "Infrastructure Services"
+GATEWAYAPI["Gateway API CRDs<br/>namespace: gateway-api"]
+TRADEFIK["Traefik Controller<br/>namespace: gateway-api"]
 ARGO["Service 'argocd-server'<br/>namespace: argocd"]
 RANCH["Service 'rancher'<br/>namespace: cattle-system"]
-HELLO["Service 'hello-api'<br/>namespace: hello-api"]
 end
-subgraph "Cert Management"
-CM["cert-manager<br/>namespace: cert-manager"]
+subgraph "User Applications"
+HELLO["Service 'hello-api'<br/>namespace: hello-api"]
 end
 Internet --> SharedGW
 SharedGW --> ARGOHR
@@ -118,104 +153,58 @@ SharedGW --> HELLOHR
 ARGOHR --> ARGO
 RANCHHR --> RANCH
 HELLOHR --> HELLO
-CM --> ARGOHR
-CM --> RANCHHR
-CM --> HELLOHR
+GATEWAYAPI --> TRAEFIK
+TRADEFIK --> SharedGW
 ```
 
 **Diagram sources**
-- [apps/playground/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [apps/playground/rancher/chart/httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [apps/playground/hello-api/chart/values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
-- [apps/playground/cert-manager/chart/values.yaml:1-6](file://apps/playground/cert-manager/chart/values.yaml#L1-L6)
+- [apps/infra/gateway-api/chart/gateway.yaml:1-20](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L20)
+- [apps/infra/gateway-api/chart/traefik.yaml:1-25](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L25)
+- [apps/infra/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/infra/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
+- [apps/infra/rancher/chart/httproute-rancher.yaml:1-30](file://apps/infra/rancher/chart/httproute-rancher.yaml#L1-L30)
+- [apps/applications/hello-api/chart/values-httproute.yaml:1-26](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L26)
 
 ## Detailed Component Analysis
 
-### cert-manager Configuration
-- Purpose: Install cert-manager CRDs and configure global leader election and CRD installation.
-- Namespace: Deployed into cert-manager.
-- Sync behavior: Controlled via annotations to ensure proper ordering during ArgoCD synchronization.
+### Infrastructure Project Organization
+The infrastructure project manages core platform services that enable user-facing applications to operate securely and reliably.
 
-```mermaid
-flowchart TD
-Start(["Apply cert-manager"]) --> InstallCRDs["Install CRDs"]
-InstallCRDs --> LeaderElection["Configure Global Leader Election"]
-LeaderElection --> Ready(["Ready for Issuers/ACME"])
-```
+**Gateway API Infrastructure**:
+- Purpose: Install Gateway API CRDs and deploy Traefik as the gateway controller
+- Namespace: gateway-api
+- Sync behavior: Controlled via annotations to ensure proper ordering during ArgoCD synchronization
 
-**Diagram sources**
-- [apps/playground/cert-manager/chart/values.yaml:1-6](file://apps/playground/cert-manager/chart/values.yaml#L1-L6)
-
-**Section sources**
-- [apps/playground/cert-manager/kustomization.yaml:1-6](file://apps/playground/cert-manager/kustomization.yaml#L1-L6)
-- [apps/playground/cert-manager/config.yaml:1-5](file://apps/playground/cert-manager/config.yaml#L1-L5)
-- [apps/playground/cert-manager/chart/values.yaml:1-6](file://apps/playground/cert-manager/chart/values.yaml#L1-L6)
-
-### ArgoCD Ingress Exposure via HTTPRoute
-- Purpose: Expose ArgoCD UI securely through a shared gateway using HTTPRoute.
+**ArgoCD Ingress Exposure via HTTPRoute**:
+- Purpose: Expose ArgoCD UI securely through a shared gateway using HTTPRoute
 - Hostname: argocd.hoangvu75.space
-- Routing: Path prefix “/”, header filters set for forwarded proto/port, backend to argocd-server:80.
+- Routing: Path prefix "/", header filters set for forwarded proto/port, backend to argocd-server:80
 - Namespace: argocd
-- Sync wave: Ensured after cert-manager and before service reconciliation.
+- Sync wave: Ensured after gateway API installation and before service reconciliation
 
-```mermaid
-sequenceDiagram
-participant Client as "Browser"
-participant GW as "Gateway 'shared-gateway'"
-participant HR as "HTTPRoute 'argocd'"
-participant SVC as "Service 'argocd-server'"
-participant CM as "cert-manager"
-Client->>GW : HTTPS GET / (Host : argocd.hoangvu75.space)
-GW->>HR : Match route by hostname and path
-HR->>SVC : Forward to backendRef (port 80)
-SVC-->>Client : ArgoCD UI response
-Note over GW,CM : Cert-manager issues TLS certificate for argocd.hoangvu75.space
-```
-
-**Diagram sources**
-- [apps/playground/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [apps/playground/argocd-ingress/chart/values.yaml:1-7](file://apps/playground/argocd-ingress/chart/values.yaml#L1-L7)
-
-**Section sources**
-- [apps/playground/argocd-ingress/kustomization.yaml:1-9](file://apps/playground/argocd-ingress/kustomization.yaml#L1-L9)
-- [apps/playground/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [apps/playground/argocd-ingress/chart/values.yaml:1-7](file://apps/playground/argocd-ingress/chart/values.yaml#L1-L7)
-
-### Rancher Management Interface Setup
-- Purpose: Provide a management plane for cluster administration and multi-cluster management.
+**Rancher Management Interface Setup**:
+- Purpose: Provide a management plane for cluster administration and multi-cluster management
 - Hostname: rancher.hoangvu75.space
-- Ingress: Disabled in chart values; exposed via HTTPRoute.
+- Ingress: Disabled in chart values; exposed via HTTPRoute
 - Namespace: cattle-system
-- Sync wave: Ensured after cert-manager and before service reconciliation.
-
-```mermaid
-sequenceDiagram
-participant Client as "Admin Browser"
-participant GW as "Gateway 'shared-gateway'"
-participant HR as "HTTPRoute 'rancher'"
-participant SVC as "Service 'rancher'"
-participant CM as "cert-manager"
-Client->>GW : HTTPS GET / (Host : rancher.hoangvu75.space)
-GW->>HR : Match route by hostname and path
-HR->>SVC : Forward to backendRef (port 80)
-SVC-->>Client : Rancher UI response
-Note over GW,CM : Cert-manager issues TLS certificate for rancher.hoangvu75.space
-```
-
-**Diagram sources**
-- [apps/playground/rancher/chart/httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [apps/playground/rancher/chart/values.yaml:1-9](file://apps/playground/rancher/chart/values.yaml#L1-L9)
+- Sync wave: Ensured after gateway API installation and before service reconciliation
 
 **Section sources**
-- [apps/playground/rancher/kustomization.yaml:1-9](file://apps/playground/rancher/kustomization.yaml#L1-L9)
-- [apps/playground/rancher/chart/httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [apps/playground/rancher/chart/values.yaml:1-9](file://apps/playground/rancher/chart/values.yaml#L1-L9)
+- [apps/infra/gateway-api/config.yaml:1-6](file://apps/infra/gateway-api/config.yaml#L1-L6)
+- [apps/infra/gateway-api/chart/kustomization.yaml:1-6](file://apps/infra/gateway-api/chart/kustomization.yaml#L1-L6)
+- [apps/infra/argocd-ingress/config.yaml:1-4](file://apps/infra/argocd-ingress/config.yaml#L1-L4)
+- [apps/infra/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/infra/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
+- [apps/infra/rancher/config.yaml:1-5](file://apps/infra/rancher/config.yaml#L1-L5)
+- [apps/infra/rancher/chart/httproute-rancher.yaml:1-30](file://apps/infra/rancher/chart/httproute-rancher.yaml#L1-L30)
 
-### Demo Application Deployment Pattern (hello-api)
-- Purpose: Demonstrate a minimal HTTP echo service with a dedicated namespace and HTTPRoute.
-- Service: hello-api exposed via HTTPRoute under path prefix “/helloworld”.
-- Resource allocation: Small CPU/memory requests/limits suitable for demos.
+### Applications Project Organization
+The applications project manages user-facing services that provide business functionality and demonstration capabilities.
+
+**Demo Application Deployment Pattern (hello-api)**:
+- Purpose: Demonstrate a minimal HTTP echo service with a dedicated namespace and HTTPRoute
+- Service: hello-api exposed via HTTPRoute under path prefix "/helloworld"
+- Resource allocation: Small CPU/memory requests/limits suitable for demos
 - Namespace: hello-api
+- Sync wave: Ensured after infrastructure services are ready
 
 ```mermaid
 flowchart TD
@@ -227,116 +216,152 @@ E --> F["Pod(s) running http-echo"]
 ```
 
 **Diagram sources**
-- [apps/playground/hello-api/chart/values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
-- [apps/playground/hello-api/chart/values-service.yaml:1-6](file://apps/playground/hello-api/chart/values-service.yaml#L1-L6)
-- [apps/playground/hello-api/chart/values.yaml:1-23](file://apps/playground/hello-api/chart/values.yaml#L1-L23)
+- [apps/applications/hello-api/chart/values-httproute.yaml:1-26](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L26)
+- [apps/applications/hello-api/chart/values-service.yaml:1-6](file://apps/applications/hello-api/chart/values-service.yaml#L1-L6)
+- [apps/applications/hello-api/chart/values.yaml:1-23](file://apps/applications/hello-api/chart/values.yaml#L1-L23)
 
 **Section sources**
-- [apps/playground/hello-api/kustomization.yaml:1-8](file://apps/playground/hello-api/kustomization.yaml#L1-L8)
-- [apps/playground/hello-api/chart/values.yaml:1-23](file://apps/playground/hello-api/chart/values.yaml#L1-L23)
-- [apps/playground/hello-api/chart/values-service.yaml:1-6](file://apps/playground/hello-api/chart/values-service.yaml#L1-L6)
-- [apps/playground/hello-api/chart/values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
+- [apps/applications/hello-api/config.yaml:1-4](file://apps/applications/hello-api/config.yaml#L1-L4)
+- [apps/applications/hello-api/chart/kustomization.yaml:1-8](file://apps/applications/hello-api/chart/kustomization.yaml#L1-L8)
+- [apps/applications/hello-api/chart/values.yaml:1-23](file://apps/applications/hello-api/chart/values.yaml#L1-L23)
+- [apps/applications/hello-api/chart/values-service.yaml:1-6](file://apps/applications/hello-api/chart/values-service.yaml#L1-L6)
+- [apps/applications/hello-api/chart/values-httproute.yaml:1-26](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L26)
 
-### Playground Orchestration via ArgoCD
-- AppProject playground: Allows cluster and namespace-wide resource whitelisting and permits wildcard destinations.
-- ApplicationSet playground: Generates per-service Application resources from Git paths, applying sync waves and pruning policies.
-- Root Application: Points to projects and configures sync options and ignore differences.
+### Project-Based Orchestration via ArgoCD
+The infrastructure and applications projects use separate AppProject and ApplicationSet configurations to manage different types of services with appropriate resource permissions and sync policies.
+
+**Infrastructure Project (infra)**:
+- AppProject: Manages core platform services with cluster-wide resource access
+- ApplicationSet: Generates infrastructure applications from apps/infra paths with sync waves
+- Root Application: Points to projects and configures sync options and ignore differences
+
+**Applications Project (applications)**:
+- AppProject: Manages user-facing applications with namespace isolation
+- ApplicationSet: Generates application resources from apps/applications paths with appropriate sync ordering
+- Sync waves: Ensures infrastructure services are ready before applications deploy
 
 ```mermaid
 sequenceDiagram
 participant GitOps as "Git Repo"
 participant Root as "Application 'root'"
-participant Proj as "AppProject 'playground'"
-participant AS as "ApplicationSet 'playground'"
-participant App as "Generated Application"
+participant InfraProj as "AppProject 'infra'"
+participant AppsProj as "AppProject 'applications'"
+participant InfraAS as "ApplicationSet 'infra'"
+participant AppsAS as "ApplicationSet 'applications'"
+participant InfraApp as "Generated Infrastructure Application"
+participant AppsApp as "Generated Application"
 participant K8s as "Kubernetes Cluster"
 GitOps-->>Root : Base commit
-Root->>Proj : Reference AppProject
-Root->>AS : Reference ApplicationSet
-AS->>AS : Generate Applications from Git paths
-AS->>App : Create Application with Kustomize/Helm
-App->>K8s : Apply manifests (sync waves, prune/self-heal)
+Root->>InfraProj : Reference AppProject 'infra'
+Root->>AppsProj : Reference AppProject 'applications'
+InfraProj->>InfraAS : Reference ApplicationSet 'infra'
+AppsProj->>AppsAS : Reference ApplicationSet 'applications'
+InfraAS->>InfraAS : Generate Infrastructure Applications from Git paths
+AppsAS->>AppsAS : Generate Applications from Git paths
+InfraAS->>InfraApp : Create Application with Kustomize/Helm
+AppsAS->>AppsApp : Create Application with Kustomize/Helm
+InfraApp->>K8s : Apply infrastructure manifests (sync waves, prune/self-heal)
+AppsApp->>K8s : Apply application manifests (sync waves, prune/self-heal)
 ```
 
 **Diagram sources**
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
+- [projects/applications.yaml:1-85](file://projects/applications.yaml#L1-L85)
 
 **Section sources**
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
+- [projects/applications.yaml:1-85](file://projects/applications.yaml#L1-L85)
 
 ## Dependency Analysis
-- Namespace isolation: Each service resides in its own namespace to reduce blast radius and simplify governance.
-- Shared gateway: All HTTPRoute-based services attach to a single shared gateway, reducing infrastructure overhead.
-- Certificate provisioning: cert-manager is deployed first and expected to issue certificates prior to HTTPRoute attachment.
-- Sync ordering: Annotations enforce sync waves to ensure cert-manager precedes HTTPRoute creation and services become ready before routes attach.
+The project-based organization creates clear dependency relationships between infrastructure and applications:
+
+- **Infrastructure-first approach**: Gateway API CRDs, gateway controller, and core infrastructure services are deployed before user-facing applications
+- **Namespace isolation**: Infrastructure services in dedicated namespaces (gateway-api, argocd, cattle-system) separate from application namespaces (hello-api)
+- **Shared gateway pattern**: All HTTPRoute-based services attach to the same gateway, reducing infrastructure overhead
+- **Sync ordering**: Annotations enforce proper sequencing to prevent race conditions between infrastructure setup and application deployment
 
 ```mermaid
 graph LR
-CM["cert-manager<br/>namespace: cert-manager"] --> ARGOHR["HTTPRoute 'argocd'"]
-CM --> RANCHHR["HTTPRoute 'rancher'"]
-CM --> HELLOHR["HTTPRoute 'hello-api'"]
-SharedGW["Gateway 'shared-gateway'"] --> ARGOHR
-SharedGW --> RANCHHR
-SharedGW --> HELLOHR
+GATEWAYAPI["Gateway API CRDs<br/>namespace: gateway-api"] --> TRAEFIK["Traefik Controller"]
+TRAEFIK --> SHAREDGW["Shared Gateway 'shared-gateway'"]
+SHAREDGW --> ARGOHR["HTTPRoute 'argocd'"]
+SHAREDGW --> RANCHHR["HTTPRoute 'rancher'"]
+SHAREDGW --> HELLOHR["HTTPRoute 'hello-api'"]
 ARGOHR --> ARGO["Service 'argocd-server'"]
 RANCHHR --> RANCH["Service 'rancher'"]
 HELLOHR --> HELLO["Service 'hello-api'"]
 ```
 
 **Diagram sources**
-- [apps/playground/cert-manager/chart/values.yaml:1-6](file://apps/playground/cert-manager/chart/values.yaml#L1-L6)
-- [apps/playground/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [apps/playground/rancher/chart/httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [apps/playground/hello-api/chart/values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
+- [apps/infra/gateway-api/chart/gateway.yaml:1-20](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L20)
+- [apps/infra/gateway-api/chart/traefik.yaml:1-25](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L25)
+- [apps/infra/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/infra/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
+- [apps/infra/rancher/chart/httproute-rancher.yaml:1-30](file://apps/infra/rancher/chart/httproute-rancher.yaml#L1-L30)
+- [apps/applications/hello-api/chart/values-httproute.yaml:1-26](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L26)
 
 **Section sources**
-- [apps/playground/cert-manager/config.yaml:1-5](file://apps/playground/cert-manager/config.yaml#L1-L5)
-- [apps/playground/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [apps/playground/rancher/chart/httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [apps/playground/hello-api/chart/values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
+- [apps/infra/gateway-api/config.yaml:1-6](file://apps/infra/gateway-api/config.yaml#L1-L6)
+- [apps/infra/argocd-ingress/config.yaml:1-4](file://apps/infra/argocd-ingress/config.yaml#L1-L4)
+- [apps/infra/rancher/config.yaml:1-5](file://apps/infra/rancher/config.yaml#L1-L5)
+- [apps/applications/hello-api/config.yaml:1-4](file://apps/applications/hello-api/config.yaml#L1-L4)
 
 ## Performance Considerations
-- Resource allocation: Demo services use minimal CPU and memory requests/limits; adjust for higher traffic or latency-sensitive workloads.
-- Gateway sharing: Using a shared gateway reduces controller overhead but requires careful route design to avoid conflicts.
-- Sync waves: Proper sequencing prevents race conditions between certificate issuance and route attachment.
-- Pruning and self-healing: Automated pruning and self-healing keep environments clean and resilient; tune retry/backoff for stability.
-
-[No sources needed since this section provides general guidance]
+- **Resource allocation**: Demo services use minimal CPU and memory requests/limits; adjust for higher traffic or latency-sensitive workloads
+- **Gateway sharing**: Using a shared gateway reduces controller overhead but requires careful route design to avoid conflicts
+- **Project-based scaling**: Separate projects allow independent scaling and resource allocation for infrastructure vs. applications
+- **Sync waves**: Proper sequencing prevents race conditions between infrastructure setup and application deployment
+- **Pruning and self-healing**: Automated pruning and self-healing keep environments clean and resilient; tune retry/backoff for stability
 
 ## Troubleshooting Guide
-- HTTPRoute not attaching:
-  - Verify the shared gateway exists and is healthy.
-  - Confirm HTTPRoute hostnames match DNS and certificate is issued.
-- Certificate issues:
-  - Ensure cert-manager is installed and CRDs are present.
-  - Check issuer configuration and ACME account registration.
-- Service unreachable:
-  - Validate Service selectors and ports match HTTPRoute backendRefs.
-  - Confirm pod readiness and network policies allow traffic.
-- Sync order problems:
-  - Review sync-wave annotations on HTTPRoute and cert-manager resources.
+- **HTTPRoute not attaching**:
+  - Verify the shared gateway exists and is healthy
+  - Confirm HTTPRoute hostnames match DNS and certificates are issued
+  - Check that Gateway API CRDs are installed before creating HTTPRoutes
+
+- **Gateway API issues**:
+  - Ensure Gateway API CRDs are installed in the gateway-api namespace
+  - Verify Traefik controller is running and healthy
+  - Check gatewayclass association and gateway status
+
+- **Certificate issues**:
+  - Ensure cert-manager is installed and CRDs are present
+  - Check issuer configuration and ACME account registration
+  - Verify DNS resolution for certificate domains
+
+- **Service unreachable**:
+  - Validate Service selectors and ports match HTTPRoute backendRefs
+  - Confirm pod readiness and network policies allow traffic
+  - Check namespace isolation and RBAC permissions
+
+- **Sync order problems**:
+  - Review sync-wave annotations on HTTPRoute and infrastructure resources
+  - Verify project-based ordering (infra first, then applications)
+  - Check ApplicationSet generation and template application creation
 
 **Section sources**
-- [apps/playground/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [apps/playground/rancher/chart/httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [apps/playground/hello-api/chart/values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
-- [apps/playground/cert-manager/chart/values.yaml:1-6](file://apps/playground/cert-manager/chart/values.yaml#L1-L6)
+- [apps/infra/gateway-api/chart/gateway.yaml:1-20](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L20)
+- [apps/infra/gateway-api/chart/traefik.yaml:1-25](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L25)
+- [apps/infra/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/infra/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
+- [apps/infra/rancher/chart/httproute-rancher.yaml:1-30](file://apps/infra/rancher/chart/httproute-rancher.yaml#L1-L30)
+- [apps/applications/hello-api/chart/values-httproute.yaml:1-26](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L26)
 
 ## Conclusion
-The playground applications demonstrate a pragmatic, GitOps-driven approach to delivering user-facing services with secure exposure via Gateway API and automated certificate management. By isolating services into dedicated namespaces, leveraging a shared gateway, and enforcing sync waves, the setup balances simplicity with operational reliability. These patterns differ from production-grade infrastructure primarily in resource sizing, HA configurations, and stricter security controls, while retaining the same orchestration and networking primitives.
-
-[No sources needed since this section summarizes without analyzing specific files]
+The reorganized infrastructure and applications projects demonstrate a pragmatic, GitOps-driven approach to managing Kubernetes services with clear separation of concerns. The infrastructure project handles core platform services (gateway API, ArgoCD ingress, Rancher) while the applications project manages user-facing services like hello-api. By isolating infrastructure into dedicated namespaces, leveraging a shared gateway, and enforcing proper sync ordering, the setup balances operational simplicity with scalability and maintainability. This project-based organization differs from the previous playground concept by providing more structured governance, clearer resource boundaries, and better separation between platform services and user applications.
 
 ## Appendices
-- Playground vs. Production:
-  - Resource limits and replicas should be increased for production.
-  - Enable ingressClass or load balancer exposure for public endpoints.
-  - Add observability, WAF, and advanced TLS policies.
-- Related Resources:
-  - Root Application and AppProject definitions govern how playground apps are applied and pruned.
+- **Infrastructure vs. Applications Separation**:
+  - Infrastructure project: Core platform services with cluster-wide access
+  - Applications project: User-facing services with namespace isolation
+  - Clear dependency hierarchy ensures proper service availability
+
+- **Related Resources**:
+  - Root Application and AppProject definitions govern how infrastructure and applications are applied and pruned
+  - Project-based organization enables independent scaling and resource allocation
+  - Sync waves ensure proper sequencing between infrastructure and application deployment
 
 **Section sources**
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
+- [projects/applications.yaml:1-85](file://projects/applications.yaml#L1-L85)

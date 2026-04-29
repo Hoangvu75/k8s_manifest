@@ -41,7 +41,7 @@ GitOps repo for Kubernetes cluster management with ArgoCD, Kustomize, and Helm.
 |------|-----------|---------|
 | 1 | Cloudflare Edge | DNS resolves to Cloudflare, traffic enters via cloudflared tunnel |
 | 2 | cloudflared pod | Decapsulates tunnel traffic, forwards to cluster services |
-| 3 | Traefik (NodePort) | Receives on 30080/30443, acts as Gateway API controller |
+| 3 | Traefik (NodePort) | Receives on 30080/30443/30900/30901/30082, acts as Gateway API controller |
 | 4 | shared-gateway | Gateway resource routes by hostname (Gateway API) |
 | 5 | HTTPRoute | Matches hostname, routes to backend Service |
 | 6 | Application | Final destination pod (argocd-server, rancher, etc.) |
@@ -111,7 +111,9 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 │   │   ├── rancher/             # Rancher management UI (includes cert-manager)
 │   │   └── argocd-ingress/      # ArgoCD HTTPRoute exposure
 │   └── applications/            # User-facing application apps
-│       └── hello-api/           # Hello API demo app
+│       ├── hello-api/           # Hello API demo app
+│       ├── tcp-demo/            # TCP echo demo (Traefik TCP routing)
+│       └── udp-demo/            # UDP echo demo (Traefik UDP routing)
 ├── guide/                       # Setup guides and troubleshooting
 └── .opencode/                   # OpenCode config, rules, agents, skills
 ```
@@ -149,12 +151,14 @@ Shared namespaces are defined in `cluster-resources/default/namespace.yaml` with
 | App | Type | Purpose |
 |-----|------|---------|
 | Gateway API CRDs | infra | Kubernetes Gateway API custom resource definitions |
-| Traefik + Gateway | infra | Ingress controller via Gateway API |
+| Traefik + Gateway | infra | Ingress controller via Gateway API (HTTP/HTTPS/TCP/UDP) with Prometheus metrics, access logs, and OpenTelemetry tracing to Datadog APM |
 | Cloudflared | infra | Cloudflare tunnel for external access |
 | Datadog | infra | Monitoring and observability agent |
 | Rancher (incl. cert-manager) | infra | Cluster management UI + TLS cert automation |
 | ArgoCD Ingress | infra | Expose ArgoCD UI via HTTPRoute |
 | Hello API | applications | Demo API application |
+| TCP Echo Demo | applications | TCP echo server via Traefik IngressRouteTCP (NodePort 30900) |
+| UDP Echo Demo | applications | UDP echo server via Traefik IngressRouteUDP (NodePort 30901) |
 
 ## Private Secrets
 

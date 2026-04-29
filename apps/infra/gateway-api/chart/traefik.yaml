@@ -71,15 +71,15 @@ spec:
         app: traefik
     spec:
       serviceAccountName: traefik
+      volumes:
+      - name: traefik-config
+        configMap:
+          name: traefik-config
       containers:
       - name: traefik
         image: traefik:v3.3
         args:
-          - --api.insecure
-          - --providers.kubernetescrd
-          - --providers.kubernetesgateway
-          - --entrypoints.web.address=:80
-          - --entrypoints.websecure.address=:443
+          - --configfile=/etc/traefik/traefik.yaml
         ports:
         - name: web
           containerPort: 80
@@ -87,6 +87,17 @@ spec:
           containerPort: 443
         - name: admin
           containerPort: 8080
+        - name: tcp
+          containerPort: 9000
+        - name: udp
+          containerPort: 9001
+          protocol: UDP
+        - name: metrics
+          containerPort: 9082
+        volumeMounts:
+        - name: traefik-config
+          mountPath: /etc/traefik
+          readOnly: true
         resources:
           requests:
             cpu: 100m
@@ -118,3 +129,16 @@ spec:
   - name: admin
     port: 8080
     targetPort: 8080
+  - name: tcp
+    port: 9000
+    targetPort: 9000
+    nodePort: 30900
+  - name: udp
+    port: 9001
+    targetPort: 9001
+    protocol: UDP
+    nodePort: 30901
+  - name: metrics
+    port: 9082
+    targetPort: 9082
+    nodePort: 30082

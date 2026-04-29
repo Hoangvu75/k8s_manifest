@@ -1,0 +1,19 @@
+# Routes UDP traffic from Traefik entryPoint "udp" (port 9001 / NodePort 30901)
+# to the udp-echo service.
+#
+# Test with: nc -u <node-ip> 30901
+# Everything you type is echoed back.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteUDP
+metadata:
+  name: udp-echo
+  namespace: udp-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  entryPoints:
+    - udp
+  routes:
+    - services:
+        - name: udp-echo
+          port: 7778
