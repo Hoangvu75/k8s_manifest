@@ -16,7 +16,7 @@ spec:
       containers:
       - name: socat
         image: alpine/socat:latest
-        args: ["-dd", "TCP-LISTEN:7777,fork,reuseaddr", "EXEC:cat,bindstderr"]
+        args: ["-dd", "TCP-LISTEN:7777,fork,reuseaddr", "EXEC:cat"]
         ports:
         - containerPort: 7777
         resources:

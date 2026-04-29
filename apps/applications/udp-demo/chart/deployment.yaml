@@ -16,7 +16,7 @@ spec:
       containers:
       - name: socat
         image: alpine/socat:latest
-        args: ["-dd", "UDP-LISTEN:7778,fork,reuseaddr", "EXEC:cat,bindstderr"]
+        args: ["-dd", "UDP-LISTEN:7778,fork,reuseaddr", "EXEC:cat"]
         ports:
         - containerPort: 7778
           protocol: UDP
