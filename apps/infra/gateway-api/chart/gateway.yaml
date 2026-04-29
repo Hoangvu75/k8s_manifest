@@ -31,21 +31,3 @@ spec:
         certificateRefs:
           - name: wildcard-tls
             kind: Secret
-    - name: tcp
-      port: 9000
-      protocol: TCP
-      allowedRoutes:
-        namespaces:
-          from: Selector
-          selector:
-            matchLabels:
-              routing.hoangvu75.space/expose: "true"
-    - name: udp
-      port: 9001
-      protocol: UDP
-      allowedRoutes:
-        namespaces:
-          from: Selector
-          selector:
-            matchLabels:
-              routing.hoangvu75.space/expose: "true"
