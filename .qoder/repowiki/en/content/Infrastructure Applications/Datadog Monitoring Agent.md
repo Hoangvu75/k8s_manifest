@@ -13,7 +13,18 @@
 - [namespace.yaml](file://cluster-resources/default/namespace.yaml)
 - [argo_cd.md](file://guide/argocd/argo_cd.md)
 - [argo_cd.md](file://guide/k8s_manifest_secrets/argo_cd.md)
+- [traefik-static.yaml](file://apps/infra/gateway-api/chart/traefik-static.yaml)
+- [traefik.yaml](file://apps/infra/gateway-api/chart/traefik.yaml)
+- [httproute-traefik-dashboard.yaml](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Enhanced OTLP (OpenTelemetry Protocol) support documentation with comprehensive HTTP and gRPC protocol configuration
+- Added expanded Prometheus scraping capabilities for Traefik metrics collection
+- Updated architecture diagrams to reflect new distributed tracing and metrics collection flows
+- Added new section on OpenTelemetry integration and distributed tracing
+- Updated dependency analysis to include Traefik integration points
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -28,36 +39,42 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document explains the Datadog monitoring agent deployment and configuration in this Kubernetes manifest repository. It covers installation via Helm, cluster agent setup, APM instrumentation, metric collection strategies, and integration with Kubernetes monitoring. It also documents sync wave ordering and dependency management with other infrastructure components, and provides guidance for custom metrics, logs, traces, monitors, dashboards, notebooks, troubleshooting, performance impact mitigation, and cost optimization for large-scale deployments.
+This document explains the Datadog monitoring agent deployment and configuration in this Kubernetes manifest repository. It covers installation via Helm, cluster agent setup, APM instrumentation, metric collection strategies, and integration with Kubernetes monitoring. The configuration now includes comprehensive OpenTelemetry Protocol (OTLP) support with both HTTP and gRPC protocols, plus expanded Prometheus scraping capabilities for Traefik metrics collection. It also documents sync wave ordering and dependency management with other infrastructure components, and provides guidance for custom metrics, logs, traces, monitors, dashboards, notebooks, troubleshooting, performance impact mitigation, and cost optimization for large-scale deployments.
 
 ## Project Structure
-The Datadog stack is provisioned as a Helm-based Application managed by Argo CD. The deployment pipeline is orchestrated through Kustomize and ApplicationSets, ensuring predictable ordering across namespaces and components.
+The Datadog stack is provisioned as a Helm-based Application managed by Argo CD. The deployment pipeline is orchestrated through Kustomize and ApplicationSets, ensuring predictable ordering across namespaces and components. The system now includes integrated Traefik gateway with OpenTelemetry tracing and Prometheus metrics scraping.
 
 Key elements:
 - Datadog Helm chart configured under apps/infra/datadog/chart
 - Argo CD ApplicationSet and AppProject definitions under projects
 - Bootstrap configuration wiring repo URLs and enabling Helm support
 - Cluster namespaces created with explicit sync waves
+- Traefik gateway with integrated OpenTelemetry tracing and Prometheus metrics
 
 ```mermaid
 graph TB
 subgraph "Bootstrap"
 ROOT["root.yaml"]
 BOOT_K["bootstrap/kustomization.yaml"]
-end
+END
 subgraph "Projects"
 INFRA_YAML["projects/infra.yaml"]
 PLAYGROUND_YAML["projects/playground.yaml"]
-end
+END
 subgraph "Datadog App"
 DATADOG_K["apps/infra/datadog/kustomization.yaml"]
 CHART_K["apps/infra/datadog/chart/kustomization.yaml"]
 VALUES["apps/infra/datadog/chart/values.yaml"]
 CONFIG["apps/infra/datadog/config.yaml"]
-end
+END
+subgraph "Traefik Gateway"
+TRAEFIK_DEPLOYMENT["apps/infra/gateway-api/chart/traefik.yaml"]
+TRAEFIK_STATIC["apps/infra/gateway-api/chart/traefik-static.yaml"]
+TRAEFIK_ROUTE["apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml"]
+END
 subgraph "Cluster Namespaces"
 NS_DEFAULT["cluster-resources/default/namespace.yaml"]
-end
+END
 ROOT --> BOOT_K
 BOOT_K --> INFRA_YAML
 BOOT_K --> PLAYGROUND_YAML
@@ -68,52 +85,68 @@ CHART_K --> VALUES
 DATADOG_K --> CONFIG
 INFRA_YAML --> NS_DEFAULT
 PLAYGROUND_YAML --> NS_DEFAULT
+TRAEFIK_DEPLOYMENT --> TRAEFIK_STATIC
+TRAEFIK_DEPLOYMENT --> TRAEFIK_ROUTE
 ```
 
 **Diagram sources**
 - [root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
-- [kustomization.yaml:1-38](file://bootstrap/kustomization.yaml#L1-L38)
+- [kustomization.yaml:1-63](file://bootstrap/kustomization.yaml#L1-L63)
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
 - [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
 - [kustomization.yaml:1-8](file://apps/infra/datadog/kustomization.yaml#L1-L8)
 - [kustomization.yaml:1-11](file://apps/infra/datadog/chart/kustomization.yaml#L1-L11)
-- [values.yaml:1-89](file://apps/infra/datadog/chart/values.yaml#L1-L89)
+- [values.yaml:1-99](file://apps/infra/datadog/chart/values.yaml#L1-L99)
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 - [namespace.yaml:1-52](file://cluster-resources/default/namespace.yaml#L1-L52)
+- [traefik.yaml:1-157](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L157)
+- [traefik-static.yaml:1-52](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L52)
+- [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
 
 **Section sources**
 - [root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
-- [kustomization.yaml:1-38](file://bootstrap/kustomization.yaml#L1-L38)
+- [kustomization.yaml:1-63](file://bootstrap/kustomization.yaml#L1-L63)
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
 - [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
 - [kustomization.yaml:1-8](file://apps/infra/datadog/kustomization.yaml#L1-L8)
 - [kustomization.yaml:1-11](file://apps/infra/datadog/chart/kustomization.yaml#L1-L11)
-- [values.yaml:1-89](file://apps/infra/datadog/chart/values.yaml#L1-L89)
+- [values.yaml:1-99](file://apps/infra/datadog/chart/values.yaml#L1-L99)
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 - [namespace.yaml:1-52](file://cluster-resources/default/namespace.yaml#L1-L52)
+- [traefik.yaml:1-157](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L157)
+- [traefik-static.yaml:1-52](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L52)
+- [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
 
 ## Core Components
 - Datadog Helm Chart
   - Enabled features: Orchestrator Explorer, kube-state-metrics Core, logs, APM (Unix domain socket and TCP), process agent, cluster agent.
   - Site and cluster name configured; API key supplied via existing secret.
   - Agents and cluster agent images pinned to a specific tag.
+  - **Enhanced**: Comprehensive OTLP support with HTTP and gRPC protocol receivers enabled.
 - Argo CD Application and ApplicationSet
   - ApplicationSet generates per-environment applications from Git paths.
   - Sync waves coordinate namespace creation, secrets, and app deployments.
 - Secrets Management
   - Datadog API key stored in a Secret and mounted as an existing secret for the chart.
+- **New**: Traefik Gateway Integration
+  - OpenTelemetry tracing via OTLP HTTP to Datadog APM
+  - Prometheus metrics scraping with enhanced Traefik metrics collection
+  - Layer 4 routing for TCP/UDP services with observability integration
 
 Key configuration anchors:
 - Helm chart values define site, cluster name, APM, logs, process agent, kube-state-metrics, and cluster agent settings.
 - Datadog Application configures namespace and sync wave.
 - ApplicationSet and AppProject define sync waves and automation policies.
+- Traefik static configuration enables OTLP tracing and Prometheus metrics.
 
 **Section sources**
-- [values.yaml:1-89](file://apps/infra/datadog/chart/values.yaml#L1-L89)
+- [values.yaml:1-99](file://apps/infra/datadog/chart/values.yaml#L1-L99)
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 - [kustomization.yaml:1-11](file://apps/infra/datadog/chart/kustomization.yaml#L1-L11)
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
 - [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [traefik-static.yaml:43-47](file://apps/infra/gateway-api/chart/traefik-static.yaml#L43-L47)
+- [traefik.yaml:79-81](file://apps/infra/gateway-api/chart/traefik.yaml#L79-L81)
 
 ## Architecture Overview
 The Datadog monitoring stack is deployed as follows:
@@ -121,6 +154,7 @@ The Datadog monitoring stack is deployed as follows:
 - ApplicationSet discovers Datadog configs under apps/infra/*/config.yaml and creates Applications accordingly.
 - Each Datadog Application applies the Helm chart in the datadog namespace with values from values.yaml.
 - Cluster namespaces are created early via sync wave -1 to ensure prerequisites are present before deploying workloads.
+- **Enhanced**: Traefik gateway is deployed with OpenTelemetry tracing and Prometheus metrics scraping, integrating with Datadog for comprehensive observability.
 
 ```mermaid
 sequenceDiagram
@@ -132,6 +166,7 @@ participant App as "Datadog Application"
 participant Kust as "Kustomize"
 participant Helm as "Helm Chart"
 participant NS as "Namespace datadog"
+participant Traefik as "Traefik Gateway"
 Git->>Root : "Provide bootstrap manifests"
 Root->>Proj : "Define projects with sync waves"
 Proj->>Set : "Generate applications from Git paths"
@@ -140,6 +175,9 @@ App->>Kust : "Resolve kustomization"
 Kust->>Helm : "Render datadog chart with values.yaml"
 App->>NS : "Ensure namespace exists (wave -1)"
 Helm-->>App : "Deploy DaemonSet, Deployment, Services"
+App->>Traefik : "Deploy Traefik with OTLP tracing"
+Traefik->>Datadog : "Send metrics via Prometheus scraping"
+Traefik->>Datadog : "Send traces via OTLP HTTP"
 ```
 
 **Diagram sources**
@@ -148,8 +186,10 @@ Helm-->>App : "Deploy DaemonSet, Deployment, Services"
 - [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
 - [kustomization.yaml:1-8](file://apps/infra/datadog/kustomization.yaml#L1-L8)
 - [kustomization.yaml:1-11](file://apps/infra/datadog/chart/kustomization.yaml#L1-L11)
-- [values.yaml:1-89](file://apps/infra/datadog/chart/values.yaml#L1-L89)
+- [values.yaml:1-99](file://apps/infra/datadog/chart/values.yaml#L1-L99)
 - [namespace.yaml:1-52](file://cluster-resources/default/namespace.yaml#L1-L52)
+- [traefik.yaml:1-157](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L157)
+- [traefik-static.yaml:1-52](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L52)
 
 ## Detailed Component Analysis
 
@@ -173,14 +213,19 @@ Helm-->>App : "Deploy DaemonSet, Deployment, Services"
   - Tolerations allow scheduling on control-plane nodes.
   - Environment variables include site, orchestrator explorer, and host-derived hostname.
   - Resource requests and limits defined.
+- **Enhanced**: OTLP Protocol Support
+  - HTTP and gRPC protocol receivers enabled via environment variables.
+  - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENABLED: true
+  - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENABLED: true
 
 Operational implications:
 - Enabling logs and APM increases resource consumption; tune requests/limits accordingly.
 - Pinning image tags ensures reproducible upgrades; plan rollouts with sync waves.
 - Tolerations enable coverage on control-plane nodes but should be reviewed for security posture.
+- **Enhanced**: OTLP support enables integration with modern observability stacks beyond traditional APM.
 
 **Section sources**
-- [values.yaml:1-89](file://apps/infra/datadog/chart/values.yaml#L1-L89)
+- [values.yaml:1-99](file://apps/infra/datadog/chart/values.yaml#L1-L99)
 
 ### Argo CD Application and Sync Waves
 - Datadog Application:
@@ -192,10 +237,14 @@ Operational implications:
   - Many namespaces created with wave "-1" to ensure prerequisites exist.
 - Projects:
   - AppProject and ApplicationSet define automation and sync waves for infra and playground clusters.
+- **Enhanced**: Traefik Gateway
+  - Deployed with sync wave "0" to ensure it's available before other applications.
+  - Provides distributed tracing and metrics collection infrastructure.
 
 ```mermaid
 flowchart TD
-W_N1["Sync Wave -1<br/>Create Namespaces"] --> W_1["Sync Wave 1<br/>Apply Secrets"]
+W_N1["Sync Wave -1<br/>Create Namespaces"] --> W_0["Sync Wave 0<br/>Deploy Traefik Gateway"]
+W_0 --> W_1["Sync Wave 1<br/>Apply Secrets"]
 W_1 --> W_2["Sync Wave 2<br/>Deploy Datadog App"]
 W_2 --> W_3["Sync Wave 3+<br/>Other Apps"]
 ```
@@ -205,55 +254,145 @@ W_2 --> W_3["Sync Wave 3+<br/>Other Apps"]
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
 - [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [traefik.yaml:64-65](file://apps/infra/gateway-api/chart/traefik.yaml#L64-L65)
 
 **Section sources**
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 - [namespace.yaml:1-52](file://cluster-resources/default/namespace.yaml#L1-L52)
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
 - [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [traefik.yaml:64-65](file://apps/infra/gateway-api/chart/traefik.yaml#L64-L65)
 
 ### Installation and Upgrade Process
 - Bootstrap Argo CD and enable Helm support.
 - Apply bootstrap manifests to wire repo URLs and enable Kustomize build options.
 - Ensure secrets are applied prior to deploying Datadog.
+- **Enhanced**: Deploy Traefik gateway with sync wave "0" for immediate observability infrastructure.
 - Argo CD will render the Helm chart with values.yaml and deploy to the datadog namespace.
 
 Operational tips:
 - Use dry-run and diff views in Argo CD to preview changes.
 - Leverage sync waves to guarantee prerequisite resources exist.
 - Keep image tags pinned for stability; promote updates via controlled waves.
+- **Enhanced**: Monitor OTLP receiver health and Traefik metrics scraping status during deployment.
 
 **Section sources**
 - [argo_cd.md:1-34](file://guide/argocd/argo_cd.md#L1-L34)
-- [kustomization.yaml:1-38](file://bootstrap/kustomization.yaml#L1-L38)
+- [kustomization.yaml:1-63](file://bootstrap/kustomization.yaml#L1-L63)
 - [kustomization.yaml:1-11](file://apps/infra/datadog/chart/kustomization.yaml#L1-L11)
-- [values.yaml:1-89](file://apps/infra/datadog/chart/values.yaml#L1-L89)
+- [values.yaml:1-99](file://apps/infra/datadog/chart/values.yaml#L1-L99)
+- [traefik.yaml:64-65](file://apps/infra/gateway-api/chart/traefik.yaml#L64-L65)
 
 ### Kubernetes Monitoring Integration
 - Node-level metrics: Collected by the node agent; ensure scheduling tolerations and resource limits are appropriate.
 - Pod resource utilization: kube-state-metrics Core provides rich metrics for Pods, Deployments, Services, and more.
 - Service performance tracking: APM traces and logs correlate with Kubernetes service names and labels.
+- **Enhanced**: Distributed tracing integration via OpenTelemetry Protocol.
+- **Enhanced**: Prometheus metrics scraping for Traefik gateway and other services.
 
 Recommendations:
 - Enable container scrubbing to protect sensitive data in logs and traces.
 - Use cluster agent for centralized coordination and reduced agent duplication costs.
+- **Enhanced**: Leverage OTLP for modern observability stack integration.
+- **Enhanced**: Utilize Prometheus scraping for comprehensive metrics collection.
 
 **Section sources**
 - [values.yaml:19-23](file://apps/infra/datadog/chart/values.yaml#L19-L23)
 - [values.yaml:24-26](file://apps/infra/datadog/chart/values.yaml#L24-L26)
 - [values.yaml:28-31](file://apps/infra/datadog/chart/values.yaml#L28-L31)
 - [values.yaml:37-47](file://apps/infra/datadog/chart/values.yaml#L37-L47)
-- [values.yaml:48-89](file://apps/infra/datadog/chart/values.yaml#L48-L89)
+- [values.yaml:48-99](file://apps/infra/datadog/chart/values.yaml#L48-L99)
+- [values.yaml:33-36](file://apps/infra/datadog/chart/values.yaml#L33-L36)
+
+### OpenTelemetry Protocol (OTLP) Integration
+**New Section**: The Datadog monitoring stack now includes comprehensive OpenTelemetry Protocol support for modern observability integration.
+
+- **HTTP Protocol Support**:
+  - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENABLED: true
+  - Enables HTTP/JSON-based OTLP ingestion
+  - Compatible with standard OpenTelemetry SDKs
+  - Supports automatic protocol detection and fallback
+
+- **gRPC Protocol Support**:
+  - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENABLED: true
+  - Enables high-performance gRPC-based OTLP ingestion
+  - Optimized for low-latency, high-throughput scenarios
+  - Supports streaming and batching optimizations
+
+- **Integration Benefits**:
+  - Seamless integration with modern observability stacks
+  - Support for OpenTelemetry Collector and SDKs
+  - Enhanced compatibility with cloud-native monitoring tools
+  - Reduced vendor lock-in through standardized protocols
+
+- **Configuration Anchors**:
+  - Environment variables set in agent containers
+  - No additional YAML configuration required
+  - Automatic protocol discovery and activation
+
+**Section sources**
+- [values.yaml:73-76](file://apps/infra/datadog/chart/values.yaml#L73-L76)
+
+### Distributed Tracing with Traefik Integration
+**New Section**: Traefik gateway provides distributed tracing capabilities integrated with Datadog APM via OpenTelemetry Protocol.
+
+- **OTLP HTTP Tracing Configuration**:
+  - Endpoint: http://datadog-agent.datadog:4318/v1/traces
+  - Automatic trace propagation through HTTP requests
+  - JSON access logs enriched with trace context
+  - Seamless integration with Datadog APM
+
+- **Trace Context Propagation**:
+  - Automatic extraction and injection of trace IDs
+  - Support for W3C TraceContext and baggage headers
+  - Cross-service trace correlation across microservices
+  - Enhanced observability for distributed applications
+
+- **Dashboard Integration**:
+  - Real-time trace visualization in Datadog APM
+  - Service map generation from trace data
+  - Performance analytics and bottleneck identification
+  - Error rate tracking and latency analysis
+
+**Section sources**
+- [traefik-static.yaml:43-47](file://apps/infra/gateway-api/chart/traefik-static.yaml#L43-L47)
+
+### Prometheus Metrics Scraping Enhancement
+**New Section**: Enhanced Prometheus scraping capabilities for comprehensive metrics collection from Traefik and other services.
+
+- **Traefik Metrics Configuration**:
+  - Prometheus endpoint exposed on port 9082
+  - Rich metrics including router, service, and connection statistics
+  - Entry point and service labels for granular filtering
+  - OpenMetrics format for compatibility with Prometheus ecosystem
+
+- **Service Discovery Integration**:
+  - Automatic scraping via prometheus.io annotations
+  - Support for multiple metrics endpoints per service
+  - Enhanced label propagation for Kubernetes context
+  - Integration with Datadog's Prometheus integration
+
+- **Metrics Coverage**:
+  - TCP/UDP connection metrics for Layer 4 routing
+  - HTTP request/response metrics for Layer 7 routing
+  - Performance indicators including latency and throughput
+  - Error rate and availability metrics
+
+**Section sources**
+- [traefik-static.yaml:28-34](file://apps/infra/gateway-api/chart/traefik-static.yaml#L28-L34)
+- [traefik.yaml:76-81](file://apps/infra/gateway-api/chart/traefik.yaml#L76-L81)
 
 ### APM Instrumentation Configuration
 - APM socket and port enabled for trace ingestion.
-- Tracer libraries should target the agent’s trace endpoint; ensure network policies allow traffic if applicable.
+- Tracer libraries should target the agent's trace endpoint; ensure network policies allow traffic if applicable.
 - Correlate traces with logs and metrics using Kubernetes service and pod labels.
+- **Enhanced**: OTLP protocol support enables integration with modern tracing frameworks.
 
 Best practices:
 - Use environment variables to configure tracer endpoints and service names.
 - Enable trace sampling controls to manage overhead.
 - Leverage Datadog APM dashboards and notebooks for service performance analysis.
+- **Enhanced**: Consider OTLP for future-proofing observability infrastructure.
 
 **Section sources**
 - [values.yaml:28-31](file://apps/infra/datadog/chart/values.yaml#L28-L31)
@@ -263,34 +402,41 @@ Best practices:
 - Use kube-state-metrics Core for rich Kubernetes resource metrics.
 - Enable logs collection to enrich metrics with contextual information.
 - Tag metrics with cluster name and node hostname for precise filtering.
+- **Enhanced**: Prometheus scraping for Traefik and other services.
+- **Enhanced**: OTLP-based metrics collection for modern observability stacks.
 
 Optimization:
 - Scope metric collection to essential namespaces and resources.
 - Use cardinality controls and metric scrubbing to reduce noise.
+- **Enhanced**: Implement selective metrics scraping to control data volume.
+- **Enhanced**: Leverage OTLP batching and compression for efficient transport.
 
 **Section sources**
 - [values.yaml:19-23](file://apps/infra/datadog/chart/values.yaml#L19-L23)
 - [values.yaml:24-26](file://apps/infra/datadog/chart/values.yaml#L24-L26)
 - [values.yaml:62-66](file://apps/infra/datadog/chart/values.yaml#L62-L66)
+- [values.yaml:33-36](file://apps/infra/datadog/chart/values.yaml#L33-L36)
 
 ### Custom Dashboards and Notebooks
 - Create dashboards to visualize node CPU/memory, pod restarts, APM latency, and throughput.
 - Use notebooks to explore correlations between logs, traces, and metrics.
 - Share dashboards and notebooks across teams via Argo CD for consistency.
-
-[No sources needed since this section provides general guidance]
+- **Enhanced**: Include Traefik metrics and distributed tracing visualizations.
+- **Enhanced**: Leverage OTLP data for advanced observability analytics.
 
 ### Monitors and Alerting Rules
 - Define monitors for critical thresholds: node pressure, pod restart storms, APM error rates, and latency SLOs.
 - Use Argo CD to manage monitor configurations as code alongside infrastructure.
 - Configure notification channels and escalation policies in Datadog.
-
-[No sources needed since this section provides general guidance]
+- **Enhanced**: Monitor OTLP receiver health and metrics scraping success rates.
+- **Enhanced**: Track Traefik gateway performance and availability.
 
 ### Log Aggregation and Trace Correlation
 - Enable container log collection and APM tracing.
 - Use Kubernetes labels and annotations to enrich logs and traces.
 - Correlate APM traces with logs and metrics in Datadog for root cause analysis.
+- **Enhanced**: Integrate Traefik access logs with distributed tracing data.
+- **Enhanced**: Leverage OTLP for unified observability data pipeline.
 
 **Section sources**
 - [values.yaml:24-26](file://apps/infra/datadog/chart/values.yaml#L24-L26)
@@ -302,6 +448,7 @@ The Datadog deployment depends on:
 - Secrets presence (sync wave 1)
 - Helm rendering and chart values
 - Cluster agent readiness for centralized coordination
+- **Enhanced**: Traefik gateway availability (sync wave 0) for distributed tracing and metrics
 
 ```mermaid
 graph LR
@@ -313,19 +460,26 @@ APP --> NODE_AGENT["Node Agent"]
 CLUSTER_AGENT --> KSM["kube-state-metrics Core"]
 NODE_AGENT --> LOGS["Logs Collection"]
 NODE_AGENT --> APM["APM Tracing"]
+NODE_AGENT --> OTLP["OTLP Receivers"]
+TRAEFIK["Traefik Gateway"] --> PROMETHEUS["Prometheus Metrics"]
+TRAEFIK --> OTLP_HTTP["OTLP HTTP Tracing"]
 ```
 
 **Diagram sources**
 - [namespace.yaml:1-52](file://cluster-resources/default/namespace.yaml#L1-L52)
 - [argo_cd.md:19-22](file://guide/k8s_manifest_secrets/argo_cd.md#L19-L22)
-- [values.yaml:1-89](file://apps/infra/datadog/chart/values.yaml#L1-L89)
+- [values.yaml:1-99](file://apps/infra/datadog/chart/values.yaml#L1-L99)
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
+- [traefik.yaml:64-65](file://apps/infra/gateway-api/chart/traefik.yaml#L64-L65)
+- [traefik-static.yaml:28-34](file://apps/infra/gateway-api/chart/traefik-static.yaml#L28-L34)
+- [traefik-static.yaml:43-47](file://apps/infra/gateway-api/chart/traefik-static.yaml#L43-L47)
 
 **Section sources**
 - [namespace.yaml:1-52](file://cluster-resources/default/namespace.yaml#L1-L52)
 - [argo_cd.md:19-22](file://guide/k8s_manifest_secrets/argo_cd.md#L19-L22)
-- [values.yaml:1-89](file://apps/infra/datadog/chart/values.yaml#L1-L89)
+- [values.yaml:1-99](file://apps/infra/datadog/chart/values.yaml#L1-L99)
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
+- [traefik.yaml:64-65](file://apps/infra/gateway-api/chart/traefik.yaml#L64-L65)
 
 ## Performance Considerations
 - Resource allocation: Review agent CPU/memory requests/limits and adjust for workload density.
@@ -333,8 +487,8 @@ NODE_AGENT --> APM["APM Tracing"]
 - APM overhead: Tune sampling and batch sizes; disable APM on low-traffic environments if needed.
 - Log volume: Scrub sensitive data and scope collection to essential containers.
 - Image pinning: Maintain stable versions to avoid unexpected performance regressions during upgrades.
-
-[No sources needed since this section provides general guidance]
+- **Enhanced**: OTLP receiver performance: Monitor protocol-specific resource usage and optimize batching settings.
+- **Enhanced**: Traefik metrics overhead: Balance metrics granularity with collection frequency to control data volume.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -343,16 +497,18 @@ Common issues and resolutions:
 - Helm rendering errors: Validate values.yaml and ensure the Helm chart version is compatible.
 - APM connectivity: Check that APM socket/port is reachable from instrumented workloads and that network policies permit ingress.
 - Logs missing: Confirm logs.enabled and containerCollectAll are set appropriately; verify container runtime and log paths.
+- **Enhanced**: OTLP receiver issues: Verify DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_* environment variables are correctly set.
+- **Enhanced**: Traefik metrics scraping failures: Check Prometheus annotations and endpoint accessibility.
+- **Enhanced**: Distributed tracing gaps: Verify OTLP HTTP endpoint configuration and network connectivity.
 
 **Section sources**
-- [values.yaml:1-89](file://apps/infra/datadog/chart/values.yaml#L1-L89)
+- [values.yaml:1-99](file://apps/infra/datadog/chart/values.yaml#L1-L99)
 - [namespace.yaml:1-52](file://cluster-resources/default/namespace.yaml#L1-L52)
 - [argo_cd.md:19-22](file://guide/k8s_manifest_secrets/argo_cd.md#L19-L22)
+- [traefik-static.yaml:43-47](file://apps/infra/gateway-api/chart/traefik-static.yaml#L43-L47)
 
 ## Conclusion
-This repository provides a robust, declarative Datadog monitoring setup integrated with Argo CD and Helm. By leveraging sync waves, pinned image tags, and comprehensive feature toggles, it supports scalable Kubernetes observability. Operators can extend dashboards, monitors, and notebooks while maintaining operational consistency and cost efficiency.
-
-[No sources needed since this section summarizes without analyzing specific files]
+This repository provides a robust, declarative Datadog monitoring setup integrated with Argo CD and Helm, now enhanced with comprehensive OpenTelemetry Protocol support and expanded Prometheus scraping capabilities. The integration with Traefik gateway provides distributed tracing and metrics collection for modern cloud-native applications. By leveraging sync waves, pinned image tags, comprehensive feature toggles, and OTLP support, it supports scalable Kubernetes observability with future-proof architecture. Operators can extend dashboards, monitors, and notebooks while maintaining operational consistency and cost efficiency, and leverage modern observability standards through OTLP integration.
 
 ## Appendices
 
@@ -361,13 +517,37 @@ This repository provides a robust, declarative Datadog monitoring setup integrat
 - Apply bootstrap manifests to wire repo URLs.
 - Create the datadog namespace with sync wave -1.
 - Apply secrets (datadog-key) with sync wave 1.
+- Deploy Traefik gateway with sync wave 0 for observability infrastructure.
 - Deploy Datadog Application with sync wave 2.
 - Validate cluster agent and node agent health.
+- **Enhanced**: Verify OTLP receiver configuration and Traefik metrics scraping.
+- **Enhanced**: Test distributed tracing integration between Traefik and Datadog APM.
 - Configure APM, logs, and kube-state-metrics according to environment needs.
 
 **Section sources**
 - [argo_cd.md:1-34](file://guide/argocd/argo_cd.md#L1-L34)
-- [kustomization.yaml:1-38](file://bootstrap/kustomization.yaml#L1-L38)
+- [kustomization.yaml:1-63](file://bootstrap/kustomization.yaml#L1-L63)
 - [namespace.yaml:1-52](file://cluster-resources/default/namespace.yaml#L1-L52)
 - [argo_cd.md:19-22](file://guide/k8s_manifest_secrets/argo_cd.md#L19-L22)
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
+- [traefik.yaml:64-65](file://apps/infra/gateway-api/chart/traefik.yaml#L64-L65)
+
+### Appendix B: OpenTelemetry Protocol Configuration Reference
+**New Section**: Complete reference for OTLP configuration in the Datadog monitoring stack.
+
+- **Environment Variables**:
+  - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENABLED: "true"
+  - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENABLED: "true"
+
+- **Protocol Specifications**:
+  - HTTP/JSON: Standard OpenTelemetry HTTP receiver
+  - gRPC: High-performance OpenTelemetry gRPC receiver
+  - Automatic protocol negotiation and fallback
+
+- **Integration Points**:
+  - Agent containers receive OTLP data
+  - No additional YAML configuration required
+  - Automatic protocol discovery and activation
+
+**Section sources**
+- [values.yaml:73-76](file://apps/infra/datadog/chart/values.yaml#L73-L76)

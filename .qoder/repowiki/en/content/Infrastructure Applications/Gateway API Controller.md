@@ -23,15 +23,18 @@
 - [README.md (tcp-udp-demo)](file://guide/tcp-udp-demo/README.md)
 - [config.yaml (gateway-api)](file://apps/infra/gateway-api/config.yaml)
 - [tls-rancher-ca.yaml](file://apps/infra/rancher/chart/tls-rancher-ca.yaml)
+- [values.yaml (datadog)](file://apps/infra/datadog/chart/values.yaml)
+- [config.yaml (datadog)](file://apps/infra/datadog/config.yaml)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Traefik configuration restructured with new modular approach using traefik-static.yaml for static configuration separation
-- Gateway API switched to standard installation (v1.5.1) from experimental channel
-- RBAC permissions adjusted to use standard Gateway API resources instead of experimental ones
-- CRD-based routing approach implemented replacing experimental Gateway API listeners
-- GatewayClass controller updated to use standard traefik.io/gateway-controller
+- Enhanced Traefik metrics exposure with comprehensive Prometheus scraping annotations
+- Added Datadog Autodiscovery configuration for intelligent metric collection
+- Integrated Datadog Agent with OpenTelemetry HTTP exporter for APM tracing
+- Implemented OpenMetrics format for standardized metric collection
+- Added Prometheus service annotations for automatic scraping
+- Enhanced monitoring pipeline with structured JSON access logs
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -45,17 +48,17 @@
 9. [Traffic Routing Patterns](#traffic-routing-patterns)
 10. [Load Balancing and High Availability](#load-balancing-and-high-availability)
 11. [Certificate Management](#certificate-management)
-12. [Monitoring and Observability](#monitoring-and-observability)
+12. [Enhanced Monitoring and Observability](#enhanced-monitoring-and-observability)
 13. [Performance Optimization](#performance-optimization)
 14. [Troubleshooting Guide](#troubleshooting-guide)
 15. [Conclusion](#conclusion)
 16. [Appendices](#appendices)
 
 ## Introduction
-This document explains the Gateway API controller implementation using Traefik v3.3 as the ingress controller, featuring a streamlined configuration approach with standard Gateway API v1.5.1 installation and modular Traefik configuration. The system provides comprehensive HTTP/HTTPS routing with optional TCP/UDP capabilities through CRD-based routing patterns, eliminating the need for experimental Gateway API listeners while maintaining full Traefik v3.x compatibility.
+This document explains the Gateway API controller implementation using Traefik v3.3 as the ingress controller, featuring a streamlined configuration approach with standard Gateway API v1.5.1 installation and modular Traefik configuration. The system provides comprehensive HTTP/HTTPS routing with optional TCP/UDP capabilities through CRD-based routing patterns, eliminating the need for experimental Gateway API listeners while maintaining full Traefik v3.x compatibility. Enhanced monitoring capabilities now include comprehensive Prometheus metrics exposure with Datadog Autodiscovery for intelligent metric collection and monitoring.
 
 ## Project Structure
-The Gateway API stack now uses a simplified structure with standard CRD installation and modular configuration separation. The project maintains dedicated HTTP/HTTPS infrastructure alongside optional TCP/UDP demo applications, all running on Traefik v3.3 with improved CRD integration and modernized observability features.
+The Gateway API stack now uses a simplified structure with standard CRD installation and modular configuration separation. The project maintains dedicated HTTP/HTTPS infrastructure alongside optional TCP/UDP demo applications, all running on Traefik v3.3 with improved CRD integration and modernized observability features including comprehensive monitoring with Prometheus and Datadog integration.
 
 ```mermaid
 graph TB
@@ -88,6 +91,12 @@ UDP_DEP["apps/applications/udp-demo/chart/deployment.yaml"]
 TCP_SVC["apps/applications/tcp-demo/chart/service.yaml"]
 UDP_SVC["apps/applications/udp-demo/chart/service.yaml"]
 end
+subgraph "Enhanced Monitoring"
+MON_DD["apps/infra/datadog/chart/values.yaml"]
+MON_CFG["Datadog Agent Configuration"]
+MON_PROM["Prometheus Service Annotations"]
+MON_AUTO["Datadog Autodiscovery"]
+end
 subgraph "Cert Management"
 CM_CA["apps/infra/rancher/chart/tls-rancher-ca.yaml"]
 end
@@ -106,6 +115,10 @@ GA_CHART --> HTTP_HL
 GA_CHART --> TCP_DEMO
 GA_CHART --> UDP_DEMO
 GA_CHART --> CM_CA
+GA_CHART --> MON_DD
+MON_DD --> MON_CFG
+MON_CFG --> MON_PROM
+MON_CFG --> MON_AUTO
 TCP_DEMO --> TCP_IR
 TCP_DEMO --> TCP_DEP
 TCP_DEMO --> TCP_SVC
@@ -120,10 +133,9 @@ UDP_DEMO --> UDP_SVC
 - [kustomization.yaml (gateway-api-chart):1-13](file://apps/infra/gateway-api/chart/kustomization.yaml#L1-L13)
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
-- [traefik.yaml:1-147](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L147)
+- [traefik.yaml:1-157](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L157)
 - [traefik-static.yaml:1-52](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L52)
-- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
+- [values.yaml (datadog):1-99](file://apps/infra/datadog/chart/values.yaml#L1-L99)
 
 **Section sources**
 - [kustomization.yaml (gateway-api):1-10](file://apps/infra/gateway-api/kustomization.yaml#L1-L10)
@@ -132,25 +144,29 @@ UDP_DEMO --> UDP_SVC
 - [README.md:108-161](file://README.md#L108-L161)
 
 ## Core Components
-The system now uses standard Gateway API v1.5.1 with a streamlined configuration approach, featuring Traefik v3.3 with modular static configuration separation and comprehensive CRD integration:
+The system now uses standard Gateway API v1.5.1 with a streamlined configuration approach, featuring Traefik v3.3 with modular static configuration separation, comprehensive monitoring capabilities, and enhanced observability through Prometheus and Datadog integration:
 
 - **GatewayClass**: Standard implementation using traefik.io/gateway-controller as the provider
 - **Gateway**: HTTP and HTTPS listeners with namespace-based routing control
-- **Traefik v3.3 Deployment**: Modular configuration with separate static and dynamic config files
+- **Traefik v3.3 Deployment**: Modular configuration with separate static and dynamic config files and comprehensive monitoring annotations
 - **Standard CRD Installation**: Official Gateway API v1.5.1 CRDs for stable resource definitions
 - **Enhanced RBAC**: Updated permissions for standard Gateway API resources
 - **Optional TCP/UDP Support**: CRD-based routing for Layer 4 protocols when needed
+- **Prometheus Metrics Exposure**: Built-in metrics endpoint with service annotations for automatic scraping
+- **Datadog Integration**: Autodiscovery configuration for intelligent metric collection and monitoring
+- **OpenTelemetry Tracing**: OTLP HTTP exporter for distributed tracing to Datadog APM
 
-**Updated** GatewayClass now uses standard controller name and CRD-based routing replaces experimental listeners
+**Updated** Enhanced monitoring capabilities with comprehensive Prometheus scraping annotations and Datadog Autodiscovery configuration
 
 **Section sources**
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 - [traefik.yaml:10-45](file://apps/infra/gateway-api/chart/traefik.yaml#L10-L45)
 - [traefik-static.yaml:10-14](file://apps/infra/gateway-api/chart/traefik-static.yaml#L10-L14)
+- [traefik.yaml:75-82](file://apps/infra/gateway-api/chart/traefik.yaml#L75-L82)
 
 ## Architecture Overview
-The streamlined architecture now focuses on standard Gateway API v1.5.1 with modular Traefik configuration, supporting HTTP/HTTPS routing with optional TCP/UDP capabilities through CRD-based patterns.
+The streamlined architecture now focuses on standard Gateway API v1.5.1 with modular Traefik configuration, supporting HTTP/HTTPS routing with optional TCP/UDP capabilities through CRD-based patterns and comprehensive monitoring integration.
 
 ```mermaid
 graph TB
@@ -160,6 +176,13 @@ NP --> GW["Gateway.shared-gateway<br/>Listeners: 80/443"]
 GW --> HTTP_ROUTE["HTTPRoute rules<br/>hostnames + pathPrefix"]
 HTTP_ROUTE --> SVC_HTTP["Backend Service<br/>HTTP Apps:port"]
 SVC_HTTP --> POD_HTTP["Pod(s)"]
+subgraph "Enhanced Monitoring Pipeline"
+MON_PROM["Prometheus Metrics<br/>Port 9082 + Annotations"]
+MON_DD["Datadog Agent<br/>OpenTelemetry HTTP"]
+MON_AUTO["Autodiscovery<br/>OpenMetrics Check"]
+MON_PROM --> MON_DD
+MON_DD --> MON_AUTO
+end
 subgraph "Cluster"
 NP
 GW
@@ -171,12 +194,13 @@ end
 **Diagram sources**
 - [README.md:5-48](file://README.md#L5-L48)
 - [gateway.yaml:10-34](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L34)
-- [traefik.yaml:120-147](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L147)
+- [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
+- [values.yaml (datadog):33-36](file://apps/infra/datadog/chart/values.yaml#L33-L36)
 
 **Section sources**
 - [README.md:5-48](file://README.md#L5-L48)
 - [gateway.yaml:10-34](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L34)
-- [traefik.yaml:120-147](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L147)
+- [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
 
 ## Standard Gateway API Configuration
 
@@ -273,7 +297,7 @@ Traefik-->>Client : "UDP packet response"
 ## Traefik v3.x Deployment and Configuration
 
 ### Modular Configuration Approach
-The Traefik v3.3 deployment now uses a modular configuration approach with separate static and dynamic configuration files:
+The Traefik v3.3 deployment now uses a modular configuration approach with separate static and dynamic configuration files and comprehensive monitoring integration:
 
 ```mermaid
 classDiagram
@@ -283,35 +307,47 @@ class TraefikV3Deployment {
 +providerArgs : kubernetesgateway, kubernetescrd
 +containerPorts : web( : 80), websecure( : 443), admin( : 8080), tcp( : 9000), udp( : 9001), metrics( : 9082)
 +nodePorts : 30080, 30443, 8080, 30900, 30901, 30082
++monitoring : Prometheus + Datadog Autodiscovery
 }
 class StaticConfig {
 +traefik-static.yaml : providers, entryPoints, metrics
++Prometheus metrics endpoint
++OpenTelemetry tracing
++Structured access logs
 +Separate from dynamic config
 +Modular approach
 }
 class DynamicConfig {
 +traefik.yaml : RBAC, Deployment, Service
 +Mounted as ConfigMap
++Monitoring annotations
 }
 class RBAC {
 +ClusterRole : get/list/watch on services, endpoints, secrets, ingresses, gateway.api resources
 +ClusterRoleBinding : bind ServiceAccount to ClusterRole
 }
+class Monitoring {
++Prometheus Annotations : scrape, port, path
++Datadog Autodiscovery : openmetrics check
++OpenMetrics Format
++Structured JSON Logs
+}
 TraefikV3Deployment --> StaticConfig : "uses"
 TraefikV3Deployment --> DynamicConfig : "mounts"
 TraefikV3Deployment --> RBAC : "requires"
+TraefikV3Deployment --> Monitoring : "exposes"
 ```
 
 **Diagram sources**
-- [traefik.yaml:78-147](file://apps/infra/gateway-api/chart/traefik.yaml#L78-L147)
-- [traefik-static.yaml:10-14](file://apps/infra/gateway-api/chart/traefik-static.yaml#L10-L14)
+- [traefik.yaml:78-157](file://apps/infra/gateway-api/chart/traefik.yaml#L78-L157)
+- [traefik-static.yaml:10-52](file://apps/infra/gateway-api/chart/traefik-static.yaml#L10-L52)
 
 **Section sources**
-- [traefik.yaml:78-147](file://apps/infra/gateway-api/chart/traefik.yaml#L78-L147)
+- [traefik.yaml:78-157](file://apps/infra/gateway-api/chart/traefik.yaml#L78-L157)
 - [traefik-static.yaml:1-52](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L52)
 
 ### Static Configuration Extensions
-The Traefik v3.3 static configuration now supports dedicated entrypoints with standard provider configuration:
+The Traefik v3.3 static configuration now supports dedicated entrypoints with standard provider configuration and comprehensive monitoring:
 
 - **web**: HTTP entrypoint (:80) for standard web traffic
 - **websecure**: HTTPS entrypoint (:443) with TLS termination
@@ -319,17 +355,18 @@ The Traefik v3.3 static configuration now supports dedicated entrypoints with st
 - **udp**: UDP entrypoint (:9001/udp) for Layer 4 UDP forwarding
 - **metrics**: Prometheus metrics entrypoint (:9082) for monitoring
 
-**Updated** Static configuration separated into dedicated traefik-static.yaml file for better modularity
+**Updated** Static configuration separated into dedicated traefik-static.yaml file with enhanced monitoring capabilities
 
 **Section sources**
 - [traefik-static.yaml:15-27](file://apps/infra/gateway-api/chart/traefik-static.yaml#L15-L27)
 
 ### Standard Provider Configuration
-The Traefik deployment now uses standard providers for stable operation:
+The Traefik deployment now uses standard providers for stable operation with enhanced monitoring:
 
 - **kubernetesCRD**: Standard CRD provider for IngressRoute resources
 - **kubernetesGateway**: Standard Gateway API provider for Gateway resources
 - **Allow Cross Namespace**: Enabled for flexible routing across namespaces
+- **Prometheus Metrics**: Built-in metrics endpoint with configurable labels
 
 **Section sources**
 - [traefik-static.yaml:10-14](file://apps/infra/gateway-api/chart/traefik-static.yaml#L10-L14)
@@ -351,7 +388,7 @@ C --> D["Static Configuration"]
 - [traefik.yaml:84-86](file://apps/infra/gateway-api/chart/traefik.yaml#L84-L86)
 
 ### Distributed Tracing Configuration
-Traefik v3.3 now uses OTLP HTTP format for distributed tracing compatibility:
+Traefik v3.3 now uses OTLP HTTP format for distributed tracing compatibility with Datadog APM:
 
 ```mermaid
 flowchart LR
@@ -484,7 +521,7 @@ F --> G["Application Pods"]
 
 **Diagram sources**
 - [gateway.yaml:10-34](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L34)
-- [traefik.yaml:120-147](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L147)
+- [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
 
 ### Namespace-Based Routing Control
 The HTTP listener uses namespace selectors to control traffic routing:
@@ -532,24 +569,54 @@ Integrate with cert-manager for automated certificate management:
 - **DNS Challenges**: Configure DNS01 challenges for wildcard certificates
 - **Secret Rotation**: Automated certificate rotation without downtime
 
-## Monitoring and Observability
+## Enhanced Monitoring and Observability
 
-### Enhanced Metrics Collection
-Traefik v3.3 provides comprehensive metrics for HTTP/HTTPS traffic:
+### Comprehensive Metrics Exposure
+Traefik v3.3 now provides enhanced metrics collection with comprehensive Prometheus integration:
 
-- **Prometheus Metrics**: Exposed on port 9082 with protocol-specific metrics
-- **Access Logs**: Structured JSON logs for HTTP/HTTPS traffic
-- **Dashboard Integration**: Web-based dashboard showing HTTP routers
+- **Built-in Metrics Endpoint**: Dedicated metrics entrypoint (:9082) with Prometheus format
+- **Service Annotations**: Automatic Prometheus scraping via prometheus.io annotations
+- **Structured Metrics**: Rich metric labels including entry points and services
+- **OpenMetrics Format**: Standardized format compatible with modern monitoring systems
 
-### Distributed Tracing
-Enhanced observability with modernized tracing:
+### Datadog Autodiscovery Integration
+Advanced monitoring capabilities through Datadog Autodiscovery:
 
-- **OTLP HTTP Format**: Compatible with modern APM systems
-- **Datadog Integration**: Direct export to Datadog Agent for APM
+- **OpenMetrics Check**: Intelligent metric collection for Traefik
+- **Endpoint Configuration**: Automatic detection of metrics endpoints
+- **Metric Filtering**: Selective collection of relevant Traefik metrics
+- **Namespace Tagging**: Proper metric organization with namespace labels
+
+### Prometheus Service Annotations
+Automatic service discovery for Prometheus scraping:
+
+- **prometheus.io/scrape**: Enable scraping for Traefik service
+- **prometheus.io/port**: Specify metrics port (:9082)
+- **prometheus.io/path**: Define metrics endpoint (/metrics)
+- **Automatic Discovery**: Prometheus automatically discovers Traefik metrics
+
+### Structured Access Logging
+Enhanced logging for improved observability:
+
+- **JSON Format**: Structured access logs for easy parsing
+- **Datadog Ingestion**: Logs formatted for Datadog log processing
+- **Status Code Filtering**: Filter logs by HTTP status codes (200-499)
+- **Field Configuration**: Controlled field inclusion for efficient storage
+
+### Distributed Tracing Integration
+Modernized tracing with OpenTelemetry compatibility:
+
+- **OTLP HTTP Exporter**: Standardized format for trace data
+- **Datadog APM Integration**: Direct export to Datadog Agent
 - **Structured Traces**: Detailed trace information for debugging
+- **Performance Monitoring**: End-to-end request tracing
+
+**Updated** Enhanced monitoring capabilities with comprehensive Prometheus scraping annotations and Datadog Autodiscovery configuration
 
 **Section sources**
+- [traefik.yaml:75-82](file://apps/infra/gateway-api/chart/traefik.yaml#L75-L82)
 - [traefik-static.yaml:28-48](file://apps/infra/gateway-api/chart/traefik-static.yaml#L28-L48)
+- [values.yaml (datadog):33-36](file://apps/infra/datadog/chart/values.yaml#L33-L36)
 
 ## Performance Optimization
 
@@ -565,6 +632,14 @@ Implement network-level optimizations:
 
 - **Connection Pooling**: Reuse connections for persistent HTTP services
 - **Protocol-Specific Tuning**: Tune kernel parameters for optimal HTTP/HTTPS performance
+
+### Monitoring Optimization
+Leverage enhanced monitoring for performance insights:
+
+- **Metrics Collection**: Use built-in metrics for capacity planning
+- **Trace Analysis**: Identify performance bottlenecks through distributed tracing
+- **Log Analysis**: Monitor access patterns and error rates
+- **Alerting Integration**: Set up alerts based on collected metrics
 
 ## Troubleshooting Guide
 
@@ -601,15 +676,42 @@ Common problems and solutions for standard Gateway API v1.5.1:
   - Verify ConfigMap is mounted at /etc/traefik
   - Check Traefik can read the static configuration
 
+### Enhanced Monitoring Issues
+Problems and solutions for the enhanced monitoring setup:
+
+- **Metrics Not Appearing in Prometheus**:
+  - Verify prometheus.io annotations are present on Traefik service
+  - Check Prometheus service discovery configuration
+  - Confirm metrics endpoint is reachable on port 9082
+  - Validate OpenMetrics format compatibility
+
+- **Datadog Autodiscovery Not Working**:
+  - Verify ad.datadoghq.com annotations are correctly formatted
+  - Check Datadog Agent can reach Traefik metrics endpoint
+  - Confirm OpenMetrics check configuration syntax
+  - Validate metric filtering patterns
+
+- **Tracing Data Missing**:
+  - Verify OTLP HTTP endpoint URL format
+  - Check network connectivity between Traefik and Datadog Agent
+  - Confirm Datadog Agent has proper APM configuration
+  - Validate trace exporter credentials
+
+- **Log Processing Issues**:
+  - Verify accessLog format is set to JSON
+  - Check Datadog log processing configuration
+  - Confirm log filtering settings are appropriate
+  - Validate field configuration for log parsing
+
 **Section sources**
-- [traefik.yaml:120-147](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L147)
+- [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
 - [gateway.yaml:10-34](file://apps/infra/gateway-api/chart/gateway.yaml#L10-L34)
 - [ingressroutetcp.yaml:14-20](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L14-L20)
 - [ingressrouteudp.yaml:14-19](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L14-L19)
 - [traefik-static.yaml:10-14](file://apps/infra/gateway-api/chart/traefik-static.yaml#L10-L14)
 
 ## Conclusion
-The Gateway API controller implementation with Traefik v3.3 provides a streamlined, production-ready solution using standard Gateway API v1.5.1 installation and modular configuration approach. The system focuses on reliable HTTP/HTTPS routing while maintaining the flexibility for optional TCP/UDP capabilities through CRD-based patterns. This approach eliminates the complexity of experimental features while preserving full Traefik v3.x compatibility and comprehensive observability across all supported protocols.
+The Gateway API controller implementation with Traefik v3.3 provides a streamlined, production-ready solution using standard Gateway API v1.5.1 installation and modular configuration approach. The system focuses on reliable HTTP/HTTPS routing while maintaining the flexibility for optional TCP/UDP capabilities through CRD-based patterns. Enhanced monitoring capabilities now include comprehensive Prometheus metrics exposure with Datadog Autodiscovery for intelligent metric collection and monitoring, providing robust observability across all supported protocols. This approach eliminates the complexity of experimental features while preserving full Traefik v3.x compatibility and comprehensive observability.
 
 ## Appendices
 
@@ -620,21 +722,26 @@ The Gateway API controller implementation with Traefik v3.3 provides a streamlin
 | HTTPS | websecure | :443 | 30443 | Secure web apps | TLS Termination |
 | TCP | tcp | :9000 | 30900 | Databases, APIs, Custom TCP | TLS Optional |
 | UDP | udp | :9001/udp | 30901 | DNS, DHCP, Real-time | No Connection |
+| Metrics | metrics | :9082 | 30082 | Monitoring | None |
 
 **Section sources**
 - [traefik-static.yaml:15-27](file://apps/infra/gateway-api/chart/traefik-static.yaml#L15-L27)
-- [traefik.yaml:120-147](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L147)
+- [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
 
-### Standard Installation Features
+### Enhanced Monitoring Features
 - **Version**: Gateway API v1.5.1 for stability and long-term support
 - **CRD Integration**: Standard CRDs for HTTPRoute, TCPRoute, UDPRoute
 - **Controller**: traefik.io/gateway-controller for official support
 - **Modular Config**: Separate static and dynamic configuration files
 - **Enhanced RBAC**: Updated permissions for standard resources
 - **Improved Performance**: Optimized resource usage and connection handling
+- **Prometheus Integration**: Built-in metrics endpoint with service annotations
+- **Datadog Autodiscovery**: Intelligent metric collection and monitoring
+- **OpenTelemetry Tracing**: Modernized distributed tracing compatibility
+- **Structured Logging**: JSON format for enhanced log processing
 
 ### Testing Procedures
-Comprehensive testing for standard Gateway API environment:
+Comprehensive testing for standard Gateway API environment with enhanced monitoring:
 
 - **HTTP/HTTPS Testing**: Validate certificate installation and TLS termination
 - **Gateway Readiness**: Verify GatewayClass and Gateway status
@@ -643,6 +750,9 @@ Comprehensive testing for standard Gateway API environment:
 - **RBAC Testing**: Verify access to standard gateway.networking.k8s.io resources
 - **Config Validation**: Confirm --configFile argument works correctly
 - **CRD Testing**: Verify standard CRD installation and functionality
+- **Metrics Testing**: Validate Prometheus scraping and Datadog Autodiscovery
+- **Log Testing**: Confirm structured JSON access logs processing
+- **Trace Testing**: Verify distributed tracing data collection
 
 **Section sources**
 - [README.md (tcp-udp-demo):18-98](file://guide/tcp-udp-demo/README.md#L18-L98)
@@ -655,3 +765,6 @@ Comprehensive testing for standard Gateway API environment:
 - **Tracing Configuration**: Ensure proper OTLP HTTP endpoint connectivity
 - **RBAC Management**: Regularly review and update permissions for gateway resources
 - **CRD Synchronization**: Monitor standard CRD functionality and availability
+- **Monitoring Optimization**: Configure appropriate metric retention and alerting
+- **Autodiscovery Tuning**: Optimize Datadog Autodiscovery for production workloads
+- **Log Management**: Implement proper log rotation and retention policies
