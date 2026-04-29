@@ -14,16 +14,16 @@
 - [httproute-rancher.yaml](file://apps/playground/rancher/chart/httproute-rancher.yaml)
 - [root.yaml](file://bootstrap/root.yaml)
 - [argo_cd.md](file://guide/argocd/argo_cd.md)
-- [kustomization.yaml](file://components/httproute-defaults/kustomization.yaml)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added documentation for the new HTTPRoute defaults component system
-- Updated multi-value configuration approach to include component-based standardization
-- Enhanced HTTPRoute setup section to explain centralized defaults management
-- Added new section covering component-based routing standardization
-- Updated dependency analysis to include component relationships
+- Removed documentation for the HTTPRoute defaults component system
+- Updated multi-value configuration approach to reflect direct HTTPRoute standardization
+- Removed component-based standardization references throughout the document
+- Updated dependency analysis to remove component relationships
+- Revised architecture diagrams to show direct HTTPRoute configuration
+- Updated troubleshooting guide to remove component-related issues
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -31,18 +31,17 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Component-Based HTTPRoute Standardization](#component-based-httproute-standardization)
-7. [Dependency Analysis](#dependency-analysis)
-8. [Performance Considerations](#performance-considerations)
-9. [Troubleshooting Guide](#troubleshooting-guide)
-10. [Conclusion](#conclusion)
-11. [Appendices](#appendices)
+6. [Dependency Analysis](#dependency-analysis)
+7. [Performance Considerations](#performance-considerations)
+8. [Troubleshooting Guide](#troubleshooting-guide)
+9. [Conclusion](#conclusion)
+10. [Appendices](#appendices)
 
 ## Introduction
-This document explains the demo applications deployed in the playground environment, focusing on the hello-api application. It covers configuration across multiple Helm values files (service, ingress via HTTPRoute, and deployment), ArgoCD-driven GitOps synchronization, namespace isolation, and practical update/rollback guidance. The document now includes the new HTTPRoute defaults component system that provides centralized routing behavior standardization across all demo applications.
+This document explains the demo applications deployed in the playground environment, focusing on the hello-api application. It covers configuration across multiple Helm values files (service, ingress via HTTPRoute, and deployment), ArgoCD-driven GitOps synchronization, namespace isolation, and practical update/rollback guidance. The demo applications now feature direct HTTPRoute standardization without the centralized component system.
 
 ## Project Structure
-The playground is managed as an ArgoCD ApplicationSet that discovers and deploys demo applications from the repository. Each demo app defines its own Kustomization and Helm values, enabling modular configuration and safe separation of concerns. The new HTTPRoute defaults component provides centralized standardization for routing behavior across all demo applications.
+The playground is managed as an ArgoCD ApplicationSet that discovers and deploys demo applications from the repository. Each demo app defines its own Kustomization and Helm values, enabling modular configuration and safe separation of concerns. The applications now implement direct HTTPRoute standardization patterns for routing behavior across all demo applications.
 
 ```mermaid
 graph TB
@@ -56,7 +55,7 @@ NS["Namespace 'hello-api'"]
 GW["Gateway 'shared-gateway'"]
 end
 subgraph "Demo App: hello-api"
-Kust["Kustomization<br/>namespace: hello-api<br/>+ HTTPRoute Defaults Component"]
+Kust["Kustomization<br/>namespace: hello-api"]
 Chart["Helm Chart Values<br/>deployment/service/httproute"]
 end
 Root --> Proj
@@ -72,26 +71,25 @@ Chart --> GW
 - [playground.yaml:23-45](file://projects/playground.yaml#L23-L45)
 - [kustomization.yaml:4](file://apps/playground/hello-api/kustomization.yaml#L4)
 - [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
-- [kustomization.yaml:6-7](file://apps/playground/hello-api/kustomization.yaml#L6-L7)
 
 **Section sources**
 - [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
 - [root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
-- [kustomization.yaml:1-11](file://apps/playground/hello-api/kustomization.yaml#L1-L11)
+- [kustomization.yaml:1-8](file://apps/playground/hello-api/kustomization.yaml#L1-L8)
 
 ## Core Components
 - Application discovery and deployment: Managed by an ApplicationSet that scans the apps/playground/**/config.yaml files and generates per-app Application resources. Namespaces are created automatically during sync.
 - hello-api module: Composed of three Helm values overlays—deployment, service, and HTTPRoute—to cleanly separate concerns and enable incremental updates.
-- Ingress and routing: HTTPRoute resources attach to a shared Gateway, enabling path-based routing and header manipulation. Now standardized through the HTTPRoute defaults component.
+- Ingress and routing: HTTPRoute resources attach to a shared Gateway, enabling path-based routing and header manipulation. Now implemented through direct standardization patterns.
 - Namespace isolation: Each demo app runs in its own namespace, isolated from others for safety and experimentation.
-- Component-based standardization: The HTTPRoute defaults component provides centralized routing behavior standardization across all demo applications.
+- Direct HTTPRoute standardization: Applications implement routing behavior patterns directly without centralized component management.
 
 Key configuration anchors:
 - Deployment and container image/ports/resources
 - Service exposure and port mapping
 - HTTPRoute path matching, hostname, and backend routing
 - Kustomization namespace binding and ArgoCD annotations
-- Component-based HTTPRoute defaults management
+- Direct HTTPRoute standardization patterns
 
 **Section sources**
 - [playground.yaml:33-59](file://projects/playground.yaml#L33-L59)
@@ -100,14 +98,13 @@ Key configuration anchors:
 - [values-service.yaml:1-6](file://apps/playground/hello-api/chart/values-service.yaml#L1-L6)
 - [values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
 - [kustomization.yaml:4](file://apps/playground/hello-api/kustomization.yaml#L4)
-- [kustomization.yaml:6-7](file://apps/playground/hello-api/kustomization.yaml#L6-L7)
 
 ## Architecture Overview
-The hello-api demo demonstrates a typical GitOps flow with component-based standardization:
+The hello-api demo demonstrates a typical GitOps flow with direct HTTPRoute standardization:
 - Changes are committed to the repository under apps/playground/hello-api.
 - ArgoCD's ApplicationSet detects the change via a Git generator and creates/updates an Application.
-- The Application applies Kustomization (including HTTPRoute defaults component) and Helm values to the target namespace.
-- The HTTPRoute defaults component automatically standardizes routing behavior across all demo applications.
+- The Application applies Kustomization and Helm values to the target namespace.
+- HTTPRoute resources implement standard routing behavior directly without component dependencies.
 - A Gateway routes traffic to the HTTPRoute, which forwards to the Service and Pod.
 
 ```mermaid
@@ -120,7 +117,7 @@ Dev->>Repo : Commit changes to apps/playground/hello-api
 Repo-->>ArgoCD : Webhook/git poll
 ArgoCD->>ArgoCD : ApplicationSet detects config.yaml
 ArgoCD->>ArgoCD : Create/Update Application
-ArgoCD->>K8s : Apply Kustomization + HTTPRoute Defaults Component + Helm values
+ArgoCD->>K8s : Apply Kustomization + Helm values
 K8s-->>ArgoCD : Status : Synced
 Dev->>K8s : Access via Gateway -> HTTPRoute -> Service -> Pod
 ```
@@ -128,7 +125,7 @@ Dev->>K8s : Access via Gateway -> HTTPRoute -> Service -> Pod
 **Diagram sources**
 - [playground.yaml:33-59](file://projects/playground.yaml#L33-L59)
 - [config.yaml:1-4](file://apps/playground/hello-api/config.yaml#L1-L4)
-- [kustomization.yaml:1-11](file://apps/playground/hello-api/kustomization.yaml#L1-L11)
+- [kustomization.yaml:1-8](file://apps/playground/hello-api/kustomization.yaml#L1-L8)
 - [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
 
 ## Detailed Component Analysis
@@ -143,7 +140,7 @@ Benefits:
 - Separation of concerns enables safer rollouts (e.g., update HTTPRoute without touching Deployment).
 - Reusability across environments via Kustomization overlays.
 - Predictable sync waves to control ordering.
-- Component-based standardization through HTTPRoute defaults component.
+- Direct HTTPRoute standardization without component dependencies.
 
 ```mermaid
 flowchart TD
@@ -153,8 +150,7 @@ Start --> LoadHTTPRoute["Load values-httproute.yaml"]
 LoadDeployment --> Merge["Merge Helm Values"]
 LoadService --> Merge
 LoadHTTPRoute --> Merge
-Merge --> ApplyDefaults["Apply HTTPRoute Defaults Component"]
-ApplyDefaults --> Render["Render Helm Templates"]
+Merge --> Render["Render Helm Templates"]
 Render --> Apply["Apply to Namespace"]
 Apply --> End(["Ready"])
 ```
@@ -163,7 +159,6 @@ Apply --> End(["Ready"])
 - [values.yaml:1-23](file://apps/playground/hello-api/chart/values.yaml#L1-L23)
 - [values-service.yaml:1-6](file://apps/playground/hello-api/chart/values-service.yaml#L1-L6)
 - [values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
-- [kustomization.yaml:6-7](file://apps/playground/hello-api/kustomization.yaml#L6-L7)
 
 **Section sources**
 - [values.yaml:1-23](file://apps/playground/hello-api/chart/values.yaml#L1-L23)
@@ -187,17 +182,16 @@ Operational notes:
 - Optional filters set forwarded headers for upstream compatibility.
 - BackendRef targets the Service name and port.
 
-**Updated** The HTTPRoute now benefits from automatic standardization through the HTTPRoute defaults component, which ensures consistent routing behavior across all demo applications.
+**Updated** The HTTPRoute now implements direct standardization patterns, eliminating the need for centralized component management while maintaining consistent routing behavior across all demo applications.
 
 Operational notes:
 - The shared Gateway must exist in the gateway-api namespace.
 - PathPrefix matching allows clean separation of routes across demo apps.
-- The HTTPRoute defaults component automatically manages parentRef standardization and annotations.
+- Direct HTTPRoute standardization ensures consistent behavior without component dependencies.
 
 **Section sources**
 - [values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
 - [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
-- [kustomization.yaml:6-7](file://apps/playground/hello-api/kustomization.yaml#L6-L7)
 
 ### HTTPRoute Setup Example
 - Parent reference to shared Gateway in the gateway-api namespace.
@@ -206,7 +200,7 @@ Operational notes:
 - Header filters to simulate secure proxy headers.
 - BackendRef pointing to the Service and port.
 
-**Updated** The HTTPRoute setup now leverages the HTTPRoute defaults component for standardized behavior, reducing duplication and ensuring consistency across all demo applications.
+**Updated** The HTTPRoute setup now relies on direct standardization patterns, reducing complexity and eliminating component dependencies while ensuring consistent routing behavior across all demo applications.
 
 **Section sources**
 - [values-httproute.yaml:5-25](file://apps/playground/hello-api/chart/values-httproute.yaml#L5-L25)
@@ -214,16 +208,14 @@ Operational notes:
 ### Kustomization and Namespace Binding
 - Kustomization sets the target namespace to hello-api.
 - ArgoCD annotations propagate through ApplicationSet templates to control sync ordering.
-- **New**: Kustomization includes the HTTPRoute defaults component for centralized standardization.
 
 Operational notes:
 - Namespace creation is handled by ArgoCD sync options.
 - Keep the namespace consistent across Kustomization and HTTPRoute backendRefs.
-- The HTTPRoute defaults component is automatically applied to all HTTPRoute resources.
+- Direct HTTPRoute standardization eliminates component dependency requirements.
 
 **Section sources**
 - [kustomization.yaml:4](file://apps/playground/hello-api/kustomization.yaml#L4)
-- [kustomization.yaml:6-7](file://apps/playground/hello-api/kustomization.yaml#L6-L7)
 - [config.yaml:1-4](file://apps/playground/hello-api/config.yaml#L1-L4)
 
 ### Relationship to Playground Namespace Isolation
@@ -245,7 +237,7 @@ Practical implications:
 - Use annotations to influence sync wave ordering.
 - Leverage automated retry/backoff to handle transient failures.
 - Self-healing keeps drift in check.
-- Component-based standardization reduces configuration complexity.
+- Direct HTTPRoute standardization reduces configuration complexity.
 
 **Section sources**
 - [playground.yaml:33-74](file://projects/playground.yaml#L33-L74)
@@ -255,67 +247,14 @@ Practical implications:
 - Demonstrates GitOps end-to-end: commit → ArgoCD → Kubernetes.
 - Exercises path-based routing, header forwarding, and backend binding.
 - Provides a safe sandbox for experimenting with updates, rollbacks, and troubleshooting.
-- **New**: Illustrates component-based configuration management and standardization practices.
-
-## Component-Based HTTPRoute Standardization
-
-### HTTPRoute Defaults Component System
-The new HTTPRoute defaults component provides centralized standardization for routing behavior across all demo applications. This component ensures consistent HTTPRoute configuration patterns and reduces duplication across individual applications.
-
-**Component Capabilities:**
-- Automatic parentRef standardization to shared-gateway in gateway-api namespace
-- Consistent annotation management for tooling visibility
-- Strategic merge patching that enhances existing configurations
-- Non-intrusive application that preserves custom settings
-
-**Configuration Behavior:**
-- Ensures parentRefs[0] always references shared-gateway in gateway-api namespace
-- Adds the routing.hoangvu75.space/managed annotation for tooling visibility
-- Uses strategic merge patching to enhance existing HTTPRoute configurations
-- Preserves custom settings while applying standard defaults
-
-**Integration Benefits:**
-- Reduces configuration duplication across demo applications
-- Ensures consistent routing behavior standards
-- Simplifies maintenance and updates
-- Provides centralized control for routing policies
-
-```mermaid
-flowchart TD
-Component["HTTPRoute Defaults Component"] --> Patch["Strategic Merge Patch"]
-Patch --> ParentRef["Standardize parentRefs[0]"]
-Patch --> Annotation["Add managed annotations"]
-ParentRef --> Apply["Apply to HTTPRoute Resources"]
-Annotation --> Apply
-Apply --> Result["Consistent Routing Behavior"]
-```
-
-**Diagram sources**
-- [kustomization.yaml:15-32](file://components/httproute-defaults/kustomization.yaml#L15-L32)
-
-**Section sources**
-- [kustomization.yaml:1-32](file://components/httproute-defaults/kustomization.yaml#L1-L32)
-- [kustomization.yaml:6-7](file://apps/playground/hello-api/kustomization.yaml#L6-L7)
-
-### Component Integration Patterns
-All demo applications now integrate the HTTPRoute defaults component through their Kustomization files. This creates a consistent pattern for managing routing behavior across the playground environment.
-
-**Integration Examples:**
-- hello-api: Includes component in kustomization.yaml
-- argocd-ingress: Includes component in kustomization.yaml  
-- rancher: Includes component in kustomization.yaml
-
-**Section sources**
-- [kustomization.yaml:6-7](file://apps/playground/hello-api/kustomization.yaml#L6-L7)
-- [kustomization.yaml:7](file://apps/playground/argocd-ingress/kustomization.yaml#L7)
-- [kustomization.yaml:7](file://apps/playground/rancher/kustomization.yaml#L7)
+- **Updated**: Illustrates direct HTTPRoute configuration management and standardization practices.
 
 ## Dependency Analysis
 The hello-api demo depends on:
 - Shared Gateway availability in the gateway-api namespace.
 - Namespace existence and proper RBAC for the ApplicationSet to create namespaces and apply resources.
 - Consistent naming between Service and HTTPRoute backendRefs.
-- **New**: HTTPRoute defaults component for centralized standardization.
+- **Updated**: Direct HTTPRoute standardization without component dependencies.
 
 ```mermaid
 graph LR
@@ -325,7 +264,6 @@ SVC --> POD["Pods (from Deployment)"]
 NS["Namespace 'hello-api'"] --> POD
 NS --> SVC
 NS --> HR
-COMP["HTTPRoute Defaults Component"] --> HR
 ```
 
 **Diagram sources**
@@ -333,21 +271,19 @@ COMP["HTTPRoute Defaults Component"] --> HR
 - [values-httproute.yaml:24-25](file://apps/playground/hello-api/chart/values-httproute.yaml#L24-L25)
 - [values-service.yaml:5-6](file://apps/playground/hello-api/chart/values-service.yaml#L5-L6)
 - [kustomization.yaml:4](file://apps/playground/hello-api/kustomization.yaml#L4)
-- [kustomization.yaml:6-7](file://apps/playground/hello-api/kustomization.yaml#L6-L7)
 
 **Section sources**
 - [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
 - [values-httproute.yaml:24-25](file://apps/playground/hello-api/chart/values-httproute.yaml#L24-L25)
 - [values-service.yaml:5-6](file://apps/playground/hello-api/chart/values-service.yaml#L5-L6)
 - [kustomization.yaml:4](file://apps/playground/hello-api/kustomization.yaml#L4)
-- [kustomization.yaml:6-7](file://apps/playground/hello-api/kustomization.yaml#L6-L7)
 
 ## Performance Considerations
 - Resource requests and limits: The deployment defines small CPU and memory limits/requests suitable for playground usage. Increase cautiously for load testing while keeping the cluster balanced.
 - Replicas: Single replica is appropriate for demos; scale up only when validating horizontal scaling behavior.
 - Image choice: Lightweight static HTTP server image minimizes overhead.
 - Network path: HTTPRoute and Gateway introduce minimal overhead; ensure listener protocols and TLS termination align with your testing needs.
-- **New**: Component-based configuration reduces processing overhead through centralized standardization.
+- **Updated**: Direct HTTPRoute standardization reduces processing overhead through simplified configuration management.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -355,28 +291,27 @@ Common issues and resolutions:
   - Verify HTTPRoute exists in the hello-api namespace and attaches to the shared Gateway.
   - Confirm hostname and path prefix match client expectations.
   - Ensure the Service name and port match the HTTPRoute backendRef.
-  - **New**: Check that the HTTPRoute defaults component is properly applied and not conflicting with custom settings.
+  - **Updated**: Check that HTTPRoute standardization patterns are correctly implemented without component dependencies.
 - No traffic after sync
   - Check ArgoCD Application status and logs for sync errors.
   - Validate that the namespace exists and the ApplicationSet generated the Application.
-  - **New**: Verify component integration in Kustomization and component application success.
+  - **Updated**: Verify direct HTTPRoute standardization implementation and configuration correctness.
 - Rollback procedure
   - Adjust the Helm values to revert to a previous image/tag or configuration.
   - Trigger a manual sync or wait for auto-sync; ArgoCD self-healing will reconcile differences.
-  - **New**: Remove or modify component references if component-related issues are suspected.
+  - **Updated**: Remove or modify HTTPRoute standardization patterns if issues are suspected.
 - Health checks
   - Use curl or browser to test the configured hostname and path.
   - Inspect pod logs and readiness/liveness probes if defined externally.
-  - **New**: Monitor component application logs for patch conflicts or merge failures.
+  - **Updated**: Monitor HTTPRoute standardization implementation for configuration conflicts.
 
 **Section sources**
 - [values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
 - [values-service.yaml:1-6](file://apps/playground/hello-api/chart/values-service.yaml#L1-L6)
 - [playground.yaml:61-74](file://projects/playground.yaml#L61-L74)
-- [kustomization.yaml:6-7](file://apps/playground/hello-api/kustomization.yaml#L6-L7)
 
 ## Conclusion
-The hello-api demo illustrates a clean, modular approach to deploying and exposing applications in the playground using ArgoCD and Gateway API. The integration of the HTTPRoute defaults component provides centralized standardization that enhances consistency and reduces configuration complexity across all demo applications. By separating concerns across Helm values, leveraging namespace isolation, controlling sync order with waves, and utilizing component-based standardization, it serves as an excellent learning tool for GitOps workflows, routing, and safe experimentation.
+The hello-api demo illustrates a clean, modular approach to deploying and exposing applications in the playground using ArgoCD and Gateway API. The implementation of direct HTTPRoute standardization provides consistent routing behavior without centralized component dependencies, enhancing simplicity and maintainability across all demo applications. By separating concerns across Helm values, leveraging namespace isolation, controlling sync order with waves, and utilizing direct HTTPRoute standardization, it serves as an excellent learning tool for GitOps workflows, routing, and safe experimentation.
 
 ## Appendices
 
@@ -385,7 +320,7 @@ The hello-api demo illustrates a clean, modular approach to deploying and exposi
 - Sync: ArgoCD detects changes and reconciles the Application.
 - Verification: Test the route and confirm pod rollout.
 - Rollback: Revert to a known-good commit; ArgoCD self-heals to the previous state.
-- **New**: Component updates: Modify the HTTPRoute defaults component to change centralized routing behavior.
+- **Updated**: Direct HTTPRoute standardization updates: Modify HTTPRoute configuration patterns directly in values-httproute.yaml.
 
 **Section sources**
 - [playground.yaml:61-74](file://projects/playground.yaml#L61-L74)
@@ -393,15 +328,13 @@ The hello-api demo illustrates a clean, modular approach to deploying and exposi
 ### Appendix B: Related Ingress Examples in the Playground
 - ArgoCD UI exposed via HTTPRoute attached to the shared Gateway.
 - Rancher UI similarly routed through HTTPRoute to the Rancher Service.
-- **New**: All HTTPRoute resources benefit from the HTTPRoute defaults component for standardized behavior.
+- **Updated**: All HTTPRoute resources implement direct standardization patterns for consistent behavior.
 
-These demonstrate consistent patterns for multiple demo apps with centralized standardization.
+These demonstrate consistent patterns for multiple demo apps with direct HTTPRoute standardization.
 
 **Section sources**
 - [httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
 - [httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [kustomization.yaml:6-7](file://apps/playground/argocd-ingress/kustomization.yaml#L6-L7)
-- [kustomization.yaml:6-7](file://apps/playground/rancher/kustomization.yaml#L6-L7)
 
 ### Appendix C: Getting Started with ArgoCD
 - Install ArgoCD, expose the UI, apply repository secrets, and bootstrap the root Application.
@@ -409,23 +342,21 @@ These demonstrate consistent patterns for multiple demo apps with centralized st
 **Section sources**
 - [argo_cd.md:1-34](file://guide/argocd/argo_cd.md#L1-L34)
 
-### Appendix D: HTTPRoute Defaults Component Usage
-**Component Integration:**
-To use the HTTPRoute defaults component in your own applications:
-1. Add the component reference to your Kustomization:
-   ```yaml
-   components:
-     - ../../../components/httproute-defaults
-   ```
-2. Ensure your HTTPRoute resources are properly structured
-3. The component will automatically apply standardization rules
+### Appendix D: Direct HTTPRoute Standardization Patterns
+**Direct Implementation:**
+To implement direct HTTPRoute standardization in your own applications:
+1. Configure HTTPRoute parentRefs to reference shared-gateway in gateway-api namespace
+2. Add consistent annotations for tooling visibility
+3. Implement standard header filtering patterns
+4. Ensure consistent backendRef naming conventions
 
-**Component Customization:**
-The component can be customized by modifying the kustomization.yaml file in the components/httproute-defaults directory to adjust:
-- Default parentRef settings
-- Annotation patterns
-- Strategic merge patch configurations
+**Standardization Benefits:**
+- Eliminates component dependency complexity
+- Reduces configuration management overhead
+- Provides consistent routing behavior across applications
+- Simplifies troubleshooting and maintenance
 
 **Section sources**
-- [kustomization.yaml:1-32](file://components/httproute-defaults/kustomization.yaml#L1-L32)
-- [kustomization.yaml:6-7](file://apps/playground/hello-api/kustomization.yaml#L6-L7)
+- [values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
+- [httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
+- [httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)

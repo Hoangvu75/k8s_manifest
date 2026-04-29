@@ -21,15 +21,15 @@
 - [apps/playground/hello-api/chart/values-httproute.yaml](file://apps/playground/hello-api/chart/values-httproute.yaml)
 - [apps/playground/rancher/kustomization.yaml](file://apps/playground/rancher/kustomization.yaml)
 - [apps/playground/rancher/chart/httproute-rancher.yaml](file://apps/playground/rancher/chart/httproute-rancher.yaml)
-- [components/httproute-defaults/kustomization.yaml](file://components/httproute-defaults/kustomization.yaml)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added documentation for the new routing.hoangvu75.space/expose label system that serves as opt-in indicator for routing exposure
-- Updated namespace isolation patterns to explain selective application of routing policies
-- Enhanced HTTPRoute management documentation with the new defaults component
-- Expanded namespace lifecycle management to include routing-aware namespace labeling
+- Removed references to the httproute-defaults component that was dropped from the repository
+- Updated routing exposure documentation to reflect direct HTTPRoute configuration without component-managed annotations
+- Revised HTTPRoute management documentation to show inline configuration approach
+- Updated namespace lifecycle management to remove component-based annotation management references
+- Removed component-based annotation management references throughout the document
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -45,13 +45,13 @@
 11. [Appendices](#appendices)
 
 ## Introduction
-This document explains the namespace management and isolation strategies implemented in the GitOps repository. It focuses on how each application defines its own namespace via Kustomize, how shared namespaces are provisioned early in the bootstrap process, and how Argo CD's sync waves and AppProject scoping enforce logical separation between application types. The document now includes the new routing exposure control system using the routing.hoangvu75.space/expose labels, which provides selective application of service mesh and routing policies to namespaces that explicitly opt-in to these capabilities.
+This document explains the namespace management and isolation strategies implemented in the GitOps repository. It focuses on how each application defines its own namespace via Kustomize, how shared namespaces are provisioned early in the bootstrap process, and how Argo CD's sync waves and AppProject scoping enforce logical separation between application types. The document now reflects the current implementation where HTTPRoute configurations are managed directly within each application rather than through a centralized defaults component.
 
 ## Project Structure
 The repository organizes manifests across three layers:
 - Bootstrap layer: bootstraps Argo CD and shared cluster resources.
 - Projects layer: defines AppProjects and ApplicationSets per application type (infra vs. playground).
-- Apps layer: individual applications declare their namespace and Helm/Kustomize resources.
+- Apps layer: individual applications declare their namespace and Helm/Kustomize resources with direct HTTPRoute configurations.
 
 ```mermaid
 graph TB
@@ -70,12 +70,12 @@ H --> J["Apps Playground<br/>apps/playground/*/kustomization.yaml"]
 - [bootstrap/kustomization.yaml:1-38](file://bootstrap/kustomization.yaml#L1-L38)
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [bootstrap/cluster-resources.yaml:1-33](file://bootstrap/cluster-resources.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 - [projects/kustomization.yaml:1-22](file://projects/kustomization.yaml#L1-L22)
 - [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 - [apps/infra/cloudflared/kustomization.yaml:1-8](file://apps/infra/cloudflared/kustomization.yaml#L1-L8)
-- [apps/playground/hello-api/kustomization.yaml:1-14](file://apps/playground/hello-api/kustomization.yaml#L1-L14)
+- [apps/playground/hello-api/kustomization.yaml:1-8](file://apps/playground/hello-api/kustomization.yaml#L1-L8)
 
 **Section sources**
 - [README.md:87-118](file://README.md#L87-L118)
@@ -87,23 +87,24 @@ H --> J["Apps Playground<br/>apps/playground/*/kustomization.yaml"]
 - AppProjects scope ApplicationSets to specific application families (infra vs. playground), isolating destinations and source repos.
 - ApplicationSets discover apps via config.yaml and render Kustomize manifests that set the namespace per app.
 - Shared namespaces are created early (sync wave -1) so dependent apps can safely reference them.
-- **Updated**: Routing exposure control system uses routing.hoangvu75.space/expose labels to selectively apply service mesh and routing policies.
+- **Updated**: HTTPRoute configurations are now managed directly within each application using inline configurations instead of a centralized defaults component.
 
 Key behaviors:
 - Shared namespaces are declared in cluster-resources/default/namespace.yaml and applied with sync-wave -1.
 - Infra AppProject/AppSet sets destination.namespace to '*' to allow deploying into any namespace.
 - Playground AppProject/AppSet sets CreateNamespace=true and SkipDryRunOnMissingResource=true to auto-provision app namespaces.
+- HTTPRoute configurations are defined directly in application charts with parentRefs pointing to the shared gateway.
 - **Updated**: Only namespaces with routing.hoangvu75.space/expose=true label are included in Gateway's namespace selectors.
 
 **Section sources**
 - [README.md:144-147](file://README.md#L144-L147)
 - [bootstrap/cluster-resources.yaml:1-33](file://bootstrap/cluster-resources.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 - [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 
 ## Architecture Overview
-The namespace lifecycle is orchestrated by Argo CD sync waves and Kustomize namespace directives, now enhanced with routing exposure controls:
+The namespace lifecycle is orchestrated by Argo CD sync waves and Kustomize namespace directives, now enhanced with direct HTTPRoute configuration management:
 
 ```mermaid
 sequenceDiagram
@@ -131,11 +132,11 @@ Note over NS,App : Only namespaces with expose=true participate in routing
 **Diagram sources**
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [bootstrap/cluster-resources.yaml:1-33](file://bootstrap/cluster-resources.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 - [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 - [apps/infra/cloudflared/kustomization.yaml:1-8](file://apps/infra/cloudflared/kustomization.yaml#L1-L8)
-- [apps/playground/hello-api/kustomization.yaml:1-14](file://apps/playground/hello-api/kustomization.yaml#L1-L14)
+- [apps/playground/hello-api/kustomization.yaml:1-8](file://apps/playground/hello-api/kustomization.yaml#L1-L8)
 
 ## Detailed Component Analysis
 
@@ -153,12 +154,12 @@ Ready --> FilterGateway["Gateway selects only expose=true namespaces"]
 
 **Diagram sources**
 - [bootstrap/cluster-resources.yaml:1-33](file://bootstrap/cluster-resources.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 
 **Section sources**
 - [README.md:144-147](file://README.md#L144-L147)
 - [bootstrap/cluster-resources.yaml:1-33](file://bootstrap/cluster-resources.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 
 ### AppProject and ApplicationSet Scoping
 AppProjects define cluster and namespace resource whitelists and bind ApplicationSets to specific application families. This enforces logical separation between infra and playground apps.
@@ -173,11 +174,11 @@ SetPlay --> AppsPlay["Apps under apps/playground/*"]
 
 **Diagram sources**
 - [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 
 **Section sources**
 - [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 
 ### Per-Application Namespace Definition
 Each application declares its namespace in its Kustomization. This ensures workloads are deployed into isolated namespaces and simplifies ownership and quota enforcement.
@@ -226,22 +227,23 @@ class Kustomization_rancher {
 - [apps/infra/cloudflared/kustomization.yaml:1-8](file://apps/infra/cloudflared/kustomization.yaml#L1-L8)
 - [apps/infra/gateway-api/kustomization.yaml:1-11](file://apps/infra/gateway-api/kustomization.yaml#L1-L11)
 - [apps/infra/datadog/kustomization.yaml:1-8](file://apps/infra/datadog/kustomization.yaml#L1-L8)
-- [apps/playground/argocd-ingress/kustomization.yaml:1-15](file://apps/playground/argocd-ingress/kustomization.yaml#L1-L15)
-- [apps/playground/hello-api/kustomization.yaml:1-14](file://apps/playground/hello-api/kustomization.yaml#L1-L14)
-- [apps/playground/rancher/kustomization.yaml:1-13](file://apps/playground/rancher/kustomization.yaml#L1-L13)
+- [apps/playground/argocd-ingress/kustomization.yaml:1-9](file://apps/playground/argocd-ingress/kustomization.yaml#L1-L9)
+- [apps/playground/hello-api/kustomization.yaml:1-8](file://apps/playground/hello-api/kustomization.yaml#L1-L8)
+- [apps/playground/rancher/kustomization.yaml:1-9](file://apps/playground/rancher/kustomization.yaml#L1-L9)
 
 **Section sources**
 - [apps/infra/cloudflared/kustomization.yaml:1-8](file://apps/infra/cloudflared/kustomization.yaml#L1-L8)
 - [apps/infra/gateway-api/kustomization.yaml:1-11](file://apps/infra/gateway-api/kustomization.yaml#L1-L11)
 - [apps/infra/datadog/kustomization.yaml:1-8](file://apps/infra/datadog/kustomization.yaml#L1-L8)
-- [apps/playground/argocd-ingress/kustomization.yaml:1-15](file://apps/playground/argocd-ingress/kustomization.yaml#L1-L15)
-- [apps/playground/hello-api/kustomization.yaml:1-14](file://apps/playground/hello-api/kustomization.yaml#L1-L14)
-- [apps/playground/rancher/kustomization.yaml:1-13](file://apps/playground/rancher/kustomization.yaml#L1-L13)
+- [apps/playground/argocd-ingress/kustomization.yaml:1-9](file://apps/playground/argocd-ingress/kustomization.yaml#L1-L9)
+- [apps/playground/hello-api/kustomization.yaml:1-8](file://apps/playground/hello-api/kustomization.yaml#L1-L8)
+- [apps/playground/rancher/kustomization.yaml:1-9](file://apps/playground/rancher/kustomization.yaml#L1-L9)
 
 ### Relationship Between Application Namespaces and Cluster-Level Resources
 - Shared namespaces (e.g., gateway-api, datadog, argocd, cattle-system, hello-api) are provisioned early and reused by multiple apps.
 - Cluster-scoped resources (e.g., Gateway API CRDs, ClusterRoles) are installed via ApplicationSets and referenced by apps in their respective namespaces.
 - ApplicationSets in playground set CreateNamespace=true to auto-create app namespaces when missing.
+- **Updated**: HTTPRoute configurations are now defined directly in each application's chart files with parentRefs pointing to the shared gateway.
 - **Updated**: Only namespaces with routing.hoangvu75.space/expose=true participate in the shared Gateway routing infrastructure.
 
 ```mermaid
@@ -253,18 +255,19 @@ AppsInfra["Infra AppProject/AppSet"] --> AppsInfraNS["Deploy into infra-defined 
 AppsPlay["Playground AppProject/AppSet"] --> AppsPlayNS["Auto-create & deploy into app namespaces"]
 GW --> ExposedNS["Namespaces with expose=true<br/>participate in routing"]
 GW -.-> NonExposedNS["Namespaces without expose=false<br/>excluded from routing"]
+AppsPlayNS --> DirectRoutes["Direct HTTPRoute configs<br/>without component annotations"]
 ```
 
 **Diagram sources**
 - [bootstrap/cluster-resources.yaml:1-33](file://bootstrap/cluster-resources.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 - [apps/infra/gateway-api/chart/gateway.yaml:1-33](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L33)
 - [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 
 **Section sources**
 - [bootstrap/cluster-resources.yaml:1-33](file://bootstrap/cluster-resources.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 - [apps/infra/gateway-api/chart/gateway.yaml:1-33](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L33)
 - [projects/playground.yaml:72-74](file://projects/playground.yaml#L72-L74)
 
@@ -272,6 +275,7 @@ GW -.-> NonExposedNS["Namespaces without expose=false<br/>excluded from routing"
 - AppProjects isolate infra and playground apps, preventing cross-project interference.
 - ApplicationSets render Kustomize manifests per app, setting the namespace per application.
 - Sync waves ensure shared namespaces and cluster resources exist before apps deploy, enabling independent deployment cycles per app family.
+- **Updated**: HTTPRoute isolation ensures only explicitly exposed namespaces receive traffic routing, with direct configuration management eliminating component dependencies.
 - **Updated**: Routing isolation ensures only explicitly exposed namespaces receive traffic routing, preventing unintended service mesh participation.
 
 ```mermaid
@@ -296,30 +300,31 @@ Note over NS,Workload : Only namespaces with expose=true participate in routing
 
 **Diagram sources**
 - [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 - [apps/infra/cloudflared/kustomization.yaml:1-8](file://apps/infra/cloudflared/kustomization.yaml#L1-L8)
-- [apps/playground/hello-api/kustomization.yaml:1-14](file://apps/playground/hello-api/kustomization.yaml#L1-L14)
+- [apps/playground/hello-api/kustomization.yaml:1-8](file://apps/playground/hello-api/kustomization.yaml#L1-L8)
 
 **Section sources**
 - [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 
 ### Default Namespace Baseline for Shared Cluster Resources
 - The default namespace group is the baseline for shared cluster resources (e.g., shared namespaces).
 - These are applied with sync-wave -1 to ensure availability before dependent apps deploy.
 - ApplicationSets in the projects layer target these namespaces or auto-create app-specific ones.
-- **Updated**: Expose labels determine whether namespaces participate in the shared routing infrastructure.
+- **Updated**: Expose labels determine whether namespaces participate in the shared routing infrastructure, with HTTPRoute configurations managed directly in applications.
 
 **Section sources**
 - [README.md:144-147](file://README.md#L144-L147)
 - [bootstrap/cluster-resources.yaml:1-33](file://bootstrap/cluster-resources.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 
 ### Namespace Lifecycle Management and Cleanup
 - Creation: Playground ApplicationSets set CreateNamespace=true to provision app namespaces automatically.
 - Cleanup: AppProject pruning policies and ApplicationSet self-heal/prune settings support lifecycle management.
 - Dry-run behavior: SkipDryRunOnMissingResource=true reduces unnecessary dry-run failures when namespaces are missing.
 - **Updated**: Expose label management during namespace lifecycle - namespaces without expose=true won't receive routing configuration.
+- **Updated**: HTTPRoute configurations are managed directly within applications, eliminating component-based lifecycle dependencies.
 
 **Section sources**
 - [projects/playground.yaml:72-74](file://projects/playground.yaml#L72-L74)
@@ -328,24 +333,23 @@ Note over NS,Workload : Only namespaces with expose=true participate in routing
 
 ## Routing Exposure Control System
 
-**Updated** The routing exposure control system provides fine-grained control over which namespaces participate in the service mesh and routing infrastructure through the routing.hoangvu75.space/expose label.
+**Updated** The routing exposure control system provides fine-grained control over which namespaces participate in the service mesh and routing infrastructure through the routing.hoangvu75.space/expose label. HTTPRoute configurations are now managed directly within each application rather than through a centralized defaults component.
 
 ### Expose Label Implementation
 The expose label system works at multiple levels:
 
 1. **Namespace Level**: Namespaces declare their intent to participate in routing
 2. **Gateway Level**: Gateway selects namespaces using label selectors
-3. **HTTPRoute Level**: Routes inherit routing configuration through defaults
+3. **HTTPRoute Level**: Routes are configured directly within applications with parentRefs to the shared gateway
 
 ```mermaid
 flowchart TD
 NS["Namespace Creation"] --> Label["Add expose=true label"]
 Label --> GWSelector["Gateway namespace selector"]
 GWSelector --> Route["HTTPRoute creation"]
-Route --> Defaults["Apply HTTPRoute defaults"]
-Defaults --> ParentRef["Set parentRefs to shared-gateway"]
-ParentRef --> Managed["Add managed annotation"]
-Managed --> Exposed["Namespace participates in routing"]
+Route --> DirectConfig["Direct HTTPRoute configuration<br/>without component annotations"]
+DirectConfig --> ParentRef["Set parentRefs to shared-gateway"]
+ParentRef --> Exposed["Namespace participates in routing"]
 ```
 
 **Diagram sources**
@@ -354,22 +358,24 @@ Managed --> Exposed["Namespace participates in routing"]
 - [cluster-resources/default/namespace.yaml:49-50](file://cluster-resources/default/namespace.yaml#L49-L50)
 - [cluster-resources/default/namespace.yaml:57-58](file://cluster-resources/default/namespace.yaml#L57-L58)
 - [apps/infra/gateway-api/chart/gateway.yaml:18-28](file://apps/infra/gateway-api/chart/gateway.yaml#L18-L28)
-- [components/httproute-defaults/kustomization.yaml:24-31](file://components/httproute-defaults/kustomization.yaml#L24-L31)
 
-### HTTPRoute Defaults Component
-The HTTPRoute defaults component provides standardized configuration for all routes in the cluster:
+### Direct HTTPRoute Configuration Approach
+HTTPRoute configurations are now defined directly within each application's chart files:
 
-- Ensures parentRefs always reference shared-gateway in gateway-api namespace
-- Adds routing.hoangvu75.space/managed annotation for tooling visibility
-- Standardizes header modifications and TLS termination
+- Each HTTPRoute specifies its own parentRefs pointing to shared-gateway in the gateway-api namespace
+- Header modifications and TLS termination are configured inline within each route
+- Sync waves ensure proper ordering between gateway creation and route deployment
+- No centralized defaults component is required for route management
 
 **Section sources**
-- [components/httproute-defaults/kustomization.yaml:1-32](file://components/httproute-defaults/kustomization.yaml#L1-L32)
+- [apps/playground/hello-api/chart/values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
+- [apps/playground/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
+- [apps/playground/rancher/chart/httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
 - [apps/infra/gateway-api/chart/gateway.yaml:1-33](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 
 ## Dependency Analysis
-The following diagram shows how bootstrap, projects, apps, and the new routing exposure system depend on each other to establish namespace isolation and controlled routing exposure.
+The following diagram shows how bootstrap, projects, apps, and the routing exposure system depend on each other to establish namespace isolation and controlled routing exposure.
 
 ```mermaid
 graph TB
@@ -385,23 +391,23 @@ PlayProj --> PlayApps["Apps under apps/playground/*"]
 InfraApps --> InfraNS["Infra Namespaces"]
 PlayApps --> PlayNS["Playground Namespaces"]
 NSDef --> GW["Gateway with expose selector"]
-GW --> ExposedRoutes["HTTPRoutes in exposed namespaces"]
-ExposedRoutes --> Defaults["HTTPRoute defaults component"]
-Defaults --> ManagedRoutes["Standardized route configuration"]
+GW --> ExposedRoutes["HTTPRoutes in exposed namespaces<br/>with direct configuration"]
+ExposedRoutes --> DirectConfig["Direct HTTPRoute configuration<br/>without component dependencies"]
+DirectConfig --> ParentRef["ParentRefs to shared-gateway"]
+ParentRef --> Managed["No component-managed annotations<br/>direct configuration only"]
 ```
 
 **Diagram sources**
 - [bootstrap/kustomization.yaml:1-38](file://bootstrap/kustomization.yaml#L1-L38)
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [bootstrap/cluster-resources.yaml:1-33](file://bootstrap/cluster-resources.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 - [projects/kustomization.yaml:1-22](file://projects/kustomization.yaml#L1-L22)
 - [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [projects/playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [projects/playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 - [apps/infra/cloudflared/kustomization.yaml:1-8](file://apps/infra/cloudflared/kustomization.yaml#L1-L8)
-- [apps/playground/hello-api/kustomization.yaml:1-14](file://apps/playground/hello-api/kustomization.yaml#L1-L14)
+- [apps/playground/hello-api/kustomization.yaml:1-8](file://apps/playground/hello-api/kustomization.yaml#L1-L8)
 - [apps/infra/gateway-api/chart/gateway.yaml:1-33](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L33)
-- [components/httproute-defaults/kustomization.yaml:1-32](file://components/httproute-defaults/kustomization.yaml#L1-L32)
 
 **Section sources**
 - [bootstrap/kustomization.yaml:1-38](file://bootstrap/kustomization.yaml#L1-L38)
@@ -412,6 +418,7 @@ Defaults --> ManagedRoutes["Standardized route configuration"]
 - ApplicationSet pruning and self-healing minimize drift and keep clusters aligned with desired state.
 - Auto-creation of namespaces avoids manual intervention and reduces operational overhead.
 - **Updated**: Expose label filtering reduces routing complexity by limiting Gateway namespace selection to only those namespaces that explicitly opt-in.
+- **Updated**: Direct HTTPRoute configuration eliminates component dependency overhead and reduces configuration management complexity.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -424,17 +431,21 @@ Common issues and resolutions:
   - Use sync waves to ensure Gateway exists before HTTPRoutes are applied.
 - **Updated**: Routes not appearing in Gateway:
   - Verify namespace has routing.hoangvu75.space/expose=true label.
-  - Check that HTTPRoute inherits parentRefs from defaults component.
-  - Ensure HTTPRoute has routing.hoangvu75.space/managed annotation.
+  - Check that HTTPRoute has correct parentRefs to shared-gateway.
+  - Ensure HTTPRoute configuration is properly formatted without component dependencies.
+- **Updated**: HTTPRoute configuration errors:
+  - Verify parentRefs point to shared-gateway in gateway-api namespace.
+  - Check that header modifiers and backendRefs are correctly specified.
+  - Ensure sync-wave annotations are properly set for deployment ordering.
 
 **Section sources**
 - [bootstrap/cluster-resources.yaml:1-33](file://bootstrap/cluster-resources.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 - [projects/playground.yaml:72-74](file://projects/playground.yaml#L72-L74)
 - [README.md:76-85](file://README.md#L76-L85)
 
 ## Conclusion
-This repository implements robust namespace management and isolation by combining centralized shared namespace provisioning, AppProject scoping, and per-application namespace declarations via Kustomize. The new routing exposure control system using the routing.hoangvu75.space/expose labels provides selective application of service mesh and routing policies, enabling fine-grained control over which namespaces participate in the shared Gateway infrastructure. The sync-wave orchestration and ApplicationSet automation enable independent deployment cycles while preventing resource conflicts and ensuring predictable upgrades.
+This repository implements robust namespace management and isolation by combining centralized shared namespace provisioning, AppProject scoping, and per-application namespace declarations via Kustomize. The routing exposure control system using the routing.hoangvu75.space/expose labels provides selective application of service mesh and routing policies, enabling fine-grained control over which namespaces participate in the shared Gateway infrastructure. The shift to direct HTTPRoute configuration eliminates component dependencies while maintaining standardized routing patterns. The sync-wave orchestration and ApplicationSet automation enable independent deployment cycles while preventing resource conflicts and ensuring predictable upgrades.
 
 ## Appendices
 
@@ -442,15 +453,17 @@ This repository implements robust namespace management and isolation by combinin
 - Shared namespaces are defined in cluster-resources/default/namespace.yaml and applied with sync-wave -1.
 - Playground apps rely on CreateNamespace=true to auto-provision their namespaces.
 - **Updated**: Namespaces with routing.hoangvu75.space/expose=true participate in the shared routing infrastructure.
+- **Updated**: HTTPRoute configurations are managed directly within each application's chart files.
 
 **Section sources**
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
 - [projects/playground.yaml:72-74](file://projects/playground.yaml#L72-L74)
 
 ### Appendix B: RBAC Considerations
 - AppProjects whitelist cluster and namespace resources, limiting what apps can manage.
 - Destination scoping confines apps to permitted namespaces, reducing blast radius.
 - **Updated**: Expose labels don't affect RBAC permissions but control routing participation.
+- **Updated**: HTTPRoute configurations are managed directly within applications without component dependencies.
 
 **Section sources**
 - [projects/infra.yaml:10-20](file://projects/infra.yaml#L10-L20)
@@ -460,13 +473,17 @@ This repository implements robust namespace management and isolation by combinin
 - Enforce resource quotas at the namespace level to constrain compute and storage usage per app.
 - Combine with namespace-scoped LimitRanges and PodSecurity Standards for consistent governance.
 - **Updated**: Expose label status doesn't affect resource quota enforcement but may influence routing costs.
+- **Updated**: Direct HTTPRoute configuration doesn't impact resource quota calculations.
 
 ### Appendix D: Routing Exposure Control
 - Use routing.hoangvu75.space/expose=true to opt namespaces into service mesh and routing.
 - Namespaces without the label remain isolated from shared Gateway infrastructure.
-- Combine with HTTPRoute defaults component for standardized route configuration.
+- **Updated**: HTTPRoute configurations are managed directly within applications with parentRefs to shared-gateway.
+- **Updated**: No component-based annotation management is required for routing configuration.
 
 **Section sources**
-- [components/httproute-defaults/kustomization.yaml:1-32](file://components/httproute-defaults/kustomization.yaml#L1-L32)
 - [apps/infra/gateway-api/chart/gateway.yaml:1-33](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L33)
-- [cluster-resources/default/namespace.yaml:1-59](file://cluster-resources/default/namespace.yaml#L1-L59)
+- [cluster-resources/default/namespace.yaml:1-60](file://cluster-resources/default/namespace.yaml#L1-L60)
+- [apps/playground/hello-api/chart/values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
+- [apps/playground/argocd-ingress/chart/httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
+- [apps/playground/rancher/chart/httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)

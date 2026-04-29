@@ -5,8 +5,8 @@
 - [argocd-cmd-params-cm.yaml](file://apps/playground/argocd-ingress/chart/argocd-cmd-params-cm.yaml)
 - [root.yaml](file://bootstrap/root.yaml)
 - [secrets.yaml](file://bootstrap/secrets.yaml)
-- [argo_cd.md](file://guide/argocd/argo_cd.md)
-- [argo_cd.md](file://guide/k8s_manifest_secrets/argo_cd.md)
+- [README.md](file://guide/argocd/README.md)
+- [README.md](file://guide/k8s_manifest_secrets/README.md)
 - [kustomization.yaml](file://projects/kustomization.yaml)
 - [infra.yaml](file://projects/infra.yaml)
 - [playground.yaml](file://projects/playground.yaml)
@@ -14,6 +14,13 @@
 - [hello-api config.yaml](file://apps/playground/hello-api/config.yaml)
 - [rancher config.yaml](file://apps/playground/rancher/config.yaml)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated file references to reflect documentation consolidation: old argo_cd.md files renamed to README.md format
+- Updated guide references to point to new README.md locations
+- Maintained all existing content while updating file paths and references
+- Preserved all technical accuracy and configuration details
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -29,12 +36,14 @@
 ## Introduction
 This document explains advanced ArgoCD features and configuration patterns demonstrated in the repository. It focuses on automated rollout strategies via sync waves, advanced ApplicationSet patterns with Git generators and dynamic resource allocation, robust sync policies with retry mechanisms, automated dependency management, health assessment overrides, custom sync behaviors, and integration with external systems through plugins and webhooks. The content is derived from real manifests and guides within the repository.
 
+**Updated** The guide documentation has been consolidated and renamed from `argo_cd.md` to `README.md` format for better organization and discoverability, while maintaining all technical content and configuration patterns.
+
 ## Project Structure
 The repository organizes ArgoCD configuration across several layers:
 - Bootstrap layer defines foundational Applications and global settings.
 - Projects layer defines AppProjects and ApplicationSets per environment (infra, playground).
 - Apps layer contains per-application configurations and per-environment settings.
-- Guides provide installation steps and operational notes.
+- Guides provide installation steps and operational notes in consolidated README.md format.
 
 ```mermaid
 graph TB
@@ -218,12 +227,14 @@ Operational implications:
 - Installation steps for ArgoCD, exposing the UI, applying repository secrets, and bootstrapping.
 - Notes on deleting bootstrap safely using finalizers.
 
+**Updated** The installation guide has been consolidated into README.md format for better organization and discoverability.
+
 Operational implications:
 - Standardized setup and teardown procedures.
 - Security posture improved by centralizing repository credentials.
 
 **Section sources**
-- [argo_cd.md:1-34](file://guide/argocd/argo_cd.md#L1-L34)
+- [README.md:1-34](file://guide/argocd/README.md#L1-L34)
 
 ## Architecture Overview
 
@@ -398,12 +409,12 @@ App-->>AS : "Sync State"
 
 ### Integration with External Systems
 - Plugins: Kustomize build options enable integration with external tools and Helm charts.
-- Webhooks: Not explicitly configured in the repository; can be integrated externally via ArgoCD’s webhook controller.
+- Webhooks: Not explicitly configured in the repository; can be integrated externally via ArgoCD's webhook controller.
 - Custom Controllers: Not shown in the repository; can be introduced alongside ApplicationSets for specialized workflows.
 
 **Section sources**
 - [argocd-cmd-params-cm.yaml:11-12](file://apps/playground/argocd-ingress/chart/argocd-cmd-params-cm.yaml#L11-L12)
-- [argo_cd.md:1-34](file://guide/argocd/argo_cd.md#L1-L34)
+- [README.md:1-34](file://guide/argocd/README.md#L1-L34)
 
 ## Dependency Analysis
 The following diagram shows how bootstrap, projects, and apps depend on each other and how sync waves influence execution order.
@@ -452,7 +463,7 @@ PLAY --> RANCHER["apps/playground/rancher/config.yaml<br/>Wave 3"]
 - Ordering issues: Adjust sync wave annotations to ensure prerequisites are applied before dependents.
 
 **Section sources**
-- [argo_cd.md:29-33](file://guide/argocd/argo_cd.md#L29-L33)
+- [README.md:29-33](file://guide/argocd/README.md#L29-L33)
 - [secrets.yaml:8-9](file://bootstrap/secrets.yaml#L8-L9)
 - [infra.yaml:61-71](file://projects/infra.yaml#L61-L71)
 - [playground.yaml:61-74](file://projects/playground.yaml#L61-L74)
@@ -464,3 +475,5 @@ This repository demonstrates a production-ready ArgoCD setup emphasizing:
 - Robust sync policies with retries and configurable options.
 - Centralized repository configuration and Kustomize enhancements.
 These patterns provide a solid foundation for advanced deployment strategies, including blue-green, canary, and progressive delivery when combined with Git-based branching and tag-based release workflows.
+
+**Updated** The documentation has been consolidated into README.md format for improved organization and discoverability, while maintaining all technical accuracy and configuration patterns.
