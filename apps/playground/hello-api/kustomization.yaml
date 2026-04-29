@@ -3,8 +3,5 @@ kind: Kustomization
 
 namespace: hello-api
 
-components:
-  - ../../../components/httproute-defaults
-
 resources:
   - chart

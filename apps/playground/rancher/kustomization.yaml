@@ -3,9 +3,6 @@ kind: Kustomization
 
 namespace: cattle-system
 
-components:
-  - ../../../components/httproute-defaults
-
 resources:
   - chart
 
