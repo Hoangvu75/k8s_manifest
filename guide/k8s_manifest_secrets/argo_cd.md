@@ -1,12 +1,10 @@
 ## 🐙 What is k8s_manifest_secrets
-The repo url: 
-```bash
 https://github.com/Hoangvu75/k8s_manifest_secrets
-```
-This contains secrets env variable (K8s Secret resource files):
-```yaml 
-cloudflared-secret.yaml
 
+### This private repo contains secrets env variable (K8s Secret resource files):
+
+**cloudflared-secret.yaml**
+```yaml 
 apiVersion: v1
 kind: Secret
 metadata:
@@ -16,9 +14,8 @@ type: Opaque
 stringData:
   TUNNEL_TOKEN: "eyJhIjoiMjQ4ODk2...VExTldNeiJ9"
 ```
+**datadog-secret.yaml**
 ```yaml 
-datadog-secret.yaml
-
 apiVersion: v1
 kind: Secret
 metadata:
@@ -28,9 +25,8 @@ type: Opaque
 stringData:
   api-key: "44d5...853"
 ```
-```yaml 
-wildcard-tls-secret.yaml
-
+**wildcard-tls-secret.yaml**
+```yaml
 apiVersion: v1
 kind: Secret
 metadata:
