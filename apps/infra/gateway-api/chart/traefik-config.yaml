@@ -21,8 +21,7 @@ data:
     providers:
       kubernetesCRD:
         allowCrossNamespace: true
-      kubernetesGateway:
-        experimentalChannel: true
+      kubernetesGateway: {}
 
     # --- EntryPoints ---
     entryPoints:

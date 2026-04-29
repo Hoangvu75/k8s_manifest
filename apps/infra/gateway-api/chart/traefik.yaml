@@ -25,7 +25,7 @@ rules:
     resources: ["ingresses/status"]
     verbs: ["update"]
   - apiGroups: ["gateway.networking.k8s.io"]
-    resources: ["gatewayclasses", "gateways", "httproutes", "grpcroutes", "referencegrants", "tcproutes", "tlsroutes", "backendtlspolicies"]
+    resources: ["gatewayclasses", "gateways", "httproutes", "grpcroutes", "referencegrants"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["gateway.networking.k8s.io"]
     resources: ["gateways/status", "httproutes/status"]
