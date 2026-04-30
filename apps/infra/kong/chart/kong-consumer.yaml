@@ -1,0 +1,22 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: default-user
+  namespace: hello-api
+  annotations:
+    kubernetes.io/ingress.class: kong
+    argocd.argoproj.io/sync-wave: "3"
+username: default-user
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: default-user-key-auth
+  namespace: hello-api
+  labels:
+    konghq.com/credential: key-auth
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+stringData:
+  key: dev-api-key-123
+type: Opaque

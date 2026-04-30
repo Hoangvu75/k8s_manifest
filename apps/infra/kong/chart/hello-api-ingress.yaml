@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hello-api
+  namespace: hello-api
+  annotations:
+    konghq.com/plugins: key-auth
+    konghq.com/strip-path: "false"
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  ingressClassName: kong
+  rules:
+    - http:
+        paths:
+          - path: /helloworld
+            pathType: Prefix
+            backend:
+              service:
+                name: hello-api
+                port:
+                  number: 5678

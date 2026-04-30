@@ -1,0 +1,12 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: key-auth
+  namespace: hello-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+plugin: key-auth
+config:
+  key_names:
+    - X-API-Key
+  hide_credentials: true

@@ -3,9 +3,11 @@
 
 fullnameOverride: "kong"
 
-# Kong Ingress Controller disabled — dbless config manages routes
+# Kong Ingress Controller — manages Kong config via Kubernetes CRDs
 ingressController:
-  enabled: false
+  image:
+    repository: ghcr.io/hoangvu75/kubernetes-ingress-controller
+    tag: "3.3"
 
 image:
   repository: ghcr.io/hoangvu75/kong
@@ -15,29 +17,6 @@ image:
 
 env:
   database: "off"
-
-# DB-less declarative config
-dblessConfig:
-  config:
-    _format_version: "3.0"
-    services:
-      - name: hello-api
-        url: http://hello-api.hello-api:5678
-        routes:
-          - name: hello-api-route
-            paths:
-              - /helloworld
-            strip_path: false
-    plugins:
-      - name: key-auth
-        config:
-          key_names:
-            - X-API-Key
-          hide_credentials: true
-    consumers:
-      - username: default-user
-        keyauth_credentials:
-          - key: dev-api-key-123
 
 # Proxy service (Traefik routes here)
 proxy:
