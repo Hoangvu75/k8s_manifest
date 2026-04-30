@@ -15,6 +15,7 @@ image:
 
 env:
   database: "off"
+  trusted_ips: "0.0.0.0/0, ::/0"
 
 proxy:
   enabled: true

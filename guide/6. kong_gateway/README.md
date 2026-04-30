@@ -1,23 +1,24 @@
-# Kong Gateway with API Key and OAuth2 Authentication
+# Kong Gateway with API Key Authentication
 
 This guide describes how Kong Gateway is deployed as an API authentication layer between Traefik and backend applications.
 
 ## Architecture
 
 ```
-Cloudflare → Traefik (shared-gateway) → Kong (key-auth / oauth2) → helloworld-api
+Cloudflare → Traefik (shared-gateway) → Kong (key-auth) → helloworld-api
 ```
 
 ## Traffic Flow
 
 1. **Traefik** receives traffic for `api.hoangvu75.space` via `HTTPRoute kong-ingress`
 2. **HTTPRoute** routes to `kong-proxy:80` (Kong Proxy Service)
-3. **Kong Gateway** validates authentication (either `X-API-Key` header or `Authorization: Bearer <token>`) using `key-auth` and `oauth2` plugins
-4. **KIC** (Kong Ingress Controller) manages Kong routing via:
+3. **HTTPRoute** sets `X-Forwarded-Proto: https` (TLS terminated at Cloudflare, Kong needs to know)
+4. **Kong Gateway** validates authentication using `X-API-Key` header via `key-auth` plugin
+5. **KIC** (Kong Ingress Controller) manages Kong routing via:
    - `Ingress` → translates to Kong routes
    - `KongPlugin` → enables auth on routes
-   - `KongConsumer` + `Secret` → creates credentials (API keys, OAuth2 clients)
-5. **Kong Proxy** forwards authenticated requests to `helloworld-api:5678`
+   - `KongConsumer` + `Secret` → creates API key credentials
+6. **Kong Proxy** forwards authenticated requests to `helloworld-api:5678`
 
 ## Component Files
 
@@ -29,13 +30,10 @@ Located in `apps/infra/kong-gateway/`:
 | `kustomization.yaml` | Parent kustomize with `namespace: kong-gateway` |
 | `chart/values.yaml` | Kong Helm chart values (DB-less, GHCR images, KIC v3.3) |
 | `chart/kustomization.yaml` | Chart-level kustomize (Helm chart + subdirectory resources) |
-| `chart/httproute-kong.yaml` | Traefik → Kong proxy HTTPRoute (wave: 3) |
+| `chart/httproute-kong.yaml` | Traefik → Kong proxy HTTPRoute (wave: 3) — sets X-Forwarded-Proto |
 | `chart/plugins/key-auth-plugin.yaml` | KongPlugin CRD for key-auth |
-| `chart/plugins/oauth2-plugin.yaml` | KongPlugin CRD for OAuth2 (Client Credentials flow) |
 | `chart/consumers/default-user-consumer.yaml` | KongConsumer + key-auth credential Secret |
-| `chart/consumers/oauth2-client-consumer.yaml` | KongConsumer + OAuth2 credential Secret |
-| `chart/ingress/helloworld-api-ingress.yaml` | KIC Ingress: routes /helloworld → helloworld-api:5678 (key-auth) |
-| `chart/ingress/oauth2-token-ingress.yaml` | KIC Ingress: routes /auth → helloworld-api:5678 (oauth2 token endpoint) |
+| `chart/ingress/helloworld-api-ingress.yaml` | KIC Ingress: routes /helloworld → helloworld-api:5678 |
 | `chart/services/helloworld-api-service.yaml` | Cross-namespace ExternalName bridge (kong-gateway → helloworld-api) |
 
 ## Testing
@@ -50,69 +48,7 @@ curl -v https://api.hoangvu75.space/helloworld
 curl -v -H "X-API-Key: dev-api-key-123" https://api.hoangvu75.space/helloworld
 ```
 
-### OAuth2 Client Credentials Flow
-
-The OAuth2 token endpoint and the API endpoint are **different routes** — `key-auth` and `oauth2` cannot be stacked on the same path, so the token endpoint uses a dedicated `/auth` path:
-
-| Endpoint | Purpose | Auth Plugin |
-|----------|---------|-------------|
-| `POST https://api.hoangvu75.space/auth/oauth2/token` | Exchange client credentials for an access token | oauth2 only |
-| `https://api.hoangvu75.space/helloworld` | Actual API (requires `X-API-Key` header) | key-auth |
-
-**Step 1** — Get an access token:
-
-```bash
-curl -s -X POST https://api.hoangvu75.space/auth/oauth2/token \
-  -d "client_id=kong-oauth2-client" \
-  -d "client_secret=changeme-oauth2-secret" \
-  -d "grant_type=client_credentials" \
-  -d "scope=read"
-```
-
-**Step 2** — Use the token by creating an OAuth2-protected Ingress (see below).
-
-> **Note**: The `oauth2` plugin can only be applied to Ingresses without `key-auth`. To create an OAuth2-protected API route, create a new Ingress with `konghq.com/plugins: oauth2` (without `key-auth`) and point it to your backend service. Then access it with `Authorization: Bearer <token>`.
-
 > The Kong Gateway is managed via CRDs in `plugins/`, `consumers/`, `ingress/`, `services/` directories. No dashboard is needed — routes are configured through `Ingress` resources.
-
-### Adding an OAuth2 Client
-
-To add an OAuth2 client application, create a file in `chart/consumers/`:
-
-```yaml
-apiVersion: configuration.konghq.com/v1
-kind: KongConsumer
-metadata:
-  name: my-oauth2-client
-  annotations:
-    kubernetes.io/ingress.class: kong
-username: my-oauth2-client
-credentials:
-  - my-oauth2-credential
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: my-oauth2-credential
-  labels:
-    konghq.com/credential: oauth2
-  annotations:
-    kubernetes.io/ingress.class: kong
-stringData:
-  client_id: my-client-id
-  client_secret: my-client-secret
-  name: My OAuth2 App
-  redirect_uris: "[]"
-type: Opaque
-```
-
-Then reference the OAuth2 plugin in your Ingress annotation (must be a separate Ingress from key-auth):
-```yaml
-annotations:
-  konghq.com/plugins: oauth2
-```
-
-Keep `key-auth` and `oauth2` on **different** Ingresses — they cannot be stacked on the same path.
 
 ## Adding a New App Behind Kong
 
@@ -170,11 +106,9 @@ spec:
 
 The `httproute-kong.yaml` routes `api.hoangvu75.space/*` → `kong-proxy:80`. If you want a different hostname, create a new HTTPRoute.
 
-### 3. Add Consumer Credentials (Optional)
+### 3. Add Consumer API Key
 
-#### API Key (key-auth)
-
-To add API keys for different consumers, create a file in `chart/consumers/`:
+To add an API key for a new consumer, create a file in `chart/consumers/`:
 
 ```yaml
 apiVersion: configuration.konghq.com/v1
@@ -210,4 +144,4 @@ type: Opaque
 | Docker Hub rate limits (429) | Image pull failures | Use GHCR images (`ghcr.io/hoangvu75/`) |
 | Namespace override by ArgoCD | `destNamespace: kong-gateway` forces all resources to kong-gateway ns | Use ExternalName services for cross-namespace backends |
 | `KONG_KIC=on` hard-coded by Helm chart | env.kic: off is overridden | Cannot disable KIC via values — keep enabled and use CRDs |
-| OAuth2 in DB-less mode | Auth code / implicit grants require runtime DB | Only Client Credentials flow works in DB-less mode |
+| OAuth2 incompatible with DB-less mode | OAuth2 token endpoint fails with "cannot create oauth2_tokens entities when not using a database" | Use `key-auth` instead — Kong OAuth2 requires a PostgreSQL database to store tokens |

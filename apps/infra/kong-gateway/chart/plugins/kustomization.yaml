@@ -1,3 +1,2 @@
 resources:
   - key-auth-plugin.yaml
-  - oauth2-plugin.yaml
