@@ -62,7 +62,6 @@ GitOps repo for Kubernetes cluster management with ArgoCD, Kustomize, and Helm.
 | `rancher.hoangvu75.space` | rancher:80 | cattle-system | — |
 | `traefik.hoangvu75.space` | traefik:8080 | gateway-api | — |
 | `kong.hoangvu75.space` | kong-manager:8002 | kong-gateway | — |
-| `kong-admin.hoangvu75.space` | kong-admin:8001 | kong-gateway | Restricted |
 | `api.hoangvu75.space` | helloworld-api:5678 (via Kong) | helloworld-api / kong-gateway | API Key |
 
 ## Workflow

@@ -31,7 +31,6 @@ Located in `apps/infra/kong-gateway/`:
 | `chart/kustomization.yaml` | Chart-level kustomize (Helm chart + subdirectory resources) |
 | `chart/httproute-kong.yaml` | Traefik → Kong proxy HTTPRoute (wave: 3) |
 | `chart/httproute-kong-manager.yaml` | Traefik → Kong Manager GUI HTTPRoute (wave: 3) |
-| `chart/httproute-kong-admin.yaml` | Traefik → Kong Admin API HTTPRoute (wave: 3, restricted) |
 | `chart/plugins/key-auth-plugin.yaml` | KongPlugin CRD for key-auth |
 | `chart/consumers/default-user-consumer.yaml` | KongConsumer + credential Secret |
 | `chart/ingress/helloworld-api-ingress.yaml` | KIC Ingress: routes /helloworld → helloworld-api:5678 |
@@ -51,27 +50,16 @@ curl -v -H "X-API-Key: dev-api-key-123" https://api.hoangvu75.space/helloworld
 
 ### Kong Manager Dashboard
 
-Open **https://kong.hoangvu75.space** in your browser.
+Open **https://kong.hoangvu75.space** in your browser. Due to a limitation in Kong OSS, the Manager UI loads but cannot fetch data from the Admin API.
 
-The Manager UI shows:
-- Kong Gateway status and configuration
-- Routes, Services, Plugins, and Consumers
-- Health metrics and monitoring (DB-less read-only mode)
-
-### Admin API (Direct Access)
-
-The Kong Admin API is available at **https://kong-admin.hoangvu75.space** for direct REST access:
+For direct Admin API access, use port-forward:
 
 ```bash
-# List all routes configured in Kong
-curl https://kong-admin.hoangvu75.space/routes
-
-# List all services
-curl https://kong-admin.hoangvu75.space/services
-
-# List consumers
-curl https://kong-admin.hoangvu75.space/consumers
+kubectl port-forward -n kong-gateway svc/kong-admin 8001:8001
+# Then visit http://localhost:8001/services
 ```
+
+This returns raw JSON — use a JSON formatter browser extension for readability.
 
 ## Adding a New App Behind Kong
 
