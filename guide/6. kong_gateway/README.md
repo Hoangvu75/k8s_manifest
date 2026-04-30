@@ -28,12 +28,12 @@ Located in `apps/infra/kong/`:
 | `config.yaml` | ApplicationSet discovery (destNamespace: kong, wave: 2) |
 | `kustomization.yaml` | Parent kustomize with `namespace: kong` |
 | `chart/values.yaml` | Kong Helm chart values (DB-less, GHCR images, KIC v3.3) |
-| `chart/kustomization.yaml` | Chart-level kustomize (Helm chart + resources) |
+| `chart/kustomization.yaml` | Chart-level kustomize (Helm chart + subdirectory resources) |
 | `chart/httproute-kong.yaml` | Traefik → Kong proxy HTTPRoute (wave: 3) |
-| `chart/externalname-hello-api.yaml` | Cross-namespace service bridge (kong → hello-api) |
-| `chart/kong-plugin-key-auth.yaml` | KongPlugin CRD for key-auth |
-| `chart/kong-consumer.yaml` | KongConsumer + credential Secret |
-| `chart/hello-api-ingress.yaml` | KIC Ingress: routes /helloworld → hello-api:5678 |
+| `chart/plugins/key-auth-plugin.yaml` | KongPlugin CRD for key-auth |
+| `chart/consumers/default-user-consumer.yaml` | KongConsumer + credential Secret |
+| `chart/ingress/hello-api-ingress.yaml` | KIC Ingress: routes /helloworld → hello-api:5678 |
+| `chart/services/hello-api-service.yaml` | Cross-namespace ExternalName bridge (kong → hello-api) |
 
 ## Testing
 
@@ -47,9 +47,20 @@ curl -v -H "X-API-Key: dev-api-key-123" https://api.hoangvu75.space/helloworld
 
 ## Adding a New App Behind Kong
 
+Place all new resource files in the appropriate subdirectory under `chart/`:
+
+| What | Where |
+|------|-------|
+| KIC Ingress route | `chart/ingress/` |
+| ExternalName service | `chart/services/` |
+| KongConsumer + Secret | `chart/consumers/` |
+| KongPlugin | `chart/plugins/` |
+
+No changes needed to `chart/kustomization.yaml` — subdirectories auto-discover new files.
+
 ### 1. Add Kong Route (Ingress)
 
-Create a new Ingress for your app with `ingressClassName: kong`:
+Create a new file in `chart/ingress/` for your app with `ingressClassName: kong`:
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -73,7 +84,7 @@ spec:
                   number: 8080
 ```
 
-If the backend service is in a different namespace, create an ExternalName service:
+If the backend service is in a different namespace, create an ExternalName service file in `chart/services/`:
 
 ```yaml
 apiVersion: v1
@@ -92,7 +103,7 @@ The `httproute-kong.yaml` routes `api.hoangvu75.space/*` → `kong-proxy:80`. If
 
 ### 3. Add Consumer Credentials (Optional)
 
-To add API keys for different consumers:
+To add API keys for different consumers, create a file in `chart/consumers/`:
 
 ```yaml
 apiVersion: configuration.konghq.com/v1

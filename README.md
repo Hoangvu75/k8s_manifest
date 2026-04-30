@@ -124,10 +124,18 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 │   │   │       ├── kustomization.yaml
 │   │   │       ├── values.yaml           # DB-less KIC config
 │   │   │       ├── httproute-kong.yaml    # Traefik → Kong route
-│   │   │       ├── externalname-hello-api.yaml  # ExternalName svc
-│   │   │       ├── kong-plugin-key-auth.yaml    # key-auth plugin
-│   │   │       ├── kong-consumer.yaml           # consumer + credential
-│   │   │       └── hello-api-ingress.yaml       # KIC Ingress route
+│   │   │       ├── plugins/              # KongPlugin CRDs
+│   │   │       │   ├── kustomization.yaml
+│   │   │       │   └── key-auth-plugin.yaml
+│   │   │       ├── consumers/            # KongConsumer + credential Secrets
+│   │   │       │   ├── kustomization.yaml
+│   │   │       │   └── default-user-consumer.yaml
+│   │   │       ├── ingress/              # KIC Ingress routes
+│   │   │       │   ├── kustomization.yaml
+│   │   │       │   └── hello-api-ingress.yaml
+│   │   │       └── services/             # ExternalName cross-ns bridges
+│   │   │           ├── kustomization.yaml
+│   │   │           └── hello-api-service.yaml
 │   │   ├── rancher/             # Rancher management UI (includes cert-manager)
 │   │   └── argocd-ingress/      # ArgoCD HTTPRoute exposure
 │   └── applications/            # User-facing application apps
