@@ -18,25 +18,31 @@
 - [apps/infra/cloudflared/chart/values.yaml](file://apps/infra/cloudflared/chart/values.yaml)
 - [apps/applications/hello-api/chart/kustomization.yaml](file://apps/applications/hello-api/chart/kustomization.yaml)
 - [apps/applications/hello-api/chart/values-httproute.yaml](file://apps/applications/hello-api/chart/values-httproute.yaml)
+- [apps/applications/hello-api/chart/values-service.yaml](file://apps/applications/hello-api/chart/values-service.yaml)
+- [apps/applications/hello-api/chart/values.yaml](file://apps/applications/hello-api/chart/values.yaml)
 - [apps/infra/kong/config.yaml](file://apps/infra/kong/config.yaml)
 - [apps/infra/kong/kustomization.yaml](file://apps/infra/kong/kustomization.yaml)
 - [apps/infra/kong/chart/kustomization.yaml](file://apps/infra/kong/chart/kustomization.yaml)
 - [apps/infra/kong/chart/values.yaml](file://apps/infra/kong/chart/values.yaml)
 - [apps/infra/kong/chart/httproute-kong.yaml](file://apps/infra/kong/chart/httproute-kong.yaml)
-- [apps/infra/kong/chart/externalname-hello-api.yaml](file://apps/infra/kong/chart/externalname-hello-api.yaml)
-- [apps/infra/kong/chart/kong-plugin-key-auth.yaml](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml)
-- [apps/infra/kong/chart/kong-consumer.yaml](file://apps/infra/kong/chart/kong-consumer.yaml)
-- [apps/infra/kong/chart/hello-api-ingress.yaml](file://apps/infra/kong/chart/hello-api-ingress.yaml)
+- [apps/infra/kong/chart/consumers/default-user-consumer.yaml](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml)
+- [apps/infra/kong/chart/consumers/kustomization.yaml](file://apps/infra/kong/chart/consumers/kustomization.yaml)
+- [apps/infra/kong/chart/ingress/hello-api-ingress.yaml](file://apps/infra/kong/chart/ingress/hello-api-ingress.yaml)
+- [apps/infra/kong/chart/ingress/kustomization.yaml](file://apps/infra/kong/chart/ingress/kustomization.yaml)
+- [apps/infra/kong/chart/plugins/key-auth-plugin.yaml](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml)
+- [apps/infra/kong/chart/plugins/kustomization.yaml](file://apps/infra/kong/chart/plugins/kustomization.yaml)
+- [apps/infra/kong/chart/services/hello-api-service.yaml](file://apps/infra/kong/chart/services/hello-api-service.yaml)
+- [apps/infra/kong/chart/services/kustomization.yaml](file://apps/infra/kong/chart/services/kustomization.yaml)
 - [cluster-resources/default/namespace.yaml](file://cluster-resources/default/namespace.yaml)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated Kong Gateway integration patterns to reflect KIC-managed approach with new component files
-- Enhanced configuration patterns with KongPlugin, KongConsumer, and Ingress resources
-- Improved HTTPRoute delegation with explicit sync wave coordination
-- Added comprehensive API authentication setup with key-based security
-- Updated application architecture to show Kong as centralized API proxy with KIC
+- Updated Kong Gateway integration patterns to reflect new directory structure with organized subdirectories
+- Enhanced documentation with KongPlugin, KongConsumer, Ingress, and Service component organization
+- Updated references to kong-consumer.yaml, kong-plugin-key-auth.yaml, hello-api-ingress.yaml moved to new subdirectory locations
+- Improved Kustomize configuration patterns with enhanced discovery mechanisms
+- Added comprehensive Kong Gateway KIC-managed integration documentation
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -51,7 +57,7 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document explains application configuration patterns and best practices for managing Kubernetes applications with Argo CD, Kustomize, and Helm. It covers the standard application structure using config.yaml, kustomization.yaml, and optional chart/ directories, along with Kustomize configuration patterns, Helm chart integration via --enable-helm, and namespace management strategies. It also details how application configuration participates in the broader GitOps workflow, provides examples of different application types and their deployment patterns, and explains how applications inherit from base configurations while customizing settings per environment. The document now includes comprehensive coverage of Kong Gateway integration using KIC-managed approach with advanced API authentication and routing capabilities.
+This document explains application configuration patterns and best practices for managing Kubernetes applications with Argo CD, Kustomize, and Helm. It covers the standard application structure using config.yaml, kustomization.yaml, and optional chart/ directories, along with Kustomize configuration patterns, Helm chart integration via --enable-helm, and namespace management strategies. It also details how application configuration participates in the broader GitOps workflow, provides examples of different application types and their deployment patterns, and explains how applications inherit from base configurations while customizing settings per environment. The document now includes comprehensive coverage of Kong Gateway integration using KIC-managed approach with advanced API authentication and routing capabilities, organized into structured component directories.
 
 ## Project Structure
 The repository organizes GitOps resources into a layered structure:
@@ -63,7 +69,7 @@ The repository organizes GitOps resources into a layered structure:
   - kustomization.yaml to assemble manifests and optionally a chart/ directory.
   - chart/ directory containing Helm chart integration via Kustomize helmCharts.
 
-**Updated** Enhanced with Kong Gateway as a centralized API proxy with KIC-managed configuration and comprehensive authentication setup.
+**Updated** Enhanced with Kong Gateway as a centralized API proxy with KIC-managed configuration and comprehensive authentication setup organized into structured component directories.
 
 ```mermaid
 graph TB
@@ -77,9 +83,13 @@ G --> I["apps/infra/**/kustomization.yaml"]
 H --> J["apps/applications/**/kustomization.yaml"]
 I --> K["apps/infra/**/chart/*"]
 J --> L["apps/applications/**/chart/*"]
-M["Kong Gateway<br/>apps/infra/kong/*"] --> N["KIC-managed Config<br/>KongPlugin + KongConsumer + Ingress"]
-O["Gateway API<br/>apps/infra/gateway-api/*"] --> P["Shared Gateway Controller"]
-Q["Application Services<br/>apps/applications/*"] --> R["KIC-managed Routing<br/>via Kong Proxy"]
+M["Kong Gateway<br/>apps/infra/kong/*"] --> N["KIC-managed Config<br/>Organized Component Structure"]
+N --> O["Consumers/<br/>default-user-consumer.yaml"]
+N --> P["Plugins/<br/>key-auth-plugin.yaml"]
+N --> Q["Ingress/<br/>hello-api-ingress.yaml"]
+N --> R["Services/<br/>hello-api-service.yaml"]
+S["Gateway API<br/>apps/infra/gateway-api/*"] --> T["Shared Gateway Controller"]
+U["Application Services<br/>apps/applications/*"] --> V["KIC-managed Routing<br/>via Kong Proxy"]
 ```
 
 **Diagram sources**
@@ -89,6 +99,7 @@ Q["Application Services<br/>apps/applications/*"] --> R["KIC-managed Routing<br/
 - [projects/applications.yaml:1-90](file://projects/applications.yaml#L1-L90)
 - [apps/infra/kong/kustomization.yaml:1-9](file://apps/infra/kong/kustomization.yaml#L1-L9)
 - [apps/infra/gateway-api/kustomization.yaml:1-20](file://apps/infra/gateway-api/kustomization.yaml#L1-L20)
+- [apps/infra/kong/chart/kustomization.yaml:12-17](file://apps/infra/kong/chart/kustomization.yaml#L12-L17)
 
 **Section sources**
 - [README.md:87-118](file://README.md#L87-L118)
@@ -109,13 +120,13 @@ Q["Application Services<br/>apps/applications/*"] --> R["KIC-managed Routing<br/
   - kustomization.yaml composes resources and optionally references chart/.
   - chart/ integrates Helm charts via Kustomize helmCharts with values files.
 
-**Updated** Enhanced with Kong Gateway KIC-managed integration patterns and centralized API authentication.
+**Updated** Enhanced with Kong Gateway KIC-managed integration patterns and centralized API authentication organized into structured component directories.
 
 Key behaviors:
 - Centralized repo URL replacement ensures consistent source references across the stack.
 - Sync waves enforce ordered application deployment across the cluster.
 - Helm integration is enabled globally for discovered apps via Kustomize buildOptions.
-- Kong Gateway provides centralized API authentication and routing with KIC-managed configuration.
+- Kong Gateway provides centralized API authentication and routing with KIC-managed configuration organized into consumers, plugins, ingress, and services subdirectories.
 
 **Section sources**
 - [kustomization.yaml:1-21](file://kustomization.yaml#L1-L21)
@@ -129,9 +140,9 @@ Key behaviors:
 - [apps/infra/kong/config.yaml:1-4](file://apps/infra/kong/config.yaml#L1-L4)
 
 ## Architecture Overview
-The GitOps workflow proceeds through a bootstrap chain that installs Argo CD, sets up AppProjects and ApplicationSets, and then discovers and deploys applications from apps/. The new Kong Gateway integration adds centralized API proxy functionality with KIC-managed configuration, advanced routing capabilities, and comprehensive API authentication.
+The GitOps workflow proceeds through a bootstrap chain that installs Argo CD, sets up AppProjects and ApplicationSets, and then discovers and deploys applications from apps/. The new Kong Gateway integration adds centralized API proxy functionality with KIC-managed configuration, advanced routing capabilities, and comprehensive API authentication organized into structured component directories.
 
-**Updated** Added Kong Gateway as a centralized API proxy with KIC-managed configuration, key-based authentication, and HTTPRoute delegation.
+**Updated** Added Kong Gateway as a centralized API proxy with KIC-managed configuration, key-based authentication, and HTTPRoute delegation organized into consumers, plugins, ingress, and services subdirectories.
 
 ```mermaid
 sequenceDiagram
@@ -150,9 +161,10 @@ Argo-->>Kube : Discover apps/**/config.yaml
 Argo-->>Kube : Render and sync each app with Kustomize + Helm (--enable-helm)
 Note over Argo,Kube : Kong Gateway Integration (KIC-managed)
 Argo-->>Kube : Deploy Kong Helm Chart with KIC
-Argo-->>Kube : Configure KongPlugin (key-auth)
-Argo-->>Kube : Create KongConsumer with API key
-Argo-->>Kube : Deploy Ingress with KIC annotations
+Argo-->>Kube : Configure KongPlugin (key-auth) in plugins/
+Argo-->>Kube : Create KongConsumer with API key in consumers/
+Argo-->>Kube : Deploy Ingress with KIC annotations in ingress/
+Argo-->>Kube : Configure Service in services/
 Argo-->>Kube : Configure HTTPRoute for API traffic delegation
 Argo-->>Kube : Route traffic : Cloudflare → Traefik → Kong (key-auth) → hello-api
 ```
@@ -174,18 +186,18 @@ Each application follows a consistent structure:
 - apps/<project>/<app>/kustomization.yaml: Defines namespace and resources; optionally includes chart/.
 - apps/<project>/<app>/chart/: Contains Helm chart integration via Kustomize helmCharts and values files.
 
-**Updated** Enhanced with Kong Gateway KIC-managed patterns for API proxy integration and centralized authentication.
+**Updated** Enhanced with Kong Gateway KIC-managed patterns for API proxy integration and centralized authentication organized into structured component directories.
 
 Patterns:
 - Namespace management: Use config.yaml destNamespace to override the default derived from the app folder name.
 - Sync ordering: Use annotations with argocd.argoproj.io/sync-wave to control deployment order.
 - Helm integration: Enable --enable-helm in ApplicationSet templates; reference chart/ via Kustomize resources.
-- Kong integration: Deploy Kong Helm chart with KIC-managed configuration and centralized HTTPRoute delegation.
+- Kong integration: Deploy Kong Helm chart with KIC-managed configuration and centralized HTTPRoute delegation organized into consumers, plugins, ingress, and services subdirectories.
 
 Examples:
 - Infra app (cloudflared): Uses a dedicated namespace and Helm chart with values from chart/values.yaml.
 - Applications app (hello-api): Now uses Kong-managed routing instead of direct HTTPRoute.
-- **New** Kong app: Provides centralized API proxy with KIC-managed configuration, key-based authentication, and HTTPRoute delegation.
+- **New** Kong app: Provides centralized API proxy with KIC-managed configuration, key-based authentication, and HTTPRoute delegation organized into structured component directories.
 
 **Section sources**
 - [README.md:128-134](file://README.md#L128-L134)
@@ -205,14 +217,15 @@ Examples:
   - apps/<project>/<app>/kustomization.yaml sets namespace and includes chart/.
   - apps/<project>/<app>/chart/kustomization.yaml defines helmCharts with repo, releaseName, version, and valuesFile(s).
 
-**Updated** Added Kong-specific Kustomize patterns for KIC-managed Helm chart integration and component resource management.
+**Updated** Added Kong-specific Kustomize patterns for KIC-managed Helm chart integration and component resource management organized into structured subdirectories.
 
 Best practices:
 - Keep namespace declarations at the application level to avoid cross-project leakage.
 - Use valuesFile and additionalValuesFiles to split concerns (e.g., service vs. HTTPRoute-specific values).
 - Leverage Kustomize replacements centrally to avoid hardcoding repo URLs in multiple places.
 - **New** Use dedicated namespaces for API proxy infrastructure (kong) with appropriate sync waves.
-- **New** Coordinate KIC component deployment with explicit sync wave ordering.
+- **New** Coordinate KIC component deployment with explicit sync wave ordering using organized subdirectory structure.
+- **New** Organize Kong components into consumers/, plugins/, ingress/, and services/ subdirectories for better maintainability.
 
 **Section sources**
 - [kustomization.yaml:1-21](file://kustomization.yaml#L1-L21)
@@ -229,12 +242,12 @@ Best practices:
   - helmCharts entries specify chart name, OCI repository, release name, target namespace, version, and values files.
   - Values files can be combined using additionalValuesFiles for layered customization.
 
-**Updated** Enhanced with Kong Helm chart integration for KIC-managed API proxy deployment.
+**Updated** Enhanced with Kong Helm chart integration for KIC-managed API proxy deployment organized into structured component directories.
 
 Example references:
 - cloudflared Helm chart integration and values.
 - hello-api Helm chart integration with multiple values files.
-- **New** Kong Helm chart integration with KIC-managed configuration and component resources.
+- **New** Kong Helm chart integration with KIC-managed configuration and component resources organized into consumers/, plugins/, ingress/, and services/ subdirectories.
 
 **Section sources**
 - [projects/infra.yaml:59-60](file://projects/infra.yaml#L59-L60)
@@ -264,7 +277,7 @@ Example references:
 - [cluster-resources/default/namespace.yaml:79-84](file://cluster-resources/default/namespace.yaml#L79-L84)
 
 ### Kong Gateway Integration Patterns (KIC-managed)
-**New** The Kong Gateway provides centralized API proxy functionality with KIC-managed configuration, advanced routing capabilities, and comprehensive key-based authentication.
+**New** The Kong Gateway provides centralized API proxy functionality with KIC-managed configuration, advanced routing capabilities, and comprehensive key-based authentication organized into structured component directories.
 
 Key components:
 - **Kong Helm Chart**: Deployed via Helm with KIC-managed configuration for simplified operations.
@@ -272,15 +285,18 @@ Key components:
 - **KongPlugin**: Provides centralized key-auth plugin configuration with custom key names and credential hiding.
 - **KongConsumer**: Manages API consumers with associated credentials for authentication.
 - **Ingress Resources**: KIC-managed Ingress resources with plugin associations and path-based routing.
-- **ExternalName Service**: Bridges Kong to target services using ExternalName pattern.
+- **Service Resources**: Kong-managed services for backend application connectivity.
 - **HTTPRoute Integration**: Delegates API traffic from Gateway API to KIC-managed Kong proxy.
+
+**Updated** Enhanced with organized component structure in consumers/, plugins/, ingress/, and services/ subdirectories.
 
 Configuration patterns:
 - **Values File**: Defines KIC images, Kong DB-less configuration, proxy service configuration, and enterprise settings.
-- **Component Resources**: Separate YAML files for KongPlugin, KongConsumer, Ingress, and ExternalName service.
+- **Component Resources**: Separate YAML files for KongPlugin, KongConsumer, Ingress, and Service organized into dedicated subdirectories.
 - **Plugin Configuration**: Enables key-auth plugin with custom key names (X-API-Key) and credential hiding.
 - **Consumer Management**: Creates default user with development API key for testing.
 - **Ingress Annotations**: Associates plugins and routing behavior with KIC.
+- **Component Organization**: Structured directory layout improves maintainability and discoverability.
 
 **Section sources**
 - [apps/infra/kong/config.yaml:1-4](file://apps/infra/kong/config.yaml#L1-L4)
@@ -288,10 +304,10 @@ Configuration patterns:
 - [apps/infra/kong/chart/kustomization.yaml:1-18](file://apps/infra/kong/chart/kustomization.yaml#L1-L18)
 - [apps/infra/kong/chart/values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
 - [apps/infra/kong/chart/httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
-- [apps/infra/kong/chart/kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12)
-- [apps/infra/kong/chart/kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
-- [apps/infra/kong/chart/hello-api-ingress.yaml:1-21](file://apps/infra/kong/chart/hello-api-ingress.yaml#L1-L21)
-- [apps/infra/kong/chart/externalname-hello-api.yaml:1-11](file://apps/infra/kong/chart/externalname-hello-api.yaml#L1-L11)
+- [apps/infra/kong/chart/consumers/default-user-consumer.yaml:1-24](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L1-L24)
+- [apps/infra/kong/chart/plugins/key-auth-plugin.yaml:1-12](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L1-L12)
+- [apps/infra/kong/chart/ingress/hello-api-ingress.yaml:1-21](file://apps/infra/kong/chart/ingress/hello-api-ingress.yaml#L1-L21)
+- [apps/infra/kong/chart/services/hello-api-service.yaml:1-15](file://apps/infra/kong/chart/services/hello-api-service.yaml#L1-L15)
 
 ### HTTPRoute Configuration Patterns with Kong Integration
 **New** HTTPRoute configurations now support delegation to KIC-managed Kong Gateway for advanced API traffic management.
@@ -326,8 +342,9 @@ Integration benefits:
   - KongPlugin and KongConsumer deploy with sync wave 3 for authentication setup.
   - Ingress resources deploy with sync wave 3 for routing configuration.
   - HTTPRoute deploys with sync wave 3 to establish API traffic routing after gateway deployment.
+  - Component organization in subdirectories improves deployment coordination.
 
-**Updated** Added Kong Gateway KIC-managed deployment coordination with explicit sync wave ordering.
+**Updated** Added Kong Gateway KIC-managed deployment coordination with explicit sync wave ordering and organized component structure.
 
 **Section sources**
 - [README.md:57-75](file://README.md#L57-L75)
@@ -347,7 +364,7 @@ Integration benefits:
   - Pattern: Requires CRDs first; uses dedicated namespace and CreateNamespace sync option.
 - **New** API Gateway app (kong):
   - Purpose: Centralized API proxy with KIC-managed configuration and key-based authentication.
-  - Pattern: Helm chart with KIC images, component resources (KongPlugin, KongConsumer, Ingress), dedicated kong namespace.
+  - Pattern: Helm chart with KIC images, component resources organized in consumers/, plugins/, ingress/, and services/ subdirectories, dedicated kong namespace.
 - Applications app (hello-api):
   - Purpose: Sample HTTP echo service.
   - Pattern: Helm chart with multiple values files for service and HTTPRoute configuration.
@@ -359,7 +376,7 @@ Integration benefits:
   - Purpose: Cluster management UI.
   - Pattern: Requires cattle-system namespace and higher sync wave to deploy after prerequisites.
 
-**Updated** Added Kong Gateway as a new infrastructure component with comprehensive KIC-managed API proxy functionality.
+**Updated** Added Kong Gateway as a new infrastructure component with comprehensive KIC-managed API proxy functionality organized into structured component directories.
 
 **Section sources**
 - [apps/infra/cloudflared/config.yaml:1-4](file://apps/infra/cloudflared/config.yaml#L1-L4)
@@ -379,11 +396,12 @@ Integration benefits:
   - kustomization.yaml can set namespace and include chart/ selectively.
 - **New** Kong Integration (KIC-managed):
   - Kong values.yaml provides centralized KIC configuration with custom images and DB-less mode.
-  - Component resources (KongPlugin, KongConsumer, Ingress) enable comprehensive API authentication.
+  - Component resources (KongPlugin, KongConsumer, Ingress, Service) organized in dedicated subdirectories enable comprehensive API authentication.
   - HTTPRoute configuration delegates traffic to KIC-managed Kong proxy service.
   - Consumer and plugin configurations enable API key authentication with custom key names.
+  - Structured component organization improves maintainability and deployment coordination.
 
-**Updated** Enhanced with Kong-specific KIC-managed inheritance patterns for API proxy configuration.
+**Updated** Enhanced with Kong-specific KIC-managed inheritance patterns for API proxy configuration organized into structured component directories.
 
 **Section sources**
 - [kustomization.yaml:10-21](file://kustomization.yaml#L10-L21)
@@ -402,8 +420,9 @@ The configuration depends on a strict order of operations:
 - Applications depend on chart/ and values files for Helm rendering.
 - **New** Kong Gateway depends on gateway-api infrastructure and requires proper namespace management.
 - **New** KIC-managed components require explicit sync wave coordination for proper deployment order.
+- **New** Component organization in subdirectories improves dependency management and deployment coordination.
 
-**Updated** Added Kong Gateway KIC-managed dependency relationships and infrastructure ordering.
+**Updated** Added Kong Gateway KIC-managed dependency relationships and infrastructure ordering with organized component structure.
 
 ```mermaid
 graph LR
@@ -420,9 +439,11 @@ InfraKust --> InfraChart["apps/infra/**/chart/*"]
 AppKust --> AppChart["apps/applications/**/chart/*"]
 KongNS["Kong Namespace<br/>kong (sync-wave -1)"] --> GatewayNS["Gateway API Namespace<br/>gateway-api (sync-wave -1)"]
 GatewayNS --> KongChart["Kong Helm Chart<br/>KIC-managed config"]
-KongChart --> KongPlugin["KongPlugin<br/>key-auth (sync-wave 3)"]
-KongChart --> KongConsumer["KongConsumer<br/>default-user (sync-wave 3)"]
-KongChart --> IngressRes["Ingress<br/>hello-api (sync-wave 3)"]
+KongChart --> KongComponents["Organized Components<br/>consumers/ + plugins/ + ingress/ + services/"]
+KongComponents --> KongPlugin["KongPlugin<br/>key-auth (sync-wave 3)"]
+KongComponents --> KongConsumer["KongConsumer<br/>default-user (sync-wave 3)"]
+KongComponents --> IngressRes["Ingress<br/>hello-api (sync-wave 3)"]
+KongComponents --> ServiceRes["Service<br/>hello-api (sync-wave 3)"]
 KongPlugin --> KongHTTPRoute["Kong HTTPRoute<br/>API traffic delegation"]
 KongHTTPRoute --> HelloAPI["hello-api Service<br/>ExternalName + port 5678"]
 ```
@@ -450,8 +471,9 @@ KongHTTPRoute --> HelloAPI["hello-api Service<br/>ExternalName + port 5678"]
 - **New** Optimize Kong performance with KIC-managed configuration for reduced overhead.
 - **New** Leverage Kong's centralized caching and connection pooling for improved API proxy performance.
 - **New** Use ExternalName services for efficient service bridging in KIC-managed environments.
+- **New** Organized component directories improve deployment performance and reduce build complexity.
 
-**Updated** Added performance considerations specific to Kong Gateway KIC-managed integration.
+**Updated** Added performance considerations specific to Kong Gateway KIC-managed integration and organized component structure.
 
 ## Troubleshooting Guide
 Common configuration mistakes and resolutions:
@@ -477,17 +499,19 @@ Common configuration mistakes and resolutions:
   - References: [apps/infra/cloudflared/chart/values.yaml:1-40](file://apps/infra/cloudflared/chart/values.yaml#L1-L40), [apps/applications/hello-api/chart/values.yaml:1-23](file://apps/applications/hello-api/chart/values.yaml#L1-L23), [apps/applications/hello-api/chart/kustomization.yaml:11-14](file://apps/applications/hello-api/chart/kustomization.yaml#L11-L14)
 - **New** Kong-specific issues:
   - Symptom: API requests fail with authentication errors.
-  - Resolution: Verify KongPlugin configuration and API key credentials in kong-consumer.yaml.
+  - Resolution: Verify KongPlugin configuration and API key credentials in consumers/default-user-consumer.yaml.
   - Symptom: Kong proxy service not reachable.
   - Resolution: Check Kong proxy service configuration and HTTPRoute backend reference.
   - Symptom: KIC-managed configuration not applied.
   - Resolution: Verify KIC images in values.yaml and component resource sync waves.
   - Symptom: Ingress routing not working.
   - Resolution: Check Ingress annotations (konghq.com/plugins, konghq.com/strip-path) and service references.
+  - Symptom: Component organization issues.
+  - Resolution: Verify subdirectory structure (consumers/, plugins/, ingress/, services/) and proper Kustomize resource references.
   - Symptom: ExternalName service not resolving.
   - Resolution: Verify ExternalName points to correct target service DNS.
 
-**Updated** Added comprehensive Kong Gateway KIC-managed troubleshooting guidance.
+**Updated** Added comprehensive Kong Gateway KIC-managed troubleshooting guidance with organized component structure.
 
 **Section sources**
 - [README.md:76-85](file://README.md#L76-L85)
@@ -502,13 +526,13 @@ Common configuration mistakes and resolutions:
 - [apps/infra/cloudflared/chart/values.yaml:1-40](file://apps/infra/cloudflared/chart/values.yaml#L1-L40)
 - [apps/applications/hello-api/chart/values.yaml:1-23](file://apps/applications/hello-api/chart/values.yaml#L1-L23)
 - [apps/infra/kong/chart/values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
-- [apps/infra/kong/chart/kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
-- [apps/infra/kong/chart/hello-api-ingress.yaml:1-21](file://apps/infra/kong/chart/hello-api-ingress.yaml#L1-L21)
+- [apps/infra/kong/chart/consumers/default-user-consumer.yaml:1-24](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L1-L24)
+- [apps/infra/kong/chart/ingress/hello-api-ingress.yaml:1-21](file://apps/infra/kong/chart/ingress/hello-api-ingress.yaml#L1-L21)
 
 ## Conclusion
-This configuration model leverages Kustomize for templating and composition, Helm for chart-driven deployments, and Argo CD for GitOps orchestration. By centralizing repository URL management, enforcing sync waves, and structuring applications consistently with config.yaml, kustomization.yaml, and chart/, teams can reliably manage diverse workloads across environments. The new Kong Gateway integration with KIC-managed approach enhances this model with centralized API proxy functionality, providing advanced routing capabilities, comprehensive key-based authentication, and scalable traffic management. Following the patterns outlined here minimizes drift, reduces errors, and accelerates onboarding of new applications while maintaining robust API security and performance.
+This configuration model leverages Kustomize for templating and composition, Helm for chart-driven deployments, and Argo CD for GitOps orchestration. By centralizing repository URL management, enforcing sync waves, and structuring applications consistently with config.yaml, kustomization.yaml, and chart/, teams can reliably manage diverse workloads across environments. The new Kong Gateway integration with KIC-managed approach enhances this model with centralized API proxy functionality, providing advanced routing capabilities, comprehensive key-based authentication, and scalable traffic management organized into structured component directories. Following the patterns outlined here minimizes drift, reduces errors, and accelerates onboarding of new applications while maintaining robust API security and performance.
 
-**Updated** Enhanced conclusion to reflect Kong Gateway KIC-managed integration and its benefits for API traffic management.
+**Updated** Enhanced conclusion to reflect Kong Gateway KIC-managed integration and its benefits for API traffic management with organized component structure.
 
 ## Appendices
 - Adding a new application:
@@ -520,12 +544,14 @@ This configuration model leverages Kustomize for templating and composition, Hel
   - References: [README.md:128-134](file://README.md#L128-L134)
 - **New** Adding Kong Gateway KIC-managed integration:
   - Deploy Kong Helm chart with KIC-managed configuration for centralized API proxy.
-  - Configure KongPlugin (key-auth) with custom key names and credential hiding.
-  - Create KongConsumer with associated API key credentials.
-  - Deploy Ingress resources with KIC annotations for routing management.
+  - Configure KongPlugin (key-auth) with custom key names and credential hiding in plugins/ subdirectory.
+  - Create KongConsumer with associated API key credentials in consumers/ subdirectory.
+  - Deploy Ingress resources with KIC annotations for routing management in ingress/ subdirectory.
+  - Configure Service resources for backend application connectivity in services/ subdirectory.
   - Set up ExternalName service for efficient service bridging.
   - Configure HTTPRoute to delegate API traffic to KIC-managed Kong proxy.
   - Coordinate deployment with proper sync waves (-1 for infrastructure, 3 for components).
-  - References: [apps/infra/kong/chart/values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43), [apps/infra/kong/chart/kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12), [apps/infra/kong/chart/kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24), [apps/infra/kong/chart/hello-api-ingress.yaml:1-21](file://apps/infra/kong/chart/hello-api-ingress.yaml#L1-L21), [apps/infra/kong/chart/httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
+  - Organize components into structured subdirectories (consumers/, plugins/, ingress/, services/) for maintainability.
+  - References: [apps/infra/kong/chart/values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43), [apps/infra/kong/chart/consumers/default-user-consumer.yaml:1-24](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L1-L24), [apps/infra/kong/chart/plugins/key-auth-plugin.yaml:1-12](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L1-L12), [apps/infra/kong/chart/ingress/hello-api-ingress.yaml:1-21](file://apps/infra/kong/chart/ingress/hello-api-ingress.yaml#L1-L21), [apps/infra/kong/chart/services/hello-api-service.yaml:1-15](file://apps/infra/kong/chart/services/hello-api-service.yaml#L1-L15), [apps/infra/kong/chart/httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
 
-**Updated** Added Kong Gateway KIC-managed integration guidance to the appendices.
+**Updated** Added Kong Gateway KIC-managed integration guidance to the appendices with organized component structure.

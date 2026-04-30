@@ -14,21 +14,21 @@
 - [values.yaml](file://apps/infra/datadog/chart/values.yaml)
 - [kustomization.yaml](file://apps/infra/datadog/chart/kustomization.yaml)
 - [config.yaml](file://apps/infra/datadog/config.yaml)
+- [kustomization.yaml](file://apps/infra/kong/kustomization.yaml)
+- [chart/kustomization.yaml](file://apps/infra/kong/chart/kustomization.yaml)
 - [values.yaml](file://apps/infra/kong/chart/values.yaml)
 - [httproute-kong.yaml](file://apps/infra/kong/chart/httproute-kong.yaml)
-- [kustomization.yaml](file://apps/infra/kong/kustomization.yaml)
-- [config.yaml](file://apps/infra/kong/config.yaml)
 - [root.yaml](file://bootstrap/root.yaml)
 - [infra.yaml](file://projects/infra.yaml)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated Kong Gateway configuration to reflect migration from DB-less mode to KIC-managed CRDs
-- Documented new GHCR image repositories for Kong and Kong Ingress Controller
-- Revised Kong architecture to show KIC managing Kong configuration via Kubernetes CRDs
-- Updated deployment order analysis to reflect current sync wave configuration
-- Removed outdated DB-less configuration references and updated troubleshooting guidance
+- Updated Kong Gateway configuration to reflect new subdirectory structure with automatic resource discovery via kustomization.yaml files
+- Documented enhanced Kong architecture with Helm-based deployment using KIC-managed CRDs and GHCR images
+- Revised deployment patterns to show improved sync wave coordination for new directory layout
+- Updated integration patterns to demonstrate seamless Gateway API and KIC-managed configuration
+- Enhanced troubleshooting guidance for the reorganized Kong infrastructure
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -45,7 +45,7 @@
 ## Introduction
 This document describes the foundational infrastructure applications that power the Kubernetes cluster. It covers:
 - Gateway API controller setup with Traefik as the ingress controller, including GatewayClass, Gateway, and HTTPRoute definitions
-- **Updated**: Kong Gateway deployment with KIC-managed CRDs and GHCR images, replacing previous DB-less configuration
+- Kong Gateway deployment with reorganized subdirectory structure and KIC-managed CRDs using GHCR images
 - Cloudflare Tunnel configuration for secure external access via the cloudflared pod
 - Datadog monitoring agent deployment for observability and metrics collection
 - Deployment order (sync waves) and interdependencies among infrastructure components
@@ -55,7 +55,7 @@ This document describes the foundational infrastructure applications that power 
 ## Project Structure
 The infrastructure stack is organized under apps/infra with four primary subsystems:
 - Gateway API (Traefik): Defines the GatewayClass, Gateway, and HTTPRoute for ingress routing
-- **Updated**: Kong Gateway: Helm-based deployment using KIC-managed CRDs with GHCR images
+- Kong Gateway: Reorganized Helm-based deployment with automatic resource discovery via kustomization.yaml files
 - Cloudflared: Helm-based deployment of Cloudflare Tunnel client
 - Datadog: Helm-based monitoring and observability agent
 
@@ -74,10 +74,11 @@ TR["traefik.yaml"]
 GK["apps/infra/gateway-api/kustomization.yaml"]
 end
 subgraph "Kong Gateway"
+KONG_K["apps/infra/kong/kustomization.yaml"]
+KONG_CHART["apps/infra/kong/chart/kustomization.yaml"]
 KONG_VALUES["apps/infra/kong/chart/values.yaml"]
 KONG_HR["apps/infra/kong/chart/httproute-kong.yaml"]
 KONG_CFG["apps/infra/kong/config.yaml"]
-KONG_K["apps/infra/kong/kustomization.yaml"]
 end
 subgraph "Cloudflared"
 CF_VALUES["apps/infra/cloudflared/chart/values.yaml"]
@@ -99,8 +100,9 @@ GK --> GWC
 GK --> GW
 GK --> HR
 GK --> TR
-KONG_K --> KONG_VALUES
-KONG_K --> KONG_HR
+KONG_K --> KONG_CHART
+KONG_CHART --> KONG_VALUES
+KONG_CHART --> KONG_HR
 KONG_CFG --> KONG_K
 CF_K --> CF_VALUES
 CF_CFG --> CF_K
@@ -112,10 +114,11 @@ DD_CFG --> DD_K
 - [root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
 - [kustomization.yaml:1-8](file://apps/infra/gateway-api/kustomization.yaml#L1-L8)
+- [kustomization.yaml:1-9](file://apps/infra/kong/kustomization.yaml#L1-L9)
+- [chart/kustomization.yaml:1-18](file://apps/infra/kong/chart/kustomization.yaml#L1-L18)
 - [values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
 - [config.yaml:1-4](file://apps/infra/kong/config.yaml#L1-L4)
-- [kustomization.yaml:1-9](file://apps/infra/kong/kustomization.yaml#L1-L9)
 - [values.yaml:1-40](file://apps/infra/cloudflared/chart/values.yaml#L1-L40)
 - [kustomization.yaml:1-11](file://apps/infra/cloudflared/chart/kustomization.yaml#L1-L11)
 - [config.yaml:1-4](file://apps/infra/cloudflared/config.yaml#L1-L4)
@@ -128,18 +131,19 @@ DD_CFG --> DD_K
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
 - [kustomization.yaml:1-8](file://apps/infra/gateway-api/kustomization.yaml#L1-L8)
 - [kustomization.yaml:1-9](file://apps/infra/kong/kustomization.yaml#L1-L9)
+- [chart/kustomization.yaml:1-18](file://apps/infra/kong/chart/kustomization.yaml#L1-L18)
 - [kustomization.yaml:1-11](file://apps/infra/cloudflared/chart/kustomization.yaml#L1-L11)
 - [kustomization.yaml:1-11](file://apps/infra/datadog/chart/kustomization.yaml#L1-L11)
 
 ## Core Components
 - **Traefik Gateway API controller**: Provides GatewayClass, Gateway, and HTTPRoute resources to expose services via HTTP/HTTPS with TLS termination and optional dashboard route
-- **Updated**: Kong Gateway: Helm-based deployment using KIC-managed CRDs with GHCR images, operating in DB-less mode but with configuration managed by Kubernetes CRDs
+- **Kong Gateway**: Reorganized Helm-based deployment using KIC-managed CRDs with GHCR images, featuring automatic resource discovery via kustomization.yaml files
 - Cloudflare Tunnel client: Runs cloudflared pods to securely proxy traffic to internal services
 - Datadog monitoring: Deploys the Datadog Agent and Cluster Agent with logs, APM, process, and orchestrator explorer enabled
 
 Key deployment annotations and sync waves:
 - Gateway API resources use sync waves to ensure CRDs and controller install before applying GatewayClass, Gateway, and HTTPRoute
-- **Kong Gateway uses sync wave 2** to deploy after Gateway API stack but before Cloudflared and Datadog
+- Kong Gateway uses sync wave 2 to deploy after Gateway API stack but before Cloudflared and Datadog
 - Cloudflared and Datadog are configured with sync wave annotations to deploy after the Gateway API stack is ready
 
 **Section sources**
@@ -147,6 +151,7 @@ Key deployment annotations and sync waves:
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 - [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
 - [traefik.yaml:1-157](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L157)
+- [chart/kustomization.yaml:1-18](file://apps/infra/kong/chart/kustomization.yaml#L1-L18)
 - [values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
 - [config.yaml:1-4](file://apps/infra/kong/config.yaml#L1-L4)
@@ -156,7 +161,7 @@ Key deployment annotations and sync waves:
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 
 ## Architecture Overview
-The infrastructure stack integrates Argo CD with Kustomize/Helm to manage four subsystems. The Gateway API controller exposes services through both Traefik and Kong, while Cloudflare Tunnel provides secure external access. Datadog provides observability across the cluster.
+The infrastructure stack integrates Argo CD with Kustomize/Helm to manage four subsystems. The Gateway API controller exposes services through both Traefik and Kong, while Cloudflare Tunnel provides secure external access. Datadog provides observability across the cluster. The Kong Gateway now features a reorganized directory structure with automatic resource discovery.
 
 ```mermaid
 graph TB
@@ -173,6 +178,8 @@ ENDPOINTS["Endpoints 'traefik'"]
 ENDPOINTS --> T
 end
 subgraph "Kong Gateway"
+KONG_K["Kong Kustomization<br/>apps/infra/kong/kustomization.yaml"]
+KONG_CHART["Chart Kustomization<br/>apps/infra/kong/chart/kustomization.yaml"]
 KONG_IC["KIC Controller<br/>GHCR: ghcr.io/hoangvu75/kubernetes-ingress-controller"]
 KONG_VALUES["DB-less Config + CRD Management"]
 KONG_HR["HTTPRoute 'kong-ingress'"]
@@ -194,6 +201,8 @@ APPSET --> GC
 APPSET --> G
 APPSET --> HR
 APPSET --> T
+APPSET --> KONG_K
+APPSET --> KONG_CHART
 APPSET --> KONG_IC
 APPSET --> KONG_VALUES
 APPSET --> KONG_HR
@@ -215,6 +224,8 @@ KONG_PROXY --> KONG_DEPLOY
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 - [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
 - [traefik.yaml:59-157](file://apps/infra/gateway-api/chart/traefik.yaml#L59-L157)
+- [kustomization.yaml:1-9](file://apps/infra/kong/kustomization.yaml#L1-L9)
+- [chart/kustomization.yaml:1-18](file://apps/infra/kong/chart/kustomization.yaml#L1-L18)
 - [values.yaml:6-11](file://apps/infra/kong/chart/values.yaml#L6-L11)
 - [values.yaml:13-17](file://apps/infra/kong/chart/values.yaml#L13-L17)
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
@@ -255,8 +266,10 @@ TR-->>Client : "Dashboard response"
 - [traefik.yaml:1-157](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L157)
 
 ### Kong Gateway Infrastructure
-**Updated** Kong Gateway now operates with KIC-managed CRDs and GHCR images:
+Kong Gateway now features a reorganized directory structure with automatic resource discovery:
 
+- **Reorganized Directory Structure**: The Kong deployment now uses a two-level kustomization approach with apps/infra/kong/kustomization.yaml delegating to apps/infra/kong/chart/kustomization.yaml
+- **Automatic Resource Discovery**: The chart-level kustomization.yaml automatically discovers and includes plugins, consumers, ingress, and services subdirectories
 - **KIC-managed CRDs**: Kong Ingress Controller (KIC) manages Kong configuration via Kubernetes CRDs with automatic CRD installation
 - **GHCR Images**: Both Kong and KIC use GHCR repositories with specific version tags
   - KIC: `ghcr.io/hoangvu75/kubernetes-ingress-controller:3.3`
@@ -288,14 +301,16 @@ HELLO_API-->>Client : "Hello World Response"
 
 **Diagram sources**
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
+- [chart/kustomization.yaml:1-18](file://apps/infra/kong/chart/kustomization.yaml#L1-L18)
 - [values.yaml:6-11](file://apps/infra/kong/chart/values.yaml#L6-L11)
 - [values.yaml:13-17](file://apps/infra/kong/chart/values.yaml#L13-L17)
 - [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
 
 **Section sources**
+- [kustomization.yaml:1-9](file://apps/infra/kong/kustomization.yaml#L1-L9)
+- [chart/kustomization.yaml:1-18](file://apps/infra/kong/chart/kustomization.yaml#L1-L18)
 - [values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
-- [kustomization.yaml:1-9](file://apps/infra/kong/kustomization.yaml#L1-L9)
 - [config.yaml:1-4](file://apps/infra/kong/config.yaml#L1-L4)
 
 ### Cloudflare Tunnel (cloudflared)
@@ -364,7 +379,7 @@ Values --> DatadogClusterAgent : "configures"
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 
 ## Dependency Analysis
-The deployment order is orchestrated via Argo CD sync waves and Kustomize/Helm configuration. The sequence ensures prerequisites are established before dependent resources.
+The deployment order is orchestrated via Argo CD sync waves and Kustomize/Helm configuration. The sequence ensures prerequisites are established before dependent resources. The reorganized Kong structure maintains the same deployment coordination.
 
 ```mermaid
 graph LR
@@ -375,13 +390,17 @@ A --> E["Datadog<br/>sync-wave: 2"]
 B --> B1["GatewayClass 'traefik'<br/>sync-wave: 1"]
 B --> B2["Gateway 'shared-gateway'<br/>sync-wave: 2"]
 B --> B3["HTTPRoute 'traefik-dashboard'<br/>sync-wave: 3"]
-C --> C1["KIC Controller<br/>GHCR Images"]
-C --> C2["Kong Deployment<br/>DB-less + CRD Management"]
-C --> C3["HTTPRoute 'kong-ingress'<br/>Hostname: api.hoangvu75.space"]
+C --> C1["Kong Kustomization<br/>apps/infra/kong/kustomization.yaml"]
+C --> C2["Chart Kustomization<br/>apps/infra/kong/chart/kustomization.yaml"]
+C --> C3["KIC Controller<br/>GHCR Images"]
+C --> C4["Kong Deployment<br/>DB-less + CRD Management"]
+C --> C5["HTTPRoute 'kong-ingress'<br/>Hostname: api.hoangvu75.space"]
 D --> D1["cloudflared Deployment"]
 E --> E1["Datadog Agents & Cluster Agent"]
-C3 --> C1
-C3 --> C2
+C2 --> C3
+C2 --> C4
+C5 --> C3
+C5 --> C4
 ```
 
 **Diagram sources**
@@ -389,6 +408,8 @@ C3 --> C2
 - [gatewayclass.yaml:6-6](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L6-L6)
 - [gateway.yaml:7-7](file://apps/infra/gateway-api/chart/gateway.yaml#L7-L7)
 - [httproute-traefik-dashboard.yaml:7-7](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L7-L7)
+- [chart/kustomization.yaml:7-7](file://apps/infra/kong/chart/kustomization.yaml#L7-L7)
+- [kustomization.yaml:7-7](file://apps/infra/kong/kustomization.yaml#L7-L7)
 - [httproute-kong.yaml:7-7](file://apps/infra/kong/chart/httproute-kong.yaml#L7-L7)
 - [config.yaml:3-3](file://apps/infra/cloudflared/config.yaml#L3-L3)
 - [config.yaml:5-5](file://apps/infra/datadog/config.yaml#L5-L5)
@@ -398,6 +419,8 @@ C3 --> C2
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 - [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
+- [chart/kustomization.yaml:1-18](file://apps/infra/kong/chart/kustomization.yaml#L1-L18)
+- [kustomization.yaml:1-9](file://apps/infra/kong/kustomization.yaml#L1-L9)
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
 - [config.yaml:1-4](file://apps/infra/kong/config.yaml#L1-L4)
 - [config.yaml:1-6](file://apps/infra/cloudflared/config.yaml#L1-L6)
@@ -405,11 +428,12 @@ C3 --> C2
 
 ## Performance Considerations
 - Traefik resource requests/limits are modest; monitor CPU/memory usage post-deployment and adjust as needed
-- **Kong Gateway requires careful resource planning due to KIC overhead and API processing**
+- Kong Gateway requires careful resource planning due to KIC overhead and API processing
 - Cloudflared replicas are set to two; ensure adequate CPU and memory headroom for tunnel operations
 - Datadog agents and Cluster Agent consume resources; scale replicas cautiously and tune log collection and APM sampling
 - Gateway API listeners expose HTTP/HTTPS; ensure DNS and certificate management align with traffic patterns to minimize retries
-- **Kong's DB-less mode reduces latency but requires careful configuration of CRD management and KIC synchronization**
+- The reorganized Kong structure improves deployment efficiency through automatic resource discovery
+- KIC-managed configuration provides better performance through centralized CRD management
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -420,12 +444,14 @@ Common issues and resolutions:
 - HTTPRoute not routing to Traefik dashboard
   - Ensure HTTPRoute references the correct Gateway and Service port
   - Validate NodePort service mapping and Traefik admin port exposure
-- **Kong Gateway Configuration Issues**
+- Kong Gateway Configuration Issues
   - Verify KIC controller is running and managing CRDs properly
   - Check that Kong deployment is using GHCR images with correct tags
   - Ensure HTTPRoute 'kong-ingress' is properly linked to the shared-gateway
   - Validate that CRD installation completed successfully
-- **Kong Service Routing Problems**
+  - **Check the reorganized directory structure**: Verify apps/infra/kong/kustomization.yaml delegates to chart/kustomization.yaml
+  - **Verify automatic resource discovery**: Ensure chart/kustomization.yaml includes plugins, consumers, ingress, and services directories
+- Kong Service Routing Problems
   - Confirm hello-api service is reachable at http://hello-api.hello-api:5678
   - Verify Kong proxy service is running and listening on port 80
   - Check Kong deployment logs for configuration loading errors
@@ -443,6 +469,7 @@ Common issues and resolutions:
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 - [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
 - [traefik.yaml:119-157](file://apps/infra/gateway-api/chart/traefik.yaml#L119-L157)
+- [chart/kustomization.yaml:1-18](file://apps/infra/kong/chart/kustomization.yaml#L1-L18)
 - [values.yaml:6-11](file://apps/infra/kong/chart/values.yaml#L6-L11)
 - [values.yaml:13-17](file://apps/infra/kong/chart/values.yaml#L13-L17)
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
@@ -450,7 +477,7 @@ Common issues and resolutions:
 - [values.yaml:1-103](file://apps/infra/datadog/chart/values.yaml#L1-L103)
 
 ## Conclusion
-The infrastructure stack combines Gateway API with both Traefik and Kong for modern ingress, Cloudflare Tunnel for secure external access, and Datadog for comprehensive observability. The updated Kong Gateway now uses KIC-managed CRDs with GHCR images, providing better configuration management and reliability. The defined sync waves and configuration ensure a reliable rollout order and operational stability. Monitor resource usage and adjust configurations as your workload grows, particularly for Kong's KIC overhead and CRD management requirements.
+The infrastructure stack combines Gateway API with both Traefik and Kong for modern ingress, Cloudflare Tunnel for secure external access, and Datadog for comprehensive observability. The reorganized Kong Gateway now features improved directory structure with automatic resource discovery via kustomization.yaml files, providing better configuration management and reliability. The defined sync waves and configuration ensure a reliable rollout order and operational stability. Monitor resource usage and adjust configurations as your workload grows, particularly for Kong's KIC overhead and CRD management requirements.
 
 ## Appendices
 
@@ -460,7 +487,9 @@ The infrastructure stack combines Gateway API with both Traefik and Kong for mod
   - GatewayClass: wave 1
   - Gateway: wave 2
   - HTTPRoute: wave 3
-- **Kong Gateway: wave 2** (deploys after Gateway API, before Cloudflared and Datadog)
+- Kong Gateway: wave 2 (deploys after Gateway API, before Cloudflared and Datadog)
+  - **Reorganized Structure**: apps/infra/kong/kustomization.yaml delegates to chart/kustomization.yaml
+  - **Automatic Discovery**: chart/kustomization.yaml automatically includes plugins, consumers, ingress, and services
 - Cloudflared and Datadog: wave 2
 
 **Section sources**
@@ -468,6 +497,8 @@ The infrastructure stack combines Gateway API with both Traefik and Kong for mod
 - [gatewayclass.yaml:6-6](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L6-L6)
 - [gateway.yaml:7-7](file://apps/infra/gateway-api/chart/gateway.yaml#L7-L7)
 - [httproute-traefik-dashboard.yaml:7-7](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L7-L7)
+- [chart/kustomization.yaml:7-7](file://apps/infra/kong/chart/kustomization.yaml#L7-L7)
+- [kustomization.yaml:7-7](file://apps/infra/kong/kustomization.yaml#L7-L7)
 - [httproute-kong.yaml:7-7](file://apps/infra/kong/chart/httproute-kong.yaml#L7-L7)
 - [config.yaml:3-3](file://apps/infra/cloudflared/config.yaml#L3-L3)
 - [config.yaml:5-5](file://apps/infra/datadog/config.yaml#L5-L5)

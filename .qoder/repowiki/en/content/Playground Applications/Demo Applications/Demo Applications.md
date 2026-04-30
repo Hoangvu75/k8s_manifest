@@ -2,6 +2,11 @@
 
 <cite>
 **Referenced Files in This Document**
+- [httproute-kong.yaml](file://apps/infra/kong/chart/httproute-kong.yaml)
+- [default-user-consumer.yaml](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml)
+- [key-auth-plugin.yaml](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml)
+- [hello-api-service.yaml](file://apps/infra/kong/chart/services/hello-api-service.yaml)
+- [values.yaml](file://apps/infra/kong/chart/values.yaml)
 - [values.yaml](file://apps/applications/hello-api/chart/values.yaml)
 - [values-service.yaml](file://apps/applications/hello-api/chart/values-service.yaml)
 - [values-httproute.yaml](file://apps/applications/hello-api/chart/values-httproute.yaml)
@@ -10,10 +15,10 @@
 - [applications.yaml](file://projects/applications.yaml)
 - [namespace.yaml](file://cluster-resources/default/namespace.yaml)
 - [gateway.yaml](file://apps/infra/gateway-api/chart/gateway.yaml)
+- [traefik.yaml](file://apps/infra/gateway-api/chart/traefik.yaml)
 - [httproute-argocd.yaml](file://apps/infra/argocd-ingress/chart/httproute-argocd.yaml)
 - [httproute-rancher.yaml](file://apps/infra/rancher/chart/httproute-rancher.yaml)
 - [root.yaml](file://bootstrap/root.yaml)
-- [argo_cd.md](file://guide/argocd/argo_cd.md)
 - [ingressroutetcp.yaml](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml)
 - [ingressrouteudp.yaml](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml)
 - [deployment.yaml](file://apps/applications/tcp-demo/chart/deployment.yaml)
@@ -24,22 +29,13 @@
 - [kustomization.yaml](file://apps/applications/udp-demo/kustomization.yaml)
 - [config.yaml](file://apps/applications/tcp-demo/config.yaml)
 - [config.yaml](file://apps/applications/udp-demo/config.yaml)
-- [README.md](file://guide/tcp-udp-demo/README.md)
-- [httproute-kong.yaml](file://apps/infra/kong/chart/httproute-kong.yaml)
-- [values.yaml](file://apps/infra/kong/chart/values.yaml)
-- [kong-plugin-key-auth.yaml](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml)
-- [kong-consumer.yaml](file://apps/infra/kong/chart/kong-consumer.yaml)
-- [externalname-hello-api.yaml](file://apps/infra/kong/chart/externalname-hello-api.yaml)
-- [traefik.yaml](file://apps/infra/gateway-api/chart/traefik.yaml)
-- [traefik-static.yaml](file://apps/infra/gateway-api/chart/traefik-static.yaml)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated hello-api application routing architecture from direct HTTPRoute to Kong Gateway with key authentication
+- Updated hello-api application routing architecture from direct HTTPRoute to Kong Gateway with centralized API key authentication
 - Documented new Kong Gateway configuration with DB-less mode and key-auth plugin integration
-- Added comprehensive Kong proxy layer with centralized API management and security enforcement
-- Updated routing flow to show Cloudflare → Traefik → Kong → hello-api architecture with API key validation
+- Added comprehensive Kong consumer and API key management patterns with secure credential distribution
 - Revised HTTPRoute configuration to deprecated status with migration guidance to Kong Gateway
 - Enhanced security model with enterprise-grade API key authentication through Kong key-auth plugin
 - Updated application architecture diagrams to reflect new three-tier routing topology with Kong Gateway
@@ -105,9 +101,9 @@ ARGO --> AS
 **Diagram sources**
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
 - [values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
-- [kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12)
-- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
-- [externalname-hello-api.yaml:1-11](file://apps/infra/kong/chart/externalname-hello-api.yaml#L1-L11)
+- [key-auth-plugin.yaml:1-12](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L1-L12)
+- [default-user-consumer.yaml:1-24](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L1-L24)
+- [hello-api-service.yaml:1-11](file://apps/infra/kong/chart/services/hello-api-service.yaml#L1-L11)
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 - [traefik.yaml:1-157](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L157)
 
@@ -171,7 +167,7 @@ CF-->>Client : Final Response
 **Diagram sources**
 - [httproute-kong.yaml:8-29](file://apps/infra/kong/chart/httproute-kong.yaml#L8-L29)
 - [values.yaml:20-27](file://apps/infra/kong/chart/values.yaml#L20-L27)
-- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
+- [key-auth-plugin.yaml:8-11](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L8-L11)
 - [traefik.yaml:134-141](file://apps/infra/gateway-api/chart/traefik.yaml#L134-L141)
 
 ## Detailed Component Analysis
@@ -240,8 +236,8 @@ Operational notes:
 **Section sources**
 - [values.yaml:19-21](file://apps/infra/kong/chart/values.yaml#L19-L21)
 - [values.yaml:20-27](file://apps/infra/kong/chart/values.yaml#L20-L27)
-- [kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12)
-- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
+- [key-auth-plugin.yaml:1-12](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L1-L12)
+- [default-user-consumer.yaml:1-24](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L1-L24)
 
 ### Kong Consumer and API Key Management
 **Updated** The Kong Gateway now includes comprehensive API key management:
@@ -252,8 +248,8 @@ Operational notes:
 - **Plugin Integration**: Key-auth plugin configured to validate consumer credentials
 
 **Section sources**
-- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
-- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
+- [default-user-consumer.yaml:1-24](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L1-L24)
+- [key-auth-plugin.yaml:8-11](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L8-L11)
 
 ### ExternalName Service Integration
 **Updated** The Kong Gateway includes ExternalName service for hello-api:
@@ -263,7 +259,7 @@ Operational notes:
 - **Service Resolution**: Enables Kong to route to hello-api service without direct namespace coupling
 
 **Section sources**
-- [externalname-hello-api.yaml:1-11](file://apps/infra/kong/chart/externalname-hello-api.yaml#L1-L11)
+- [hello-api-service.yaml:1-11](file://apps/infra/kong/chart/services/hello-api-service.yaml#L1-L11)
 
 ### Kustomization and Namespace Binding
 **HTTP Applications**: Kustomization sets target namespaces and applies ArgoCD annotations for sync wave coordination.
@@ -340,7 +336,6 @@ The tcp-demo application demonstrates Traefik's Layer 4 TCP routing capabilities
 - [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
 - [deployment.yaml:1-28](file://apps/applications/tcp-demo/chart/deployment.yaml#L1-L28)
 - [service.yaml:1-14](file://apps/applications/tcp-demo/chart/service.yaml#L1-L14)
-- [README.md:18-62](file://guide/tcp-udp-demo/README.md#L18-L62)
 
 ### UDP Echo Demo Application
 The udp-demo application showcases Traefik's Layer 4 UDP routing capabilities:
@@ -360,7 +355,6 @@ The udp-demo application showcases Traefik's Layer 4 UDP routing capabilities:
 - [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
 - [deployment.yaml:1-29](file://apps/applications/udp-demo/chart/deployment.yaml#L1-L29)
 - [service.yaml:1-15](file://apps/applications/udp-demo/chart/service.yaml#L1-L15)
-- [README.md:65-98](file://guide/tcp-udp-demo/README.md#L65-L98)
 
 ### Traefik Integration and Dashboard Visibility
 Both Layer 4 applications integrate seamlessly with the Traefik dashboard for comprehensive observability:
@@ -376,8 +370,7 @@ Both Layer 4 applications integrate seamlessly with the Traefik dashboard for co
 - Metrics endpoints for operational monitoring and debugging
 
 **Section sources**
-- [README.md:115-154](file://guide/tcp-udp-demo/README.md#L115-L154)
-- [README.md:157-184](file://guide/tcp-udp-demo/README.md#L157-L184)
+- [traefik.yaml:1-157](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L157)
 
 ## Dependency Analysis
 The demo applications now feature a three-tier dependency structure with enhanced security and management capabilities:
@@ -473,8 +466,8 @@ end
 - [values-httproute.yaml:1-28](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L28)
 - [values-service.yaml:1-6](file://apps/applications/hello-api/chart/values-service.yaml#L1-L6)
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
-- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
-- [kong-consumer.yaml:21-22](file://apps/infra/kong/chart/kong-consumer.yaml#L21-L22)
+- [key-auth-plugin.yaml:8-11](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L8-L11)
+- [default-user-consumer.yaml:21-22](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L21-L22)
 - [applications.yaml:61-74](file://projects/applications.yaml#L61-L74)
 
 ## Conclusion
@@ -511,7 +504,6 @@ By leveraging shared infrastructure components, consistent naming conventions, c
 **ApplicationSet Configuration**: The applications.yaml file provides comprehensive GitOps management for all demo applications, supporting both HTTP and Layer 4 routing demonstrations through standardized discovery and deployment patterns with enhanced Kong Gateway integration.
 
 **Section sources**
-- [argo_cd.md:1-34](file://guide/argocd/argo_cd.md#L1-L34)
 - [applications.yaml:23-85](file://projects/applications.yaml#L23-L85)
 
 ### Appendix D: Kong Gateway Configuration Patterns
@@ -538,4 +530,3 @@ By leveraging shared infrastructure components, consistent naming conventions, c
 - [values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
 - [traefik.yaml:1-157](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L157)
-- [traefik-static.yaml:1-52](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L52)

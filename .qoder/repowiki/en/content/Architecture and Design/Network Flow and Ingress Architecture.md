@@ -13,21 +13,23 @@
 - [httproute-rancher.yaml](file://apps/infra/rancher/chart/httproute-rancher.yaml)
 - [values.yaml](file://apps/infra/kong/chart/values.yaml)
 - [httproute-kong.yaml](file://apps/infra/kong/chart/httproute-kong.yaml)
-- [kong-plugin-key-auth.yaml](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml)
-- [kong-consumer.yaml](file://apps/infra/kong/chart/kong-consumer.yaml)
-- [externalname-hello-api.yaml](file://apps/infra/kong/chart/externalname-hello-api.yaml)
-- [hello-api-ingress.yaml](file://apps/infra/kong/chart/hello-api-ingress.yaml)
+- [key-auth-plugin.yaml](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml)
+- [default-user-consumer.yaml](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml)
+- [hello-api-ingress.yaml](file://apps/infra/kong/chart/ingress/hello-api-ingress.yaml)
+- [hello-api-service.yaml](file://apps/infra/kong/chart/services/hello-api-service.yaml)
+- [kustomization.yaml](file://apps/infra/kong/chart/consumers/kustomization.yaml)
+- [kustomization.yaml](file://apps/infra/kong/chart/ingress/kustomization.yaml)
+- [kustomization.yaml](file://apps/infra/kong/chart/plugins/kustomization.yaml)
+- [kustomization.yaml](file://apps/infra/kong/chart/services/kustomization.yaml)
 - [namespace.yaml](file://cluster-resources/default/namespace.yaml)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive Kong Gateway infrastructure with API key authentication as the primary security layer
-- Updated network flow to include Kong Gateway between Cloudflare and applications for enhanced API security
-- Implemented multi-layered security architecture with Cloudflare tunnel encryption + Gateway TLS termination + Kong API key validation
-- Enhanced HTTPRoute configuration to route specific hostnames (api.hoangvu75.space) through Kong for API authentication
-- Added KongPlugin and KongConsumer resources for API key management and validation
-- Updated hostname-to-backend mapping to reflect Kong-protected endpoints
+- Updated Kong infrastructure directory structure from flat files to organized subdirectories (consumers/, ingress/, plugins/, services/)
+- Added dedicated kustomization.yaml files in each subdirectory for automatic resource discovery
+- Updated file references to reflect new hierarchical organization
+- Enhanced Kong Gateway configuration with structured resource management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -49,7 +51,7 @@ This document describes the network flow and ingress architecture for a Kubernet
 The network stack is composed of four primary layers:
 - **Cloudflare Tunnel Layer**: Cloudflared agents establish encrypted tunnels from the cluster to Cloudflare Edge
 - **Gateway API Layer**: Traefik serves as the Gateway API controller with shared Gateway for TLS termination
-- **Kong Gateway Layer**: API key authentication and authorization for sensitive endpoints
+- **Kong Gateway Layer**: API key authentication and authorization for sensitive endpoints with organized directory structure
 - **Application Layer**: Workloads exposed through Services with hostname-based routing
 
 ```mermaid
@@ -97,8 +99,8 @@ GATEWAY --> DASHBOARD
 - [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
 - [values.yaml:16-37](file://apps/infra/kong/chart/values.yaml#L16-L37)
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
-- [kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12)
-- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
+- [key-auth-plugin.yaml:1-12](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L1-L12)
+- [default-user-consumer.yaml:1-24](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L1-L24)
 
 ## Core Components
 
@@ -121,6 +123,7 @@ GATEWAY --> DASHBOARD
 - **Purpose**: Provides API key authentication and authorization for sensitive endpoints
 - **Configuration**: DB-less mode with Kong Ingress Controller managing configuration
 - **Security Features**: Custom header validation (X-API-Key), credential hiding, multiple consumer support
+- **Directory Structure**: Organized subdirectories (consumers/, ingress/, plugins/, services/) with dedicated kustomization files
 
 ### HTTPRoute Configuration
 - **Direct Parent References**: Applications specify parentRefs to shared-gateway
@@ -170,7 +173,7 @@ APP-->>Client : "Response"
 - [values.yaml:11-18](file://apps/infra/cloudflared/chart/values.yaml#L11-L18)
 - [gateway.yaml:20-34](file://apps/infra/gateway-api/chart/gateway.yaml#L20-L34)
 - [httproute-kong.yaml:12-29](file://apps/infra/kong/chart/httproute-kong.yaml#L12-L29)
-- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
+- [key-auth-plugin.yaml:8-11](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L8-L11)
 
 ## Detailed Component Analysis
 
@@ -194,6 +197,7 @@ APP-->>Client : "Response"
 - **Consumer Management**: Predefined consumer with development API key (dev-api-key-123)
 - **Credential Security**: Hide credentials from response headers
 - **Service Integration**: ExternalName service pointing to hello-api backend
+- **Organized Structure**: Subdirectories for better resource management and discoverability
 
 ### HTTPRoute Examples and Routing Logic
 - **Argo CD Route**: Direct routing to argocd-server Service
@@ -203,8 +207,10 @@ APP-->>Client : "Response"
 
 **Section sources**
 - [values.yaml:19-37](file://apps/infra/kong/chart/values.yaml#L19-L37)
-- [kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12)
-- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
+- [key-auth-plugin.yaml:1-12](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L1-L12)
+- [default-user-consumer.yaml:1-24](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L1-L24)
+- [hello-api-ingress.yaml:1-21](file://apps/infra/kong/chart/ingress/hello-api-ingress.yaml#L1-L21)
+- [hello-api-service.yaml:1-11](file://apps/infra/kong/chart/services/hello-api-service.yaml#L1-L11)
 - [httproute-argocd.yaml:1-29](file://apps/infra/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
 - [httproute-rancher.yaml:1-30](file://apps/infra/rancher/chart/httproute-rancher.yaml#L1-L30)
 - [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
@@ -286,8 +292,8 @@ GW --> TRAEFIK_DASH
 - [values.yaml:11-18](file://apps/infra/cloudflared/chart/values.yaml#L11-L18)
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 - [values.yaml:16-37](file://apps/infra/kong/chart/values.yaml#L16-L37)
-- [kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12)
-- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
+- [key-auth-plugin.yaml:1-12](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L1-L12)
+- [default-user-consumer.yaml:1-24](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L1-L24)
 
 **Section sources**
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
@@ -339,8 +345,8 @@ GW --> TRAEFIK_DASH
 **Section sources**
 - [values.yaml:19-21](file://apps/infra/cloudflared/chart/values.yaml#L19-L21)
 - [gateway.yaml:23-34](file://apps/infra/gateway-api/chart/gateway.yaml#L23-L34)
-- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
-- [kong-consumer.yaml:21-23](file://apps/infra/kong/chart/kong-consumer.yaml#L21-L23)
+- [key-auth-plugin.yaml:8-11](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L8-L11)
+- [default-user-consumer.yaml:21-23](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L21-L23)
 
 ## Security Enhancements
 
@@ -369,8 +375,8 @@ GW --> TRAEFIK_DASH
 
 **Section sources**
 - [values.yaml:29-37](file://apps/infra/kong/chart/values.yaml#L29-L37)
-- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
-- [kong-consumer.yaml:21-23](file://apps/infra/kong/chart/kong-consumer.yaml#L21-L23)
+- [key-auth-plugin.yaml:8-11](file://apps/infra/kong/chart/plugins/key-auth-plugin.yaml#L8-L11)
+- [default-user-consumer.yaml:21-23](file://apps/infra/kong/chart/consumers/default-user-consumer.yaml#L21-L23)
 
 ## Conclusion
 This multi-layered ingress architecture provides comprehensive security through Cloudflare tunnel encryption, Gateway TLS termination, and Kong API key authentication. The architecture successfully routes traffic from Cloudflare Edge through cloudflared tunnels to Traefik Gateway, then through Kong for API authentication, and finally to applications. The label-based namespace exposure control ensures scalable and secure routing management, while the NodePort Service provides simple external access. The enhanced security model with API key validation for sensitive endpoints demonstrates defense-in-depth architecture, making the system resilient against various attack vectors. With proper monitoring, API key management, and namespace controls, this architecture offers a robust, scalable, and highly secure ingress solution for production environments.
