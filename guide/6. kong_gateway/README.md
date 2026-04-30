@@ -5,7 +5,7 @@ This guide describes how Kong Gateway is deployed as an API authentication layer
 ## Architecture
 
 ```
-Cloudflare → Traefik (shared-gateway) → Kong (key-auth) → hello-api
+Cloudflare → Traefik (shared-gateway) → Kong (key-auth) → helloworld-api
 ```
 
 ## Traffic Flow
@@ -17,11 +17,11 @@ Cloudflare → Traefik (shared-gateway) → Kong (key-auth) → hello-api
    - `Ingress` → translates to Kong routes
    - `KongPlugin` → enables key-auth on routes
    - `KongConsumer` + `Secret` → creates API key credentials
-5. **Kong Proxy** forwards authenticated requests to `hello-api:5678`
+5. **Kong Proxy** forwards authenticated requests to `helloworld-api:5678`
 
 ## Component Files
 
-Located in `apps/infra/kong/`:
+Located in `apps/infra/kong-gateway/`:
 
 | File | Purpose |
 |------|---------|
@@ -32,8 +32,8 @@ Located in `apps/infra/kong/`:
 | `chart/httproute-kong.yaml` | Traefik → Kong proxy HTTPRoute (wave: 3) |
 | `chart/plugins/key-auth-plugin.yaml` | KongPlugin CRD for key-auth |
 | `chart/consumers/default-user-consumer.yaml` | KongConsumer + credential Secret |
-| `chart/ingress/hello-api-ingress.yaml` | KIC Ingress: routes /helloworld → hello-api:5678 |
-| `chart/services/hello-api-service.yaml` | Cross-namespace ExternalName bridge (kong → hello-api) |
+| `chart/ingress/helloworld-api-ingress.yaml` | KIC Ingress: routes /helloworld → helloworld-api:5678 |
+| `chart/services/helloworld-api-service.yaml` | Cross-namespace ExternalName bridge (kong → helloworld-api) |
 
 ## Testing
 
@@ -51,8 +51,8 @@ Place all new resource files in the appropriate subdirectory under `chart/`:
 
 | What | Where |
 |------|-------|
-| KIC Ingress route | `chart/ingress/` |
-| ExternalName service | `chart/services/` |
+| KIC Ingress route | `chart/ingress/` (e.g. `helloworld-api-ingress.yaml`) |
+| ExternalName service | `chart/services/` (e.g. `helloworld-api-service.yaml`) |
 | KongConsumer + Secret | `chart/consumers/` |
 | KongPlugin | `chart/plugins/` |
 

@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: hello-api
+  name: helloworld-api
   namespace: kong
   annotations:
     argocd.argoproj.io/sync-wave: "3"
 spec:
   type: ExternalName
-  externalName: hello-api.hello-api.svc.cluster.local
+  externalName: helloworld-api.helloworld-api.svc.cluster.local

@@ -1,4 +1,4 @@
-applicationName: hello-api
+applicationName: helloworld-api
 
 deployment:
   enabled: true

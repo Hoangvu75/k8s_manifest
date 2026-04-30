@@ -60,7 +60,7 @@ Three apps in the `k8s_manifest` repo consume this OCI chart via Kustomize `helm
 |-----|-----------|---------------|--------------|---------|
 | **Cloudflared** | `cloudflared` | 6.16.1 | `values.yaml` | Cloudflare tunnel connector |
 | **ArgoCD Ingress** | `argocd` | 6.16.1 | `values.yaml` | Expose ArgoCD UI via HTTPRoute |
-| **Hello API** | `hello-api` | 6.16.1 | `values.yaml`, `values-service.yaml`, `values-httproute.yaml` | Demo API with variant overrides |
+| **Hello API** | `helloworld-api` | 6.16.1 | `values.yaml`, `values-service.yaml` | Demo API with variant overrides |
 
 ### How They Reference the Chart
 
@@ -82,14 +82,14 @@ helmCharts:
     - values-httproute.yaml
 ```
 
-Example from [hello-api](../../apps/applications/hello-api/chart/kustomization.yaml):
+Example from [helloworld-api](../../apps/applications/helloworld-api/chart/kustomization.yaml):
 
 ```yaml
 helmCharts:
 - name: application
   repo: oci://ghcr.io/hoangvu75/helm_application
-  releaseName: hello-api
-  namespace: hello-api
+  releaseName: helloworld-api
+  namespace: helloworld-api
   version: 6.16.1
   valuesFile: values.yaml
   additionalValuesFiles:

@@ -43,7 +43,7 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: hello-api
+  name: helloworld-api
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
   labels:

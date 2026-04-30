@@ -138,7 +138,7 @@ Each trace shows the full request journey through Traefik's pipeline:
 GET /helloworld (45ms)
 ├── Router (0.2ms)         ← hostname/path matching
 ├── RequestHeaderModifier  ← X-Forwarded-Proto/Port
-└── Service (44ms)         ← backend hello-api
+└── Service (44ms)         ← backend helloworld-api
 ```
 
 ## Additional Features
