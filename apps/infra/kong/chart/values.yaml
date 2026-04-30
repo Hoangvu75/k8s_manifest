@@ -3,9 +3,11 @@
 
 fullnameOverride: "kong"
 
-# Disable Kong Ingress Controller — we use Traefik + Gateway API for routing
+# Kong Ingress Controller — image from GHCR to avoid Docker Hub rate limits
 ingressController:
-  enabled: false
+  image:
+    repository: ghcr.io/hoangvu75/kubernetes-ingress-controller
+    tag: "3.3"
 
 image:
   repository: ghcr.io/hoangvu75/kong
