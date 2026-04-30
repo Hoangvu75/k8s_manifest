@@ -1,19 +1,21 @@
-# DEPRECATED — HTTPRoute chuyển sang Kong (apps/infra/kong)
-# api.hoangvu75.space/* -> Traefik -> Kong (key-auth) -> hello-api
-httpRoute:
-  enabled: false
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kong-ingress
+  namespace: kong
   annotations:
     argocd.argoproj.io/sync-wave: "3"
+spec:
   parentRefs:
     - name: shared-gateway
       namespace: gateway-api
   hostnames:
-    - api.hoangvu75.space
+    - "api.hoangvu75.space"
   rules:
     - matches:
         - path:
             type: PathPrefix
-            value: /helloworld
+            value: /
       filters:
         - type: RequestHeaderModifier
           requestHeaderModifier:
@@ -23,5 +25,5 @@ httpRoute:
               - name: X-Forwarded-Port
                 value: "443"
       backendRefs:
-        - name: hello-api
-          port: 5678
+        - name: kong-proxy
+          port: 80

@@ -1,0 +1,56 @@
+# Kong Gateway — DB-less mode
+# Traffic: Cloudflare → Traefik → Kong (key-auth) → hello-api
+
+fullnameOverride: "kong"
+
+image:
+  repository: kong
+  tag: "3.8"
+
+env:
+  database: "off"
+
+# DB-less declarative config
+dblessConfig:
+  config:
+    _format_version: "3.0"
+    services:
+      - name: hello-api
+        url: http://hello-api.hello-api:5678
+        routes:
+          - name: hello-api-route
+            paths:
+              - /helloworld
+            strip_path: false
+    plugins:
+      - name: key-auth
+        config:
+          key_names:
+            - X-API-Key
+          hide_credentials: true
+    consumers:
+      - username: default-user
+        keyauth_credentials:
+          - key: dev-api-key-123
+
+# Proxy service (Traefik routes here)
+proxy:
+  enabled: true
+  type: ClusterIP
+  http:
+    enabled: true
+    servicePort: 80
+    containerPort: 8000
+  tls:
+    enabled: false
+
+# Admin API — disable for production (can enable temporarily for testing)
+admin:
+  enabled: true
+  type: ClusterIP
+  http:
+    enabled: true
+    servicePort: 8001
+
+enterprise:
+  enabled: false

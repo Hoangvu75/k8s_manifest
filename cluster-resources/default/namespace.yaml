@@ -77,6 +77,15 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: kong
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    routing.hoangvu75.space/expose: "true"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
   name: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "-1"

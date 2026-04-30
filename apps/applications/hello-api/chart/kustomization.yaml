@@ -10,4 +10,3 @@ helmCharts:
   valuesFile: values.yaml
   additionalValuesFiles:
     - values-service.yaml
-    - values-httproute.yaml
