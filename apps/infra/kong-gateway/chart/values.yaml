@@ -20,6 +20,8 @@ env:
   database: "off"
   # Tells Kong Manager where to find the Admin API
   admin_api_uri: "https://kong-admin.hoangvu75.space"
+  # Tells Admin API which origin to allow (CORS fix)
+  admin_gui_url: "https://kong.hoangvu75.space"
 
 # Proxy service (Traefik routes here)
 proxy:
