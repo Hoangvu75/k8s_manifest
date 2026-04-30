@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   name: helloworld-api
   annotations:
-    konghq.com/plugins: key-auth
+    konghq.com/plugins: key-auth, oauth2
     konghq.com/strip-path: "false"
     argocd.argoproj.io/sync-wave: "3"
 spec:
