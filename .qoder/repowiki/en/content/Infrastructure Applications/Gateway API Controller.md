@@ -29,6 +29,7 @@
 
 ## Update Summary
 **Changes Made**
+- Corrected OTLP endpoint service name from `datadog-agent.datadog` to `datadog.datadog` for proper Datadog APM connectivity
 - Enhanced Traefik metrics exposure with comprehensive Prometheus scraping annotations
 - Added Datadog Autodiscovery configuration for intelligent metric collection
 - Integrated Datadog Agent with OpenTelemetry HTTP exporter for APM tracing
@@ -398,6 +399,8 @@ C --> D["APM Tracing"]
 A --> E["Access Logs"]
 E --> F["Structured JSON"]
 ```
+
+**Updated** Corrected OTLP endpoint service name from `datadog-agent.datadog` to `datadog.datadog` for proper Datadog APM connectivity
 
 **Diagram sources**
 - [traefik-static.yaml:43-48](file://apps/infra/gateway-api/chart/traefik-static.yaml#L43-L48)

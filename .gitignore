@@ -1,14 +1,1 @@
-apps/playground/mbs-discord-bot/chart/secret.yaml
-apps/infra/cloudflared/chart/secret.yaml
-apps/playground/trivy-scan/chart/secret.yaml
-apps/playground/argocd/chart/dockerhub-repo-secret.yaml
-apps/playground/argocd/chart/secret.yaml
-
-guide/localstack/create_ec2/.terraform/
-guide/localstack/create_ec2/*.tfstate
-guide/localstack/create_ec2/*.tfstate.*
-guide/localstack/create_ec2/*.auto.tfvars
-guide/localstack/create_ec2/terraform.tfvars
-guide/localstack/create_ec2/.ssh_ls_*.pem
-
 .ignore
