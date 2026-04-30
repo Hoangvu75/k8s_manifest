@@ -5,7 +5,7 @@ fullnameOverride: "kong"
 
 image:
   repository: kong
-  tag: "3.8"
+  tag: "3.8.0-ubuntu"
 
 imagePullSecrets:
   - name: registry-credentials
