@@ -25,17 +25,24 @@
 - [config.yaml](file://apps/applications/tcp-demo/config.yaml)
 - [config.yaml](file://apps/applications/udp-demo/config.yaml)
 - [README.md](file://guide/tcp-udp-demo/README.md)
+- [httproute-kong.yaml](file://apps/infra/kong/chart/httproute-kong.yaml)
+- [values.yaml](file://apps/infra/kong/chart/values.yaml)
+- [kong-plugin-key-auth.yaml](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml)
+- [kong-consumer.yaml](file://apps/infra/kong/chart/kong-consumer.yaml)
+- [externalname-hello-api.yaml](file://apps/infra/kong/chart/externalname-hello-api.yaml)
+- [traefik.yaml](file://apps/infra/gateway-api/chart/traefik.yaml)
+- [traefik-static.yaml](file://apps/infra/gateway-api/chart/traefik-static.yaml)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive documentation for new TCP Echo Demo and UDP Echo Demo applications
-- Updated project structure to reflect new apps/applications/ directory layout
-- Added Layer 4 routing demonstration capabilities alongside existing HTTP-based hello-api application
-- Documented Traefik IngressRouteTCP and IngressRouteUDP implementations
-- Included practical testing guides for TCP and UDP echo services
-- Updated ApplicationSet configuration to support new demo applications directory
-- Added resource allocation and performance considerations for Layer 4 routing
+- Updated hello-api application routing architecture from direct HTTPRoute to Kong Gateway with key authentication
+- Documented new Kong Gateway configuration with DB-less mode and key-auth plugin integration
+- Added comprehensive Kong proxy layer with centralized API management and security enforcement
+- Updated routing flow to show Cloudflare → Traefik → Kong → hello-api architecture with API key validation
+- Revised HTTPRoute configuration to deprecated status with migration guidance to Kong Gateway
+- Enhanced security model with enterprise-grade API key authentication through Kong key-auth plugin
+- Updated application architecture diagrams to reflect new three-tier routing topology with Kong Gateway
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -51,60 +58,58 @@
 11. [Appendices](#appendices)
 
 ## Introduction
-This document explains the demo applications deployed in the playground environment, now expanded to include comprehensive Layer 4 routing demonstrations alongside the existing HTTP-based hello-api application. The catalog features three distinct demo applications: hello-api (HTTP-based), tcp-demo (TCP echo service), and udp-demo (UDP echo service). Each application demonstrates different routing capabilities using ArgoCD-driven GitOps synchronization, namespace isolation, and practical update/rollback guidance. The new TCP and UDP demo applications showcase Traefik's advanced routing capabilities for connection-oriented protocols beyond traditional HTTP.
+This document explains the demo applications deployed in the playground environment, featuring a comprehensive routing architecture that has been migrated from direct HTTPRoute to Kong Gateway integration. The hello-api application now demonstrates advanced API gateway capabilities through Kong's DB-less mode with built-in key authentication, while maintaining the existing Layer 4 routing demonstrations for TCP and UDP protocols. The new architecture showcases enterprise-grade API management features including rate limiting, authentication, and observability through a unified ArgoCD-driven GitOps workflow.
 
 ## Project Structure
-The playground has evolved to use a unified apps/applications/ directory structure managed by an ApplicationSet that discovers and deploys demo applications from the repository. The new structure supports both HTTP-based and Layer 4 routing demonstrations through standardized configuration patterns. Each demo app maintains its own Kustomization and resource definitions, enabling modular configuration and safe separation of concerns across different protocol families.
+The playground maintains its unified apps/applications/ directory structure while introducing Kong Gateway as the central routing layer. The new architecture features three distinct routing tiers: Cloudflare at the edge, Traefik as the ingress controller, Kong as the API gateway, and the hello-api application as the backend service. Each demo application continues to use standardized configuration patterns with enhanced security and observability capabilities.
 
 ```mermaid
 graph TB
-subgraph "ArgoCD Control Plane"
-Root["Application 'root'"]
-Proj["AppProject 'applications'"]
-AS["ApplicationSet 'applications'"]
+subgraph "Edge Layer"
+CF["Cloudflare DNS/TLS"]
 end
-subgraph "Cluster Resources"
-NS1["Namespace 'hello-api'"]
-NS2["Namespace 'tcp-demo'"]
-NS3["Namespace 'udp-demo'"]
+subgraph "Ingress Layer"
+TR["Traefik Gateway"]
 GW["Gateway 'shared-gateway'"]
-TR["Traefik GatewayClass"]
 end
-subgraph "HTTP Demo: hello-api"
-Kust1["Kustomization<br/>namespace: hello-api"]
-Chart1["Helm Chart Values<br/>deployment/service/httproute"]
+subgraph "API Gateway Layer"
+KG["Kong Gateway"]
+KPROXY["Kong Proxy Service"]
+KPLUGIN["Key-Auth Plugin"]
+KCONSUMER["API Consumer"]
+ENDPOINT["ExternalName Service"]
 end
-subgraph "Layer 4 Demo: tcp-demo"
-Kust2["Kustomization<br/>namespace: tcp-demo"]
-Chart2["Deployment + Service + IngressRouteTCP"]
+subgraph "Application Layer"
+HA["hello-api Deployment"]
+HS["hello-api Service"]
+HP["hello-api Pods"]
 end
-subgraph "Layer 4 Demo: udp-demo"
-Kust3["Kustomization<br/>namespace: udp-demo"]
-Chart3["Deployment + Service + IngressRouteUDP"]
+subgraph "Control Plane"
+AS["ApplicationSet 'applications'"]
+ARGO["ArgoCD"]
 end
-Root --> Proj
-Proj --> AS
-AS --> Kust1
-AS --> Kust2
-AS --> Kust3
-Kust1 --> Chart1
-Kust2 --> Chart2
-Kust3 --> Chart3
-Chart1 --> NS1
-Chart2 --> NS2
-Chart3 --> NS3
-Chart1 --> GW
-Chart2 --> TR
-Chart3 --> TR
+CF --> TR
+TR --> GW
+GW --> KG
+KG --> KPROXY
+KPROXY --> KPLUGIN
+KPLUGIN --> KCONSUMER
+KCONSUMER --> ENDPOINT
+ENDPOINT --> HS
+HS --> HA
+HA --> HP
+AS --> ARGO
+ARGO --> AS
 ```
 
 **Diagram sources**
-- [root.yaml:10-19](file://bootstrap/root.yaml#L10-L19)
-- [applications.yaml:24-85](file://projects/applications.yaml#L24-L85)
-- [kustomization.yaml:4](file://apps/applications/hello-api/kustomization.yaml#L4)
-- [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
-- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
+- [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
+- [values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
+- [kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12)
+- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
+- [externalname-hello-api.yaml:1-11](file://apps/infra/kong/chart/externalname-hello-api.yaml#L1-L11)
+- [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
+- [traefik.yaml:1-157](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L157)
 
 **Section sources**
 - [applications.yaml:1-85](file://projects/applications.yaml#L1-L85)
@@ -112,18 +117,18 @@ Chart3 --> TR
 - [kustomization.yaml:1-8](file://apps/applications/hello-api/kustomization.yaml#L1-L8)
 
 ## Core Components
-- **Application discovery and deployment**: Managed by an ApplicationSet that scans the apps/applications/**/config.yaml files and generates per-app Application resources. Namespaces are created automatically during sync with enhanced support for both HTTP and Layer 4 routing protocols.
-- **hello-api module**: HTTP-based application composed of Helm values overlays for deployment, service, and HTTPRoute configuration to demonstrate standard web traffic routing.
-- **tcp-demo module**: Layer 4 TCP echo service using Traefik's IngressRouteTCP to demonstrate connection-oriented protocol handling with socat-based TCP echo server.
-- **udp-demo module**: Layer 4 UDP echo service using Traefik's IngressRouteUDP to demonstrate datagram protocol routing with socat-based UDP echo server.
-- **Unified routing infrastructure**: Both HTTP and Layer 4 applications leverage the shared Gateway and Traefik infrastructure for consistent routing behavior and observability.
-- **Namespace isolation**: Each demo application runs in its own namespace, providing complete isolation for safe experimentation with different protocol families.
+- **Application discovery and deployment**: Managed by an ApplicationSet that scans apps/applications/**/config.yaml files and generates per-app Application resources with enhanced support for Kong Gateway integration.
+- **hello-api module**: HTTP-based application now routed through Kong Gateway with key authentication, featuring DB-less mode configuration and centralized service management.
+- **Kong Gateway infrastructure**: Enterprise-grade API gateway providing authentication, rate limiting, and observability with Traefik integration for seamless traffic flow.
+- **Enhanced security model**: Key-auth plugin integrated into Kong configuration with predefined consumer credentials for development testing.
+- **Unified routing architecture**: Three-tier routing from Cloudflare → Traefik → Kong → Application, providing enterprise-grade API management capabilities.
+- **Namespace isolation**: Each demo application maintains complete isolation with Kong Gateway providing centralized routing policies.
 
 Key configuration anchors:
-- **HTTP applications**: Deployment and container image/ports/resources, Service exposure, HTTPRoute path matching and hostname configuration
-- **Layer 4 applications**: Deployment with socat containers, Service definitions with protocol-specific ports, IngressRouteTCP/UDP entry points and match conditions
-- **Shared infrastructure**: Gateway configuration, Traefik GatewayClass, namespace labeling for routing exposure
-- **ApplicationSet templates**: Git-based discovery, namespace binding, and sync wave coordination
+- **Kong Gateway**: DB-less mode configuration, service definitions, route patterns, key-auth plugin setup, consumer credentials
+- **Traefik Integration**: Gateway API compatibility, listener configuration, TLS termination, metrics collection
+- **Application routing**: HTTPRoute pointing to Kong proxy service instead of direct application service
+- **Security policies**: API key authentication, consumer management, credential distribution
 
 **Section sources**
 - [applications.yaml:33-74](file://projects/applications.yaml#L33-L74)
@@ -131,143 +136,144 @@ Key configuration anchors:
 - [config.yaml:1-4](file://apps/applications/tcp-demo/config.yaml#L1-L4)
 - [config.yaml:1-4](file://apps/applications/udp-demo/config.yaml#L1-L4)
 - [values.yaml:1-23](file://apps/applications/hello-api/chart/values.yaml#L1-L23)
-- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
+- [values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
+- [httproute-kong.yaml:14-29](file://apps/infra/kong/chart/httproute-kong.yaml#L14-L29)
 
 ## Architecture Overview
-The demo applications demonstrate comprehensive routing capabilities spanning HTTP and Layer 4 protocols through a unified ArgoCD-driven GitOps workflow:
-- Changes are committed to the repository under apps/applications/<app-name>.
-- ArgoCD's ApplicationSet detects the change via Git generator scanning for config.yaml files.
-- The Application applies Kustomization and resource definitions to the target namespace.
-- HTTP applications use HTTPRoute resources with shared Gateway for path-based routing.
-- Layer 4 applications use IngressRouteTCP/UDP resources with Traefik for protocol-specific routing.
-- Both HTTP and Layer 4 routing integrate with the same observability infrastructure including Traefik dashboard and metrics.
+The demo applications now feature a sophisticated three-tier routing architecture that demonstrates enterprise-grade API management capabilities:
+- Cloudflare handles DNS resolution and TLS termination at the edge
+- Traefik serves as the ingress controller with Gateway API support
+- Kong Gateway provides API management, authentication, and observability
+- Applications receive traffic through Kong's centralized routing layer
+- Security is enforced through key-auth plugin with configurable credentials
+- Observability is enhanced through Kong's metrics and logging capabilities
 
 ```mermaid
 sequenceDiagram
-participant Dev as "Developer"
-participant Repo as "Git Repository"
-participant ArgoCD as "ArgoCD"
-participant K8s as "Kubernetes API"
-Dev->>Repo : Commit changes to apps/applications/**
-Repo-->>ArgoCD : Webhook/git poll
-ArgoCD->>ArgoCD : ApplicationSet detects config.yaml
-ArgoCD->>ArgoCD : Create/Update Application
-ArgoCD->>K8s : Apply Kustomization + Resources
-K8s-->>ArgoCD : Status : Synced
-Note over K8s : HTTP : Gateway -> HTTPRoute -> Service -> Pod
-Note over K8s : TCP : Traefik -> IngressRouteTCP -> Service -> Pod
-Note over K8s : UDP : Traefik -> IngressRouteUDP -> Service -> Pod
+participant Client as "Client"
+participant CF as "Cloudflare"
+participant TR as "Traefik"
+participant KG as "Kong Gateway"
+participant KA as "Key-Auth Plugin"
+participant APP as "hello-api"
+Client->>CF : HTTPS Request to api.hoangvu75.space
+CF->>TR : Forward to Traefik (NodePort 30443)
+TR->>KG : HTTPRoute to Kong Proxy (Service Port 80)
+KG->>KA : Key-Auth Plugin Validation
+KA-->>KG : API Key Validated (X-API-Key)
+KG->>APP : Route to hello-api Service
+APP-->>KG : Response
+KG-->>TR : Kong Response
+TR-->>CF : Response
+CF-->>Client : Final Response
 ```
 
 **Diagram sources**
-- [applications.yaml:33-59](file://projects/applications.yaml#L33-L59)
-- [config.yaml:1-4](file://apps/applications/hello-api/config.yaml#L1-L4)
-- [config.yaml:1-4](file://apps/applications/tcp-demo/config.yaml#L1-L4)
-- [config.yaml:1-4](file://apps/applications/udp-demo/config.yaml#L1-L4)
-- [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
-- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
+- [httproute-kong.yaml:8-29](file://apps/infra/kong/chart/httproute-kong.yaml#L8-L29)
+- [values.yaml:20-27](file://apps/infra/kong/chart/values.yaml#L20-L27)
+- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
+- [traefik.yaml:134-141](file://apps/infra/gateway-api/chart/traefik.yaml#L134-L141)
 
 ## Detailed Component Analysis
 
+### Kong Gateway Integration
+The hello-api application now routes through Kong Gateway as part of a comprehensive API management solution:
+- **DB-less Mode**: Kong operates without persistent database using declarative configuration
+- **Service Definition**: Centralized service configuration for hello-api with route patterns
+- **Key Authentication**: Built-in key-auth plugin with predefined consumer credentials
+- **Route Management**: Path-based routing with strip_path functionality for clean URL handling
+- **Proxy Integration**: Kong proxy service acts as intermediary between Traefik and application
+
+**Updated** The Kong configuration replaces the previous HTTPRoute approach with enterprise-grade API gateway capabilities, providing enhanced security and observability.
+
+**Section sources**
+- [values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
+- [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
+
 ### Multi-Value Configuration Approach
-The hello-api module maintains the same three-values-file approach for HTTP applications:
-- **Deployment and container configuration**: image, replicas, ports, args, and resource requests/limits for HTTP workloads.
-- **Service configuration**: enabling the Service and mapping container ports to service ports for HTTP traffic.
-- **HTTPRoute configuration**: enabling the route, attaching to a shared Gateway, setting hostnames, path matching, and backend references.
+The hello-api module maintains its three-values-file approach with enhanced Kong integration:
+- **Deployment and container configuration**: Standard HTTP echo service with resource optimization
+- **Service configuration**: Kubernetes Service exposing application on port 5678
+- **HTTPRoute configuration**: Now deprecated and disabled, replaced by Kong Gateway routing
 
-**Updated** The new Layer 4 applications use a simplified single-chart approach with embedded resource definitions rather than Helm values, focusing on protocol-specific configuration patterns.
-
-Benefits:
-- **HTTP applications**: Separation of concerns enables safer rollouts with incremental updates to routing policies.
-- **Layer 4 applications**: Direct resource definition eliminates Helm complexity for protocol-specific deployments.
-- **Consistent patterns**: Both approaches leverage the same ApplicationSet discovery mechanism.
-- **Reusability**: Kustomization overlays enable environment-specific customizations.
-
-```mermaid
-flowchart TD
-Start(["Resource Load"]) --> LoadHTTP["Load HTTP Resources"]
-Start --> LoadTCP["Load TCP Resources"]
-Start --> LoadUDP["Load UDP Resources"]
-LoadHTTP --> MergeHTTP["Merge HTTP Resources"]
-LoadTCP --> MergeTCP["Merge TCP Resources"]
-LoadUDP --> MergeUDP["Merge UDP Resources"]
-MergeHTTP --> RenderHTTP["Render HTTP Templates"]
-MergeTCP --> RenderTCP["Render TCP Templates"]
-MergeUDP --> RenderUDP["Render UDP Templates"]
-RenderHTTP --> ApplyHTTP["Apply HTTP to Namespace"]
-RenderTCP --> ApplyTCP["Apply TCP to Namespace"]
-RenderUDP --> ApplyUDP["Apply UDP to Namespace"]
-```
-
-**Diagram sources**
-- [values.yaml:1-23](file://apps/applications/hello-api/chart/values.yaml#L1-L23)
-- [deployment.yaml:1-28](file://apps/applications/tcp-demo/chart/deployment.yaml#L1-L28)
-- [deployment.yaml:1-29](file://apps/applications/udp-demo/chart/deployment.yaml#L1-L29)
+**Updated** The HTTPRoute values file is marked as deprecated with migration guidance to Kong Gateway configuration.
 
 **Section sources**
 - [values.yaml:1-23](file://apps/applications/hello-api/chart/values.yaml#L1-L23)
 - [values-service.yaml:1-6](file://apps/applications/hello-api/chart/values-service.yaml#L1-L6)
-- [values-httproute.yaml:1-26](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L26)
-- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
+- [values-httproute.yaml:1-28](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L28)
 
 ### Service Definition
-**HTTP Applications**: Service definitions enable standard Kubernetes service exposure with consistent port mappings and selector-based pod targeting.
+**HTTP Applications**: Service definitions enable standard Kubernetes service exposure with optimized resource allocation for the HTTP echo service.
 
-**Layer 4 Applications**: Service definitions use ClusterIP type with protocol-specific port configurations:
-- **TCP Demo**: Service exposes port 7777 with TCP protocol for connection-oriented echo functionality
-- **UDP Demo**: Service exposes port 7778 with UDP protocol for datagram echo functionality
+**Layer 4 Applications**: Service definitions use ClusterIP type with protocol-specific port configurations for TCP and UDP echo services.
 
 Operational notes:
-- Ensure Service names match the backend references in corresponding IngressRoute resources.
-- Protocol specification is critical for Layer 4 routing to function correctly.
-- Container port specifications must align with the application's listening ports.
+- Service names must match backend references in Kong configuration
+- Port specifications align with application container listening ports
+- Resource optimization ensures efficient playground operation
 
 **Section sources**
 - [values-service.yaml:1-6](file://apps/applications/hello-api/chart/values-service.yaml#L1-L6)
 - [service.yaml:1-14](file://apps/applications/tcp-demo/chart/service.yaml#L1-L14)
 - [service.yaml:1-15](file://apps/applications/udp-demo/chart/service.yaml#L1-L15)
 
-### Ingress Routing via HTTPRoute
-**HTTP Applications**: HTTPRoute resources provide path-based routing with hostname matching and backend service references to the shared Gateway infrastructure.
-
-**Updated** HTTPRoute implementation uses direct standardization patterns without centralized component dependencies, ensuring consistent routing behavior across all demo applications.
-
-Operational notes:
-- Shared Gateway must exist in the gateway-api namespace for HTTP routing.
-- PathPrefix matching enables clean separation of routes across demo applications.
-- Direct HTTPRoute standardization ensures consistent behavior without component dependencies.
+### Kong HTTPRoute Configuration
+**Updated** The hello-api application now uses Kong Gateway HTTPRoute instead of direct HTTPRoute:
+- **Parent Reference**: References shared-gateway in gateway-api namespace
+- **Hostname Configuration**: api.hoangvu75.space for consistent domain routing
+- **Path Matching**: Root path (/) with Kong proxy backend
+- **Request Header Modification**: Sets forwarded protocol and port headers
+- **Backend Reference**: Routes to Kong proxy service instead of direct application
 
 **Section sources**
-- [values-httproute.yaml:1-26](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L26)
-- [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
+- [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
 
-### HTTPRoute Setup Example
-HTTPRoute configuration establishes routing policies for HTTP-based applications:
-- Parent reference to shared Gateway in the gateway-api namespace
-- Hostname configuration for domain-based routing
-- Path match patterns for URL-based routing
-- Backend references to Service resources with port specifications
-
-**Updated** The HTTPRoute setup relies on direct standardization patterns, reducing complexity and eliminating component dependencies while ensuring consistent routing behavior.
+### Kong Configuration and Security
+**Enterprise-Grade Features**: Kong Gateway provides comprehensive API management capabilities:
+- **DB-less Declarative Config**: YAML-based configuration without persistent storage
+- **Key Authentication Plugin**: Built-in API key validation with configurable credentials
+- **Consumer Management**: Predefined consumer with development API key
+- **Service Routing**: Centralized service definition with route patterns
+- **Security Integration**: API key authentication as part of the routing pipeline
 
 **Section sources**
-- [values-httproute.yaml:5-25](file://apps/applications/hello-api/chart/values-httproute.yaml#L5-L25)
+- [values.yaml:19-21](file://apps/infra/kong/chart/values.yaml#L19-L21)
+- [values.yaml:20-27](file://apps/infra/kong/chart/values.yaml#L20-L27)
+- [kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12)
+- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
+
+### Kong Consumer and API Key Management
+**Updated** The Kong Gateway now includes comprehensive API key management:
+- **Consumer Creation**: Default consumer named "default-user" with associated credentials
+- **API Key Configuration**: Development API key "dev-api-key-123" distributed via Kubernetes Secret
+- **Key Naming Convention**: Custom key header "X-API-Key" for authentication requests
+- **Credential Distribution**: Secure credential management through Kong consumer and secret resources
+- **Plugin Integration**: Key-auth plugin configured to validate consumer credentials
+
+**Section sources**
+- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
+- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
+
+### ExternalName Service Integration
+**Updated** The Kong Gateway includes ExternalName service for hello-api:
+- **Service Type**: ExternalName service in kong namespace
+- **External Endpoint**: hello-api.hello-api.svc.cluster.local for application access
+- **Namespace Isolation**: Maintains separation between Kong and application namespaces
+- **Service Resolution**: Enables Kong to route to hello-api service without direct namespace coupling
+
+**Section sources**
+- [externalname-hello-api.yaml:1-11](file://apps/infra/kong/chart/externalname-hello-api.yaml#L1-L11)
 
 ### Kustomization and Namespace Binding
 **HTTP Applications**: Kustomization sets target namespaces and applies ArgoCD annotations for sync wave coordination.
 
-**Layer 4 Applications**: Kustomization follows the same pattern but manages direct resource definitions rather than Helm charts:
-- Target namespace binding for tcp-demo and udp-demo
-- ArgoCD annotations for sync wave ordering (wave 3 for demo applications)
-- Resource aggregation combining deployment, service, and routing definitions
+**Layer 4 Applications**: Kustomization follows the same pattern with direct resource definitions for protocol-specific deployments.
 
 Operational notes:
-- Namespace creation is handled by ArgoCD with CreateNamespace enabled.
-- Keep namespace consistency across Kustomization and resource references.
-- Sync waves coordinate startup order with infrastructure resources.
+- Namespace creation is handled by ArgoCD with CreateNamespace enabled
+- Sync waves coordinate startup order with infrastructure resources
+- Kong Gateway requires proper namespace isolation for security
 
 **Section sources**
 - [kustomization.yaml:4](file://apps/applications/hello-api/kustomization.yaml#L4)
@@ -278,11 +284,11 @@ Operational notes:
 - [config.yaml:1-4](file://apps/applications/udp-demo/config.yaml#L1-L4)
 
 ### Relationship to Playground Namespace Isolation
-**Infrastructure namespaces**: Cluster-level namespaces for infrastructure are pre-provisioned with early sync waves to ensure stable foundation services.
+**Infrastructure namespaces**: Cluster-level namespaces for infrastructure are pre-provisioned with coordinated sync waves for stable foundation services.
 
 **Demo application namespaces**: Each demo application namespace is created during Application sync with CreateNamespace enabled, providing complete isolation for HTTP and Layer 4 routing demonstrations.
 
-**Updated** The new Layer 4 applications benefit from the same isolation guarantees as HTTP applications, with additional protocol-specific considerations for network connectivity.
+**Updated** Kong Gateway introduces additional security isolation through API key authentication and centralized policy management across all demo applications.
 
 **Section sources**
 - [namespace.yaml:1-52](file://cluster-resources/default/namespace.yaml#L1-L52)
@@ -293,13 +299,13 @@ Operational notes:
 
 **Sync Policy**: Automated synchronization with pruning, self-healing, and retry mechanisms ensures reliable deployment across HTTP and Layer 4 applications.
 
-**Sync Waves**: Coordinated ordering ensures infrastructure stability before application deployment, with demo applications using wave 3 for consistent startup sequencing.
+**Sync Waves**: Coordinated ordering ensures infrastructure stability before application deployment, with Kong Gateway using wave 2 and applications using wave 3.
 
 Practical implications:
-- Use annotations to influence sync wave ordering for complex dependency chains.
-- Leverage automated retry/backoff to handle transient failures in both HTTP and Layer 4 routing.
-- Self-healing maintains consistency across all demo application types.
-- Unified ApplicationSet simplifies management of diverse routing protocols.
+- Kong Gateway requires earlier sync than applications for proper routing
+- API key credentials are provisioned during Kong Gateway deployment
+- Traefik gateway must be available before Kong HTTPRoute can attach
+- Unified ApplicationSet simplifies management of diverse routing protocols
 
 **Section sources**
 - [applications.yaml:33-74](file://projects/applications.yaml#L33-L74)
@@ -308,11 +314,11 @@ Practical implications:
 - [config.yaml:2-3](file://apps/applications/udp-demo/config.yaml#L2-L3)
 
 ### Learning Tooling and Testing Scenarios
-**HTTP Applications**: Demonstrate GitOps end-to-end workflow with path-based routing, header forwarding, and backend binding for web traffic.
+**HTTP Applications**: Demonstrate GitOps end-to-end workflow with Kong Gateway integration, API key authentication, and centralized routing policies.
 
 **Layer 4 Applications**: Provide hands-on experience with connection-oriented and datagram protocols through practical echo service testing.
 
-**Updated** The expanded demo catalog now includes comprehensive routing demonstrations covering HTTP, TCP, and UDP protocols, serving as a complete learning toolkit for modern Kubernetes networking.
+**Updated** The expanded demo catalog now includes enterprise-grade API management capabilities alongside comprehensive routing demonstrations, serving as a complete learning toolkit for modern Kubernetes networking and API management.
 
 ## Layer 4 Routing Demonstrations
 
@@ -374,13 +380,14 @@ Both Layer 4 applications integrate seamlessly with the Traefik dashboard for co
 - [README.md:157-184](file://guide/tcp-udp-demo/README.md#L157-L184)
 
 ## Dependency Analysis
-The demo applications demonstrate different dependency patterns based on routing protocol:
+The demo applications now feature a three-tier dependency structure with enhanced security and management capabilities:
 
-**HTTP Applications**:
-- Shared Gateway availability in the gateway-api namespace
+**HTTP Applications with Kong Gateway**:
+- Kong Gateway availability in the kong namespace with proper sync waves
+- Traefik Gateway API compatibility for HTTPRoute attachment
 - Namespace existence and proper RBAC for ApplicationSet operations
-- Consistent naming between Service and HTTPRoute backendRefs
-- Direct HTTPRoute standardization without component dependencies
+- API key authentication plugin configuration and consumer credentials
+- Centralized service routing through Kong proxy service
 
 **Layer 4 Applications**:
 - Traefik GatewayClass and entryPoint configuration in gateway-api namespace
@@ -390,103 +397,99 @@ The demo applications demonstrate different dependency patterns based on routing
 
 ```mermaid
 graph LR
-subgraph "HTTP Applications"
-GW["Gateway 'shared-gateway'"] --> HR["HTTPRoute 'hello-api'"]
-HR --> SVC_HTTP["Service 'hello-api'"]
-SVC_HTTP --> POD_HTTP["Pods (from Deployment)"]
+subgraph "Kong Gateway Layer"
+KONG["Kong Gateway (kong)"] --> PROXY["Kong Proxy Service"]
+PROXY --> ROUTE["HTTPRoute to Kong"]
+ROUTE --> SERVICE["hello-api Service"]
 end
-subgraph "TCP Applications"
-TR["Traefik GatewayClass"] --> IRT["IngressRouteTCP 'tcp-echo'"]
-IRT --> SVC_TCP["Service 'tcp-echo'"]
-SVC_TCP --> POD_TCP["Pods (socat TCP)"]
+subgraph "Traefik Layer"
+TRAEFIK["Traefik (gateway-api)"] --> GATEWAY["Gateway 'shared-gateway'"]
+GATEWAY --> ROUTE
 end
-subgraph "UDP Applications"
-TR --> IRU["IngressRouteUDP 'udp-echo'"]
-IRU --> SVC_UDP["Service 'udp-echo'"]
-SVC_UDP --> POD_UDP["Pods (socat UDP)"]
+subgraph "Application Layer"
+APP["hello-api Pods"] --> SERVICE
 end
-NS_HTTP["Namespace 'hello-api'"] --> POD_HTTP
-NS_TCP["Namespace 'tcp-demo'"] --> POD_TCP
-NS_UDP["Namespace 'udp-demo'"] --> POD_UDP
+subgraph "Security Layer"
+KEYAUTH["Key-Auth Plugin"] --> CONSUMER["API Consumer"]
+CONSUMER --> KONG
+end
 ```
 
 **Diagram sources**
-- [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
-- [values-httproute.yaml:24-25](file://apps/applications/hello-api/chart/values-httproute.yaml#L24-L25)
-- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
-- [values-service.yaml:5-6](file://apps/applications/hello-api/chart/values-service.yaml#L5-L6)
-- [service.yaml:1-14](file://apps/applications/tcp-demo/chart/service.yaml#L1-L14)
-- [service.yaml:1-15](file://apps/applications/udp-demo/chart/service.yaml#L1-L15)
+- [httproute-kong.yaml:8-29](file://apps/infra/kong/chart/httproute-kong.yaml#L8-L29)
+- [values.yaml:19-21](file://apps/infra/kong/chart/values.yaml#L19-L21)
+- [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 
 **Section sources**
-- [gateway.yaml:1-27](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L27)
-- [values-httproute.yaml:24-25](file://apps/applications/hello-api/chart/values-httproute.yaml#L24-L25)
-- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
-- [values-service.yaml:5-6](file://apps/applications/hello-api/chart/values-service.yaml#L5-L6)
-- [service.yaml:1-14](file://apps/applications/tcp-demo/chart/service.yaml#L1-L14)
-- [service.yaml:1-15](file://apps/applications/udp-demo/chart/service.yaml#L1-L15)
+- [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
+- [values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
+- [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 
 ## Performance Considerations
-**HTTP Applications**: Resource requests and limits use lightweight configurations suitable for playground HTTP services. Increase cautiously for load testing while maintaining cluster balance.
+**HTTP Applications with Kong Gateway**: The addition of Kong Gateway introduces minimal overhead while providing significant security and management benefits:
+- **Resource Overhead**: Kong consumes additional CPU (100m-200m) and memory (128Mi-256Mi) for API management
+- **Connection Handling**: Efficient connection pooling and request routing through Kong proxy
+- **Authentication Processing**: Key-auth plugin adds minimal latency to request processing
+- **Observability**: Enhanced metrics and logging capabilities with minimal performance impact
 
-**Layer 4 Applications**: Both TCP and UDP demo applications use identical minimal resource profiles optimized for socat-based echo services:
+**Layer 4 Applications**: Both TCP and UDP demo applications continue to use minimal resource profiles optimized for socat-based echo services:
 - **CPU Requests**: 50m for both TCP and UDP applications
 - **Memory Requests**: 32Mi for both TCP and UDP applications  
 - **Memory Limits**: 64Mi for both TCP and UDP applications
 - **Replica Count**: Single replica for both applications to minimize resource consumption
 
 **Network Path Optimization**:
-- HTTPRoute and Gateway introduce minimal overhead for web traffic
-- Layer 4 routing through Traefik maintains low latency for connection-oriented protocols
+- Kong Gateway introduces minimal latency compared to direct HTTPRoute routing
+- Traefik maintains low-latency forwarding to Kong proxy service
 - NodePort exposure (30900 for TCP, 30901 for UDP) provides direct cluster ingress
 - ClusterIP services offer internal-only access without external exposure
 
 **Scalability Considerations**:
-- Layer 4 applications can scale horizontally while maintaining protocol semantics
-- Socat containers efficiently handle connection multiplexing for echo functionality
+- Kong Gateway can scale horizontally while maintaining API management policies
+- Application deployments can scale independently behind Kong proxy
 - Resource allocation allows for concurrent testing scenarios without performance degradation
 
 ## Troubleshooting Guide
-**Common HTTP Application Issues**:
-- **Route not reachable**: Verify HTTPRoute exists in the application namespace and attaches to the shared Gateway. Confirm hostname and path prefix match client expectations.
+**Common HTTP Application Issues with Kong Gateway**:
+- **Route not reachable**: Verify Kong HTTPRoute exists in the kong namespace and attaches to the shared Gateway. Confirm hostname and path prefix match client expectations.
+- **API key authentication failure**: Check Kong key-auth plugin configuration and verify API key header (X-API-Key) is included in requests.
 - **No traffic after sync**: Check ArgoCD Application status and logs for sync errors. Validate namespace existence and ApplicationSet generation.
-- **Rollback procedure**: Adjust Helm values to revert to previous images/tags; ArgoCD self-healing will reconcile differences.
-- **Health checks**: Use curl or browser to test configured hostname and path; inspect pod logs for readiness/liveness probe issues.
+- **Rollback procedure**: Adjust Kong configuration values to revert to previous service definitions; ArgoCD self-healing will reconcile differences.
+- **Health checks**: Use curl with API key header to test configured hostname and path; inspect pod logs for readiness/liveness probe issues.
 
-**Updated** Common Layer 4 Application Issues:
-- **TCP connection refused**: Verify IngressRouteTCP exists and entryPoints include "tcp". Check socat container logs for listener startup issues.
-- **UDP packet loss**: Confirm IngressRouteUDP entryPoints include "udp" and service protocol is UDP. Expect initial packet loss during listener initialization.
-- **Traefik dashboard missing routers**: Ensure namespaces have proper labeling (`routing.hoangvu75.space/expose: "true"`) and Traefik GatewayClass is configured.
-- **NodePort accessibility**: Verify Traefik service NodePort configuration and firewall rules allow external access to ports 30900 (TCP) and 30901 (UDP).
+**Updated** Common Kong Gateway Issues:
+- **Kong proxy unreachable**: Verify Kong proxy service is running and accessible on port 80 within the kong namespace.
+- **Key-auth plugin not working**: Check Kong plugin configuration and ensure API key is properly formatted and transmitted.
+- **Service routing failure**: Confirm Kong service definition matches application Service name and namespace.
+- **Consumer credentials invalid**: Verify API consumer credentials are properly configured in Kong declarative config.
 
 **Updated** Troubleshooting Procedures:
-- **Layer 4 connectivity testing**: Use netcat commands (`nc <node-ip> 30900` for TCP, `nc -u <node-ip> 30901` for UDP) to validate routing functionality.
-- **Protocol-specific validation**: Test TCP echo service for immediate response, UDP echo service for datagram delivery with multiple message attempts.
-- **Traefik metrics verification**: Check Prometheus metrics endpoints for active connections and router statistics.
-- **Access log analysis**: Review JSON-formatted access logs for connection establishment and traffic patterns.
+- **Kong Gateway connectivity testing**: Use curl with API key header (`curl -H "X-API-Key: dev-api-key-123" https://api.hoangvu75.space/helloworld`) to validate routing functionality.
+- **Kong metrics verification**: Check Kong metrics endpoints for active connections and request processing statistics.
+- **Access log analysis**: Review Kong access logs for request routing and authentication events.
+- **Traefik metrics verification**: Monitor Traefik metrics for upstream connection health and routing performance.
 
 **Section sources**
-- [values-httproute.yaml:1-26](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L26)
+- [values-httproute.yaml:1-28](file://apps/applications/hello-api/chart/values-httproute.yaml#L1-L28)
 - [values-service.yaml:1-6](file://apps/applications/hello-api/chart/values-service.yaml#L1-L6)
-- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
-- [deployment.yaml:1-28](file://apps/applications/tcp-demo/chart/deployment.yaml#L1-L28)
-- [deployment.yaml:1-29](file://apps/applications/udp-demo/chart/deployment.yaml#L1-L29)
+- [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
+- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
+- [kong-consumer.yaml:21-22](file://apps/infra/kong/chart/kong-consumer.yaml#L21-L22)
 - [applications.yaml:61-74](file://projects/applications.yaml#L61-L74)
 
 ## Conclusion
-The expanded demo application catalog now provides comprehensive coverage of modern Kubernetes networking through HTTP, TCP, and UDP routing demonstrations. The unified apps/applications/ directory structure, powered by ApplicationSet-based GitOps workflows, enables consistent deployment patterns across diverse protocol families. The hello-api HTTP application demonstrates standard web traffic routing, while the new tcp-demo and udp-demo applications showcase Traefik's advanced Layer 4 capabilities for connection-oriented and datagram protocols.
+The expanded demo application catalog now provides comprehensive coverage of modern Kubernetes networking through HTTP, TCP, and UDP routing demonstrations, enhanced by enterprise-grade Kong Gateway integration. The unified apps/applications/ directory structure, powered by ApplicationSet-based GitOps workflows, enables consistent deployment patterns across diverse protocol families with enhanced security and management capabilities.
 
-By leveraging shared infrastructure components, consistent naming conventions, and coordinated sync waves, the demo applications serve as an excellent learning platform for understanding modern Kubernetes networking patterns. The combination of practical testing scenarios, comprehensive observability through Traefik dashboard integration, and robust troubleshooting guidance makes this catalog invaluable for both educational purposes and production readiness assessment.
+The migration from direct HTTPRoute to Kong Gateway routing demonstrates advanced API management principles including centralized authentication, service routing, and observability. The hello-api application now showcases enterprise-grade features such as key-auth plugin integration, DB-less configuration, and centralized policy management, while maintaining the practical Layer 4 routing demonstrations for TCP and UDP protocols.
+
+By leveraging shared infrastructure components, consistent naming conventions, coordinated sync waves, and enterprise-grade security features, the demo applications serve as an excellent learning platform for understanding modern Kubernetes networking patterns, API management, and production-ready deployment strategies. The combination of practical testing scenarios, comprehensive observability through multiple layers, and robust troubleshooting guidance makes this catalog invaluable for both educational purposes and production readiness assessment.
 
 ## Appendices
 
 ### Appendix A: Typical Update and Rollback Workflow
-**HTTP Applications**: Modify values in values.yaml or values-httproute.yaml, commit, and push. ArgoCD detects changes and reconciles the Application. Verification includes route testing and pod rollout confirmation. Rollback involves reverting to known-good commits with automatic self-healing.
+**HTTP Applications with Kong Gateway**: Modify values in Kong configuration files or application values.yaml, commit, and push. ArgoCD detects changes and reconciles the Application. Verification includes Kong HTTPRoute testing, API key authentication validation, and pod rollout confirmation. Rollback involves reverting to known-good commits with automatic self-healing through Kong's declarative configuration.
 
-**Updated** Layer 4 Applications**: For TCP and UDP demos, modify deployment specifications or service configurations directly in the chart resources. Since these use direct resource definitions rather than Helm values, updates require careful consideration of protocol-specific settings. Testing includes protocol-specific validation procedures for connection-oriented and datagram traffic.
+**Layer 4 Applications**: For TCP and UDP demos, modify deployment specifications or service configurations directly in the chart resources. Since these use direct resource definitions rather than Helm values, updates require careful consideration of protocol-specific settings. Testing includes protocol-specific validation procedures for connection-oriented and datagram traffic.
 
 **Section sources**
 - [applications.yaml:61-74](file://projects/applications.yaml#L61-L74)
@@ -494,9 +497,9 @@ By leveraging shared infrastructure components, consistent naming conventions, a
 - [deployment.yaml:1-29](file://apps/applications/udp-demo/chart/deployment.yaml#L1-L29)
 
 ### Appendix B: Related Ingress Examples in the Playground
-**HTTP Applications**: ArgoCD UI and Rancher UI demonstrate HTTPRoute-based routing through the shared Gateway infrastructure, showcasing consistent patterns across multiple demo applications.
+**HTTP Applications**: Kong Gateway HTTPRoute demonstrates advanced routing through the shared Gateway infrastructure, showcasing centralized API management capabilities alongside multiple demo applications.
 
-**Updated** Layer 4 Integration**: Both HTTP and Layer 4 applications benefit from the same underlying infrastructure, with HTTP applications using Gateway API and Layer 4 applications using Traefik's native routing capabilities. The unified ApplicationSet configuration ensures consistent deployment patterns across all routing protocols.
+**Layer 4 Integration**: Both HTTP and Layer 4 applications benefit from the same underlying infrastructure, with HTTP applications now using Kong Gateway routing and Layer 4 applications using Traefik's native routing capabilities. The unified ApplicationSet configuration ensures consistent deployment patterns across all routing protocols.
 
 **Section sources**
 - [httproute-argocd.yaml:1-29](file://apps/infra/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
@@ -505,34 +508,34 @@ By leveraging shared infrastructure components, consistent naming conventions, a
 ### Appendix C: Getting Started with ArgoCD
 **Installation Process**: Install ArgoCD, expose the UI, apply repository secrets, and bootstrap the root Application for unified application management.
 
-**Updated** ApplicationSet Configuration**: The applications.yaml file provides comprehensive GitOps management for all demo applications, supporting both HTTP and Layer 4 routing demonstrations through standardized discovery and deployment patterns.
+**ApplicationSet Configuration**: The applications.yaml file provides comprehensive GitOps management for all demo applications, supporting both HTTP and Layer 4 routing demonstrations through standardized discovery and deployment patterns with enhanced Kong Gateway integration.
 
 **Section sources**
 - [argo_cd.md:1-34](file://guide/argocd/argo_cd.md#L1-L34)
 - [applications.yaml:23-85](file://projects/applications.yaml#L23-L85)
 
-### Appendix D: Layer 4 Routing Configuration Patterns
-**TCP Application Pattern**:
-1. IngressRouteTCP resource with entryPoints including "tcp"
-2. HostSNI matching for flexible hostname handling
-3. Service backend reference with appropriate port configuration
-4. Socat container with TCP-LISTEN socket for echo functionality
+### Appendix D: Kong Gateway Configuration Patterns
+**Kong Gateway Pattern**:
+1. **DB-less Configuration**: YAML-based declarative configuration without persistent database requirements
+2. **Service Definition**: Centralized service configuration with route patterns and strip_path functionality
+3. **Key Authentication**: Built-in key-auth plugin with consumer credentials for API protection
+4. **Proxy Integration**: Kong proxy service as intermediary between Traefik and application services
 
-**UDP Application Pattern**:
-1. IngressRouteUDP resource with entryPoints including "udp"
-2. Service backend with UDP protocol specification
-3. Socat container with UDP-LISTEN socket configuration
-4. Protocol-specific testing procedures accounting for connectionless nature
+**HTTP Application Pattern**:
+1. **Kong HTTPRoute**: Routes from shared Gateway to Kong proxy service
+2. **Request Header Modification**: Sets forwarded protocol and port headers for proper upstream handling
+3. **Backend Reference**: Points to Kong proxy service instead of direct application service
+4. **Path-Based Routing**: Clean URL patterns with optional path stripping for application consumption
 
 **Shared Infrastructure Requirements**:
-- Traefik GatewayClass and entryPoint configuration
-- Namespace labeling for routing exposure
-- Resource allocation optimization for protocol-specific workloads
-- Observability integration through dashboard and metrics collection
+- Kong Gateway deployment with proper sync waves (wave 2)
+- Traefik Gateway API compatibility and listener configuration
+- Namespace labeling for routing exposure and security isolation
+- Resource allocation optimization for enterprise-grade API management
+- Observability integration through multiple metric endpoints
 
 **Section sources**
-- [ingressroutetcp.yaml:1-21](file://apps/applications/tcp-demo/chart/ingressroutetcp.yaml#L1-L21)
-- [ingressrouteudp.yaml:1-20](file://apps/applications/udp-demo/chart/ingressrouteudp.yaml#L1-L20)
-- [deployment.yaml:1-28](file://apps/applications/tcp-demo/chart/deployment.yaml#L1-L28)
-- [deployment.yaml:1-29](file://apps/applications/udp-demo/chart/deployment.yaml#L1-L29)
-- [README.md:1-184](file://guide/tcp-udp-demo/README.md#L1-L184)
+- [values.yaml:1-43](file://apps/infra/kong/chart/values.yaml#L1-L43)
+- [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
+- [traefik.yaml:1-157](file://apps/infra/gateway-api/chart/traefik.yaml#L1-L157)
+- [traefik-static.yaml:1-52](file://apps/infra/gateway-api/chart/traefik-static.yaml#L1-L52)

@@ -4,30 +4,30 @@
 **Referenced Files in This Document**
 - [values.yaml](file://apps/infra/cloudflared/chart/values.yaml)
 - [config.yaml](file://apps/infra/cloudflared/config.yaml)
-- [kustomization.yaml](file://apps/infra/cloudflared/kustomization.yaml)
 - [gatewayclass.yaml](file://apps/infra/gateway-api/chart/gatewayclass.yaml)
 - [gateway.yaml](file://apps/infra/gateway-api/chart/gateway.yaml)
 - [traefik.yaml](file://apps/infra/gateway-api/chart/traefik.yaml)
 - [traefik-static.yaml](file://apps/infra/gateway-api/chart/traefik-static.yaml)
 - [httproute-traefik-dashboard.yaml](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml)
-- [httproute-argocd.yaml](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml)
-- [httproute-rancher.yaml](file://apps/playground/rancher/chart/httproute-rancher.yaml)
-- [kustomization.yaml](file://apps/infra/gateway-api/kustomization.yaml)
-- [namespace.yaml](file://cluster-resources/default/namespace.yaml)
-- [values-httproute.yaml](file://apps/playground/hello-api/chart/values-httproute.yaml)
-- [kustomization.yaml](file://apps/playground/hello-api/kustomization.yaml)
+- [httproute-argocd.yaml](file://apps/infra/argocd-ingress/chart/httproute-argocd.yaml)
+- [httproute-rancher.yaml](file://apps/infra/rancher/chart/httproute-rancher.yaml)
 - [values.yaml](file://apps/infra/kong/chart/values.yaml)
 - [httproute-kong.yaml](file://apps/infra/kong/chart/httproute-kong.yaml)
-- [kustomization.yaml](file://apps/infra/kong/kustomization.yaml)
+- [kong-plugin-key-auth.yaml](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml)
+- [kong-consumer.yaml](file://apps/infra/kong/chart/kong-consumer.yaml)
+- [externalname-hello-api.yaml](file://apps/infra/kong/chart/externalname-hello-api.yaml)
+- [hello-api-ingress.yaml](file://apps/infra/kong/chart/hello-api-ingress.yaml)
+- [namespace.yaml](file://cluster-resources/default/namespace.yaml)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Added Kong Gateway infrastructure with API key authentication as an additional layer
-- Updated network flow to include Kong Gateway between Cloudflare and applications
-- Enhanced security model with API key authentication plugin in Kong
-- Updated HTTPRoute configuration to route through Kong for specific hostnames
-- Modified architecture diagrams to reflect the new Kong Gateway component
+- Added comprehensive Kong Gateway infrastructure with API key authentication as the primary security layer
+- Updated network flow to include Kong Gateway between Cloudflare and applications for enhanced API security
+- Implemented multi-layered security architecture with Cloudflare tunnel encryption + Gateway TLS termination + Kong API key validation
+- Enhanced HTTPRoute configuration to route specific hostnames (api.hoangvu75.space) through Kong for API authentication
+- Added KongPlugin and KongConsumer resources for API key management and validation
+- Updated hostname-to-backend mapping to reflect Kong-protected endpoints
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -43,16 +43,14 @@
 11. [Conclusion](#conclusion)
 
 ## Introduction
-This document describes the network flow and ingress architecture for a Kubernetes cluster that routes external traffic from Cloudflare Edge through a Cloudflare tunnel to a shared Gateway API Gateway backed by Traefik, then through Kong Gateway with API key authentication, and finally to applications. The architecture implements enhanced security through API key authentication while maintaining hostname-based routing via HTTPRoutes. It explains how the traffic path has been extended to include Kong as an additional security layer and details the security implications of this multi-layered approach.
+This document describes the network flow and ingress architecture for a Kubernetes cluster that implements a multi-layered security approach for external traffic. The architecture routes Cloudflare Edge traffic through a Cloudflare tunnel to a shared Gateway API Gateway backed by Traefik, then through Kong Gateway with API key authentication, and finally to applications. This enhanced security model provides defense-in-depth through layered authentication and authorization mechanisms while maintaining hostname-based routing via HTTPRoutes.
 
 ## Project Structure
-The network stack is composed of:
-- Cloudflared tunnel agent deployed in the cloudflared namespace
-- Gateway API CRDs installed in the cluster and Traefik configured as the Gateway API controller
-- A shared Gateway named shared-gateway in the gateway-api namespace with label-based namespace exposure control
-- Kong Gateway with API key authentication plugin in the kong namespace
-- HTTPRoute resources with direct parentRef specification to the shared-gateway
-- Applications exposed via Services and accessed through the enhanced routing pipeline
+The network stack is composed of four primary layers:
+- **Cloudflare Tunnel Layer**: Cloudflared agents establish encrypted tunnels from the cluster to Cloudflare Edge
+- **Gateway API Layer**: Traefik serves as the Gateway API controller with shared Gateway for TLS termination
+- **Kong Gateway Layer**: API key authentication and authorization for sensitive endpoints
+- **Application Layer**: Workloads exposed through Services with hostname-based routing
 
 ```mermaid
 graph TB
@@ -63,20 +61,21 @@ subgraph "Cloudflare Tunnel"
 CF_TUNNEL["cloudflared tunnel<br/>cloudflared namespace"]
 end
 subgraph "Kubernetes Cluster"
-subgraph "Gateway API"
+subgraph "Gateway API Layer"
 GWCLASS["GatewayClass 'traefik'"]
-GATEWAY["Gateway 'shared-gateway'<br/>gateway-api namespace<br/>Label-based exposure control"]
+GATEWAY["Gateway 'shared-gateway'<br/>gateway-api namespace<br/>TLS termination + label-based exposure"]
 TRAEFIK_SVC["Traefik Service (NodePort)<br/>gateway-api namespace"]
 end
-subgraph "Kong Gateway"
+subgraph "Kong Gateway Layer"
 KONG_DEPLOY["Kong Deployment<br/>kong namespace"]
 KONG_PROXY["Kong Proxy Service<br/>kong namespace"]
-KONG_PLUGIN["API Key Authentication Plugin"]
+KONG_PLUGIN["API Key Authentication Plugin<br/>X-API-Key header"]
+KONG_CONSUMER["Kong Consumer<br/>dev-api-key-123"]
 end
-subgraph "Applications"
+subgraph "Application Layer"
 ARGOCD["Argo CD Service<br/>argocd namespace"]
 RANCHER["Rancher Service<br/>cattle-system namespace"]
-HELLOAPI["Hello API Service<br/>hello-api namespace<br/>Protected by API Key"]
+HELLOAPI["Hello API Service<br/>hello-api namespace<br/>Protected by Kong API Key"]
 DASHBOARD["Traefik Dashboard Service<br/>gateway-api namespace"]
 end
 end
@@ -85,7 +84,8 @@ CF_TUNNEL --> TRAEFIK_SVC
 TRAEFIK_SVC --> GATEWAY
 GATEWAY --> KONG_PROXY
 KONG_PROXY --> KONG_PLUGIN
-KONG_PLUGIN --> HELLOAPI
+KONG_PLUGIN --> KONG_CONSUMER
+KONG_CONSUMER --> HELLOAPI
 GATEWAY --> ARGOCD
 GATEWAY --> RANCHER
 GATEWAY --> DASHBOARD
@@ -93,347 +93,284 @@ GATEWAY --> DASHBOARD
 
 **Diagram sources**
 - [values.yaml:1-40](file://apps/infra/cloudflared/chart/values.yaml#L1-L40)
-- [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
-- [traefik.yaml:98-157](file://apps/infra/gateway-api/chart/traefik.yaml#L98-L157)
+- [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
 - [values.yaml:16-37](file://apps/infra/kong/chart/values.yaml#L16-L37)
-- [httproute-kong.yaml:1-29](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L29)
-
-**Section sources**
-- [kustomization.yaml:1-9](file://apps/infra/gateway-api/kustomization.yaml#L1-L9)
-- [kustomization.yaml:1-8](file://apps/infra/cloudflared/kustomization.yaml#L1-L8)
-- [kustomization.yaml:1-8](file://apps/infra/kong/kustomization.yaml#L1-L8)
+- [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
+- [kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12)
+- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
 
 ## Core Components
-- Cloudflared tunnel agent: Runs as a deployment in the cloudflared namespace, configured to connect to Cloudflare tunnels using a token from a secret. It exposes no Kubernetes Service by default.
-- Gateway API controller: Traefik runs as a Deployment in the gateway-api namespace with RBAC and watches Gateway API resources. It exposes a NodePort Service on ports 30080 (HTTP) and 30443 (HTTPS).
-- Shared Gateway: A single Gateway named shared-gateway in the gateway-api namespace that accepts HTTP (port 80) and HTTPS (port 443) listeners and terminates TLS with a wildcard certificate secret. Uses label-based namespace exposure control.
-- Kong Gateway: A deployment in the kong namespace with API key authentication plugin enabled. Provides an additional layer of security with API key validation before forwarding to applications.
-- HTTPRoutes: Application-specific HTTPRoute resources that directly specify parentRefs to the shared-gateway and define hostname-based routing rules, with special handling for Kong-protected endpoints.
 
-Key implementation references:
-- Cloudflared deployment arguments and environment injection for the tunnel token
-- GatewayClass controller name and description
-- Gateway listeners with label-based namespace exposure control
-- Traefik Deployment and NodePort Service exposing ports 80/443/admin
-- Kong deployment with DB-less configuration and API key authentication plugin
-- HTTPRoute examples for Argo CD, Rancher, Hello API, and Traefik dashboard with direct parentRef specification
+### Cloudflare Tunnel (cloudflared)
+- **Purpose**: Establishes encrypted outbound tunnels from the cluster to Cloudflare Edge
+- **Configuration**: Deploys 2 replicas with HTTP/2 protocol and token-based authentication
+- **Security**: All traffic encrypted end-to-end between Cloudflare Edge and cluster
+
+### Gateway API Controller (Traefik)
+- **Purpose**: Implements Gateway API specification and acts as ingress controller
+- **Deployment**: Single replica with RBAC permissions for Gateway API resources
+- **Service Exposure**: NodePort Service exposing ports 80 (30080) and 443 (30443) for external traffic
+
+### Shared Gateway (Label-Based Routing)
+- **Purpose**: Centralized Gateway with TLS termination and namespace exposure control
+- **Listeners**: HTTP (80) and HTTPS (443) with TLS termination using wildcard certificate
+- **Exposure Control**: Uses label-based namespace selection (`routing.hoangvu75.space/expose: "true"`)
+
+### Kong Gateway Infrastructure
+- **Purpose**: Provides API key authentication and authorization for sensitive endpoints
+- **Configuration**: DB-less mode with Kong Ingress Controller managing configuration
+- **Security Features**: Custom header validation (X-API-Key), credential hiding, multiple consumer support
+
+### HTTPRoute Configuration
+- **Direct Parent References**: Applications specify parentRefs to shared-gateway
+- **Hostname Matching**: Exact hostname-based routing with path prefixes
+- **Header Modification**: Forwarded headers for proper upstream handling
 
 **Section sources**
 - [values.yaml:1-40](file://apps/infra/cloudflared/chart/values.yaml#L1-L40)
-- [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 - [traefik.yaml:59-157](file://apps/infra/gateway-api/chart/traefik.yaml#L59-L157)
 - [values.yaml:16-37](file://apps/infra/kong/chart/values.yaml#L16-L37)
-- [httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
+- [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
 
 ## Architecture Overview
-The traffic path from Cloudflare Edge to applications now follows these enhanced steps:
-1. Cloudflare Edge receives inbound traffic for configured hostnames.
-2. Traffic is routed to the configured Cloudflare tunnel endpoint.
-3. cloudflared forwards traffic to the cluster via the tunnel.
-4. The shared Gateway in the gateway-api namespace receives the request on port 443 (HTTPS) with TLS termination.
-5. For specific hostnames (like api.hoangvu75.space), the request is forwarded to Kong Gateway for API key authentication.
-6. Kong validates the API key header (X-API-Key) and either rejects or forwards the request to the backend service.
-7. For non-Kong protected hostnames, the Gateway delegates routing decisions to Traefik, which selects the appropriate HTTPRoute based on hostname.
-8. Traefik forwards the request to the matching backend Service based on the HTTPRoute configuration.
-9. The application Service routes traffic to the pod(s) running the workload.
+The traffic flow now implements a multi-layered security approach:
+
+1. **Cloudflare Edge**: Receives inbound traffic for configured hostnames
+2. **Cloudflare Tunnel**: Encrypted tunnel connection established by cloudflared
+3. **Traefik Gateway**: TLS termination and initial routing based on hostname
+4. **Kong Gateway**: API key validation for protected endpoints (api.hoangvu75.space)
+5. **Application Services**: Backend services handling business logic
 
 ```mermaid
 sequenceDiagram
 participant Client as "Client"
 participant CF as "Cloudflare Edge"
-participant TNL as "cloudflared tunnel"
-participant SVC as "Traefik Service (NodePort)"
+participant TNL as "cloudflared Tunnel"
+participant SVC as "Traefik NodePort"
 participant GW as "Gateway 'shared-gateway'"
 participant KONG as "Kong Gateway"
-participant RT as "HTTPRoute"
 participant APP as "Application Service"
 Client->>CF : "HTTPS to hostname"
-CF->>TNL : "Forward via Cloudflare tunnel"
-TNL->>SVC : "TCP 30443 (HTTPS)"
-SVC->>GW : "TLS-terminated request"
-alt Kong-protected hostname (api.hoangvu75.space)
-GW->>KONG : "Forward to Kong Proxy"
-KONG->>KONG : "Validate API Key (X-API-Key)"
-KONG-->>GW : "Authenticated or rejected"
+CF->>TNL : "Encrypted tunnel"
+TNL->>SVC : "TCP 30443"
+SVC->>GW : "TLS terminated"
+GW->>GW : "Match hostname"
+alt Protected endpoint (api.hoangvu75.space)
+GW->>KONG : "Forward to Kong"
+KONG->>KONG : "Validate X-API-Key"
+KONG-->>GW : "Authenticated/Rejected"
 end
-GW->>RT : "Match by hostname"
-RT-->>GW : "Route to backend Service"
-GW->>APP : "Forward to backend Service"
+GW->>APP : "Forward to backend"
 APP-->>Client : "Response"
 ```
 
 **Diagram sources**
 - [values.yaml:11-18](file://apps/infra/cloudflared/chart/values.yaml#L11-L18)
 - [gateway.yaml:20-34](file://apps/infra/gateway-api/chart/gateway.yaml#L20-L34)
-- [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
-- [httproute-argocd.yaml:9-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L9-L29)
-- [httproute-rancher.yaml:9-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L9-L30)
-- [httproute-traefik-dashboard.yaml:9-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L9-L30)
 - [httproute-kong.yaml:12-29](file://apps/infra/kong/chart/httproute-kong.yaml#L12-L29)
+- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
 
 ## Detailed Component Analysis
 
-### Cloudflare Tunnel (cloudflared)
-- Purpose: Establishes an outbound, encrypted tunnel from the cluster to Cloudflare Edge.
-- Configuration highlights:
-  - Deployment runs with arguments to start the tunnel and inject a token from a Kubernetes Secret.
-  - No Kubernetes Service is created for cloudflared; traffic reaches the cluster via the tunnel proxy.
-  - Replicas are set to 2 for availability.
-
-Operational implications:
-- The tunnel encrypts traffic between the cluster and Cloudflare Edge.
-- Failover occurs automatically if one cloudflared pod dies; the tunnel remains functional with the second replica.
-
-**Section sources**
-- [values.yaml:1-40](file://apps/infra/cloudflared/chart/values.yaml#L1-L40)
-- [config.yaml:1-4](file://apps/infra/cloudflared/config.yaml#L1-L4)
-- [kustomization.yaml:1-8](file://apps/infra/cloudflared/kustomization.yaml#L1-L8)
+### Cloudflare Tunnel Implementation
+- **Deployment Configuration**: 2 replicas with HTTP/2 protocol and token authentication
+- **Resource Management**: Minimal CPU/Memory requests with appropriate limits
+- **Security Model**: End-to-end encryption between Cloudflare Edge and cluster
 
 ### Gateway API Controller (Traefik)
-- Purpose: Implements the Gateway API specification and acts as the ingress controller for Gateways and HTTPRoutes.
-- Configuration highlights:
-  - GatewayClass named 'traefik' with controller name indicating Traefik's Gateway API implementation.
-  - Traefik Deployment in the gateway-api namespace with RBAC to watch Gateway API resources.
-  - NodePort Service exposing ports 80 (nodePort 30080) and 443 (nodePort 30443) for external traffic.
+- **RBAC Permissions**: Comprehensive permissions for Gateway API resources
+- **Service Exposure**: NodePort Service with ports 80 (30080), 443 (30443), and admin (8080)
+- **Metrics Integration**: Prometheus scraping and Datadog monitoring support
 
-Routing behavior:
-- Gateway listeners accept HTTP (port 80) and HTTPS (port 443) with TLS termination enabled.
-- HTTPRoutes in application namespaces directly reference the shared Gateway via parentRefs and define hostname-based routing.
-- Uses label-based namespace exposure control via routing.hoangvu75.space/expose labels.
+### Shared Gateway Configuration
+- **Listener Configuration**: HTTP (80) and HTTPS (443) with TLS termination
+- **Certificate Management**: Wildcard certificate stored as Kubernetes Secret
+- **Namespace Exposure**: Label-based selection using `routing.hoangvu75.space/expose: "true"`
 
-**Section sources**
-- [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
-- [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
-- [traefik.yaml:59-157](file://apps/infra/gateway-api/chart/traefik.yaml#L59-L157)
-- [kustomization.yaml:1-9](file://apps/infra/gateway-api/kustomization.yaml#L1-L9)
+### Kong Gateway Security Layer
+- **API Key Plugin**: Configured with custom header name (X-API-Key)
+- **Consumer Management**: Predefined consumer with development API key (dev-api-key-123)
+- **Credential Security**: Hide credentials from response headers
+- **Service Integration**: ExternalName service pointing to hello-api backend
 
-### Shared Gateway (hostname-based routing with label control)
-- Purpose: Centralized Gateway that accepts traffic from namespaces with specific labels and terminates TLS.
-- Listener configuration:
-  - HTTP listener on port 80 with label-based namespace exposure control.
-  - HTTPS listener on port 443 with TLS termination using a wildcard certificate stored as a Secret.
-- Allowed routes: Only namespaces labeled with routing.hoangvu75.space/expose: "true" can reference this Gateway via HTTPRoute.
-
-Routing enforcement:
-- Hostname matching is enforced by HTTPRoute hostnames; only matching routes are considered.
-- Uses label-based namespace exposure control rather than explicit namespace lists for better scalability.
+### HTTPRoute Examples and Routing Logic
+- **Argo CD Route**: Direct routing to argocd-server Service
+- **Rancher Route**: Direct routing to rancher Service  
+- **Kong Route**: Routes to Kong Proxy Service with API key authentication
+- **Traefik Dashboard**: Direct routing to Traefik admin interface
 
 **Section sources**
-- [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
-
-### Kong Gateway Infrastructure
-- Purpose: Provides API key authentication as an additional security layer between Cloudflare and applications.
-- Configuration highlights:
-  - Deployment runs in the kong namespace with DB-less mode enabled via KIC (Kong Ingress Controller).
-  - KIC (v3.3) watches Kubernetes Ingress, KongPlugin, and KongConsumer CRDs to configure Kong.
-  - API key authentication plugin configured with custom header name (X-API-Key).
-  - Consumer with key-auth credentials for API key validation.
-  - ExternalName service bridges the kong namespace to hello-api namespace for cross-namespace routing.
-  - HTTPRoute routes `api.hoangvu75.space` from Traefik shared-gateway → kong-proxy:80.
-  - All images pulled from GHCR (ghcr.io/hoangvu75/) to avoid Docker Hub rate limits.
-
-Security features:
-- API key validation occurs before traffic reaches backend applications.
-- Multiple API keys can be managed per consumer for different client access levels.
-- Credentials can be hidden from response headers for security.
-
-**Section sources**
-- [values.yaml](file://apps/infra/kong/chart/values.yaml)
-- [kong-plugin-key-auth.yaml](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml)
-- [kong-consumer.yaml](file://apps/infra/kong/chart/kong-consumer.yaml)
-- [hello-api-ingress.yaml](file://apps/infra/kong/chart/hello-api-ingress.yaml)
-- [externalname-hello-api.yaml](file://apps/infra/kong/chart/externalname-hello-api.yaml)
-- [httproute-kong.yaml](file://apps/infra/kong/chart/httproute-kong.yaml)
-- [kustomization.yaml](file://apps/infra/kong/chart/kustomization.yaml)
-
-### HTTPRoute Examples and Enhanced Backend Mapping
-- Argo CD HTTPRoute:
-  - Hostname: argocd.hoangvu75.space
-  - Parent Gateway: shared-gateway in gateway-api namespace (direct parentRef specification)
-  - Backend: argocd-server Service on port 80
-- Rancher HTTPRoute:
-  - Hostname: rancher.hoangvu75.space
-  - Parent Gateway: shared-gateway in gateway-api namespace (direct parentRef specification)
-  - Backend: rancher Service on port 80
-- Hello API HTTPRoute:
-  - Hostname: api.hoangvu75.space
-  - Parent Gateway: shared-gateway in gateway-api namespace (direct parentRef specification)
-  - Backend: Kong Proxy Service (kong-proxy) on port 80
-  - Additional: Kong HTTPRoute with API key authentication filter
-- Traefik Dashboard HTTPRoute:
-  - Hostname: traefik.hoangvu75.space
-  - Parent Gateway: shared-gateway in gateway-api namespace (direct parentRef specification)
-  - Backend: traefik Service on port 8080
-
-Enhanced hostname-to-backend mapping table:
-- argocd.hoangvu75.space -> argocd-server Service (port 80)
-- rancher.hoangvu75.space -> rancher Service (port 80)
-- api.hoangvu75.space -> Kong Proxy Service (port 80) with API key authentication
-- traefik.hoangvu75.space -> traefik Service (port 8080)
-
-**Section sources**
-- [httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
-- [values-httproute.yaml:1-26](file://apps/playground/hello-api/chart/values-httproute.yaml#L1-L26)
-- [httproute-kong.yaml:12-29](file://apps/infra/kong/chart/httproute-kong.yaml#L12-L29)
-
-### NodePort Integration with Gateway API
-- Traefik NodePort Service:
-  - Port 80 mapped to NodePort 30080
-  - Port 443 mapped to NodePort 30443
-  - Port 8080 for Traefik dashboard
-- How it integrates:
-  - External clients reach the cluster via Cloudflare tunnel to TCP 30443 (HTTPS).
-  - The Gateway terminates TLS and forwards to the appropriate HTTPRoute.
-  - HTTPRoutes select the correct backend Service based on hostname.
-  - Kong receives authenticated requests and forwards to backend services.
-
-**Section sources**
-- [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
-- [gateway.yaml:20-34](file://apps/infra/gateway-api/chart/gateway.yaml#L20-L34)
+- [values.yaml:19-37](file://apps/infra/kong/chart/values.yaml#L19-L37)
+- [kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12)
+- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
+- [httproute-argocd.yaml:1-29](file://apps/infra/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
+- [httproute-rancher.yaml:1-30](file://apps/infra/rancher/chart/httproute-rancher.yaml#L1-L30)
+- [httproute-kong.yaml:1-30](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L30)
 
 ## Namespace Exposure Control
-The architecture uses label-based namespace exposure control for improved scalability and operational simplicity.
+The architecture implements label-based namespace exposure control for scalable and secure routing management.
 
 ### Label-Based Control Mechanism
-- **Label Definition**: routing.hoangvu75.space/expose: "true"
+- **Label Definition**: `routing.hoangvu75.space/expose: "true"`
 - **Gateway Configuration**: Gateway listeners specify `from: Selector` with label matching
-- **Namespace Selection**: Only namespaces with the expose label are permitted to use the shared Gateway
+- **Namespace Selection**: Only namespaces with expose label can reference shared Gateway
 
-### Namespace Configuration
-Application namespaces are labeled appropriately:
+### Namespace Configuration Matrix
 
-| Namespace | Label | Purpose |
-|-----------|-------|---------|
-| gateway-api | routing.hoangvu75.space/expose: "true" | Gateway namespace |
-| argocd | routing.hoangvu75.space/expose: "true" | Argo CD application |
-| cattle-system | routing.hoangvu75.space/expose: "true" | Rancher application |
-| hello-api | routing.hoangvu75.space/expose: "true" | Hello API application (with Kong protection) |
-| kong | routing.hoangvu75.space/expose: "true" | Kong Gateway infrastructure |
+| Namespace | Label Status | Purpose | Gateway Access |
+|-----------|--------------|---------|----------------|
+| gateway-api | ✅ Exposed | Gateway infrastructure | ✅ Allowed |
+| cloudflared | ❌ Not exposed | Tunnel agents | ❌ Denied |
+| cert-manager | ❌ Not exposed | Certificate management | ❌ Denied |
+| cattle-system | ✅ Exposed | Rancher application | ✅ Allowed |
+| datadog | ❌ Not exposed | Monitoring | ❌ Denied |
+| hello-api | ✅ Exposed | Hello API application | ✅ Allowed |
+| tcp-demo | ✅ Exposed | TCP demo application | ✅ Allowed |
+| udp-demo | ✅ Exposed | UDP demo application | ✅ Allowed |
+| cluster-check | ❌ Not exposed | Health checks | ❌ Denied |
+| kong | ✅ Exposed | Kong Gateway infrastructure | ✅ Allowed |
+| argocd | ✅ Exposed | Argo CD application | ✅ Allowed |
 
-### Benefits
+### Benefits of Label-Based Control
 - **Scalability**: Easy addition of new namespaces without Gateway reconfiguration
 - **Security**: Explicit opt-in model prevents accidental exposure
 - **Maintainability**: Centralized control through labels rather than static lists
 
 **Section sources**
 - [gateway.yaml:14-28](file://apps/infra/gateway-api/chart/gateway.yaml#L14-L28)
-- [namespace.yaml:10-59](file://cluster-resources/default/namespace.yaml#L10-L59)
+- [namespace.yaml:10-94](file://cluster-resources/default/namespace.yaml#L10-L94)
 
 ## Dependency Analysis
-The following diagram shows the primary dependencies among components with the new Kong Gateway integration:
+The multi-layered architecture creates dependencies between components that must be carefully managed.
 
 ```mermaid
 graph LR
-CF["cloudflared (cloudflared ns)"] --> TN["Tunnel Endpoint"]
-TN --> NP["Traefik NodePort 30443"]
-NP --> GW["Gateway 'shared-gateway'"]
-GW --> HC["HTTPRoute 'argocd'"]
-GW --> HR["HTTPRoute 'rancher'"]
-GW --> HK["HTTPRoute 'kong-ingress'"]
-GW --> HD["HTTPRoute 'traefik-dashboard'"]
-HC --> AS["argocd-server Service"]
-HR --> RS["rancher Service"]
-HK --> KP["Kong Proxy Service"]
-KP --> KA["API Key Authentication"]
-KA --> HS["hello-api Service"]
-HD --> TS["traefik Service"]
+subgraph "External Layer"
+CF["Cloudflare Edge"]
+end
+subgraph "Tunnel Layer"
+CF_TUNNEL["cloudflared"]
+end
+subgraph "Gateway Layer"
+GW["Gateway 'shared-gateway'"]
+TRAEFIK["Traefik Deployment"]
+TRAEFIK_SVC["Traefik Service"]
+end
+subgraph "Kong Layer"
+KONG["Kong Deployment"]
+KONG_PLUGIN["API Key Plugin"]
+KONG_CONSUMER["Kong Consumer"]
+end
+subgraph "Application Layer"
+ARGOCD["Argo CD"]
+RANCHER["Rancher"]
+HELLO_API["Hello API"]
+TRAEFIK_DASH["Traefik Dashboard"]
+end
+CF --> CF_TUNNEL
+CF_TUNNEL --> TRAEFIK_SVC
+TRAEFIK_SVC --> GW
+GW --> TRAEFIK
+GW --> KONG
+KONG --> KONG_PLUGIN
+KONG_PLUGIN --> KONG_CONSUMER
+KONG_CONSUMER --> HELLO_API
+GW --> ARGOCD
+GW --> RANCHER
+GW --> TRAEFIK_DASH
 ```
 
 **Diagram sources**
 - [values.yaml:11-18](file://apps/infra/cloudflared/chart/values.yaml#L11-L18)
-- [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
-- [httproute-argocd.yaml:9-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L9-L29)
-- [httproute-rancher.yaml:9-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L9-L30)
-- [httproute-traefik-dashboard.yaml:9-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L9-L30)
-- [httproute-kong.yaml:9-29](file://apps/infra/kong/chart/httproute-kong.yaml#L9-L29)
+- [values.yaml:16-37](file://apps/infra/kong/chart/values.yaml#L16-L37)
+- [kong-plugin-key-auth.yaml:1-12](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L1-L12)
+- [kong-consumer.yaml:1-24](file://apps/infra/kong/chart/kong-consumer.yaml#L1-L24)
 
 **Section sources**
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
 - [gateway.yaml:1-34](file://apps/infra/gateway-api/chart/gateway.yaml#L1-L34)
 - [traefik.yaml:59-157](file://apps/infra/gateway-api/chart/traefik.yaml#L59-L157)
-- [httproute-argocd.yaml:1-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L1-L29)
-- [httproute-rancher.yaml:1-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L1-L30)
-- [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
-- [httproute-kong.yaml:1-29](file://apps/infra/kong/chart/httproute-kong.yaml#L1-L29)
+- [values.yaml:16-37](file://apps/infra/kong/chart/values.yaml#L16-L37)
 
 ## Performance Considerations
-- Traefik resource requests and limits are modest, suitable for small to medium workloads. Scale horizontally if needed.
-- cloudflared runs with minimal CPU/memory requests; ensure adequate capacity for expected tunnel throughput.
-- Gateway API controller overhead is low compared to traditional ingress controllers; keep HTTPRoute rules concise to reduce route computation.
-- Kong adds minimal overhead for API key validation but provides significant security benefits.
-- NodePort exposure is simple but lacks advanced load balancing features; consider adding external load balancers if scaling beyond a single-node cluster.
-- API key validation occurs at the edge of the cluster, reducing processing overhead inside the cluster.
+- **Traefik Resource Usage**: Minimal CPU/Memory requests suitable for small to medium workloads
+- **Cloudflared Throughput**: 2 replicas provide redundancy without significant performance impact
+- **Kong Overhead**: API key validation adds minimal latency while providing significant security benefits
+- **NodePort Exposure**: Simple but lacks advanced load balancing; consider external load balancers for production
+- **TLS Termination**: Gateway handles TLS termination, reducing CPU overhead in application pods
 
 ## Troubleshooting Guide
-Common issues and resolutions:
-- No traffic reaching applications via Cloudflare tunnel
-  - Verify cloudflared deployment is healthy and the tunnel token secret is present.
-  - Confirm the tunnel is connected and traffic is being forwarded to the cluster.
-  - Check firewall and Cloudflare tunnel configuration.
-- TLS handshake failures or certificate errors
-  - Ensure the wildcard certificate Secret referenced by the Gateway exists and is valid.
-  - Confirm the certificate covers the hostnames used in HTTPRoutes.
-- Hostname not matching any HTTPRoute
-  - Verify HTTPRoute hostnames exactly match the requested domain.
-  - Ensure HTTPRoute parentRefs point to the shared Gateway in the gateway-api namespace.
-  - Verify the application namespace has the routing.hoangvu75.space/expose: "true" label.
-- Backend not receiving traffic
-  - Confirm the backend Service exists and targets the correct Pod ports.
-  - Check Service selectors and Pod readiness.
-- Gateway API resources not applied
-  - Ensure Gateway API CRDs are installed in the cluster.
-  - Verify the GatewayClass controller name matches Traefik's controller name.
-- NodePort connectivity issues
-  - Validate NodePort Service is created and reachable from outside the cluster.
-  - Confirm firewall rules allow inbound connections to ports 30080 and 30443.
-- Kong API key authentication failures
-  - Verify the X-API-Key header is included in requests to Kong-protected endpoints.
-  - Check that the API key matches the configured consumer credentials.
-  - Ensure the Kong Proxy Service is reachable from the Gateway.
-- Kong service unreachable
-  - Verify Kong deployment is running and healthy.
-  - Check Kong Proxy Service configuration and port mappings.
-  - Confirm Kong HTTPRoute is properly configured and attached to the shared Gateway.
+
+### Common Issues and Resolutions
+
+#### Cloudflare Tunnel Connectivity
+- **Issue**: No traffic reaching cluster via tunnel
+- **Check**: cloudflared deployment health and tunnel token secret
+- **Resolution**: Verify tunnel connection status and token validity
+
+#### TLS Certificate Problems
+- **Issue**: TLS handshake failures or certificate errors
+- **Check**: Wildcard certificate Secret existence and validity
+- **Resolution**: Rotate certificates and ensure proper DNS configuration
+
+#### HTTPRoute Matching Failures
+- **Issue**: Hostname not matching any HTTPRoute
+- **Check**: Exact hostname match and parentRef configuration
+- **Resolution**: Verify HTTPRoute hostnames and namespace exposure labels
+
+#### Kong API Key Authentication
+- **Issue**: API key validation failures for protected endpoints
+- **Check**: X-API-Key header presence and correct API key value
+- **Resolution**: Include proper header or use Kong Consumer credentials
+
+#### Backend Service Issues
+- **Issue**: Applications not receiving traffic
+- **Check**: Service selectors, Pod readiness, and namespace exposure
+- **Resolution**: Verify Service configuration and Pod status
+
+#### Gateway API Resource Problems
+- **Issue**: Gateway API resources not applied
+- **Check**: CRD installation and controller name matching
+- **Resolution**: Install CRDs and verify controller configuration
 
 **Section sources**
 - [values.yaml:19-21](file://apps/infra/cloudflared/chart/values.yaml#L19-L21)
 - [gateway.yaml:23-34](file://apps/infra/gateway-api/chart/gateway.yaml#L23-L34)
-- [gatewayclass.yaml:8-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L8-L10)
-- [traefik.yaml:120-157](file://apps/infra/gateway-api/chart/traefik.yaml#L120-L157)
-- [httproute-argocd.yaml:12-29](file://apps/playground/argocd-ingress/chart/httproute-argocd.yaml#L12-L29)
-- [httproute-rancher.yaml:12-30](file://apps/playground/rancher/chart/httproute-rancher.yaml#L12-L30)
-- [httproute-traefik-dashboard.yaml:12-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L12-L30)
-- [values.yaml:29-37](file://apps/infra/kong/chart/values.yaml#L29-L37)
-- [httproute-kong.yaml:12-29](file://apps/infra/kong/chart/httproute-kong.yaml#L12-L29)
+- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
+- [kong-consumer.yaml:21-23](file://apps/infra/kong/chart/kong-consumer.yaml#L21-L23)
 
 ## Security Enhancements
-- TLS termination at the Gateway:
-  - HTTPS traffic is terminated at the Gateway using a wildcard certificate, reducing TLS overhead inside the cluster.
-  - Ensure the certificate is rotated regularly and stored securely as a Kubernetes Secret.
-- Cloudflare tunnel encryption:
-  - All traffic between Cloudflare Edge and the cluster is encrypted via the tunnel, protecting against interception.
-- Enhanced API Security with Kong:
-  - API key authentication adds an additional security layer for sensitive endpoints.
-  - Custom header name (X-API-Key) provides flexibility in API key management.
-  - Credentials can be hidden from response headers for enhanced security.
-  - Multiple consumers can be managed for different client access levels.
-- Namespace isolation:
-  - Applications reside in separate namespaces with explicit exposure labels (e.g., argocd, cattle-system, hello-api, kong).
-  - HTTPRoute resources are scoped to specific namespaces via label-based selection, preventing unintended cross-namespace routing.
-- Multi-layered security approach:
-  - Cloudflare tunnel encryption + Gateway TLS termination + Kong API key authentication provides defense in depth.
-  - API key validation occurs at the cluster boundary, reducing attack surface on internal services.
+
+### Multi-Layered Security Architecture
+- **Layer 1**: Cloudflare Tunnel Encryption - End-to-end encryption between edge and cluster
+- **Layer 2**: Gateway TLS Termination - Centralized TLS termination with wildcard certificates
+- **Layer 3**: Kong API Key Authentication - Authorization for sensitive endpoints
+- **Layer 4**: Namespace Isolation - Label-based exposure control prevents unauthorized access
+
+### API Key Security Features
+- **Custom Header Validation**: X-API-Key header with configurable naming
+- **Credential Hiding**: Prevents API key exposure in response headers
+- **Multiple Consumers**: Support for different API keys per client or application
+- **Secure Storage**: API key credentials stored as Kubernetes Secrets
+
+### Traffic Flow Security
+- **Encrypted Ingress**: All traffic encrypted via Cloudflare tunnel
+- **TLS Termination**: Centralized TLS termination reduces complexity
+- **Authorization**: API key validation prevents unauthorized access to protected endpoints
+- **Namespace Control**: Explicit exposure labels prevent cross-namespace routing
+
+### Monitoring and Observability
+- **Prometheus Metrics**: Built-in metrics collection for all components
+- **Datadog Integration**: Comprehensive monitoring and alerting capabilities
+- **Request Logging**: Header modification ensures proper upstream logging
 
 **Section sources**
 - [values.yaml:29-37](file://apps/infra/kong/chart/values.yaml#L29-L37)
-- [httproute-kong.yaml:19-26](file://apps/infra/kong/chart/httproute-kong.yaml#L19-L26)
+- [kong-plugin-key-auth.yaml:8-11](file://apps/infra/kong/chart/kong-plugin-key-auth.yaml#L8-L11)
+- [kong-consumer.yaml:21-23](file://apps/infra/kong/chart/kong-consumer.yaml#L21-L23)
 
 ## Conclusion
-This architecture leverages Cloudflare tunnels for secure, encrypted ingress into the cluster, a shared Gateway for centralized, TLS-terminating routing with label-based namespace exposure control, and Kong Gateway with API key authentication for enhanced security. The traffic path now includes an additional security layer where Kong validates API keys before forwarding requests to backend applications. The direct parentRef approach with Traefik and Kong provides simplified configuration management while label-based namespace exposure control ensures scalable and secure routing management. The NodePort Service exposes the Gateway externally, while namespace isolation, strict TLS termination, and API key authentication provide strong security boundaries. With proper monitoring, label-based controls, and API key management, this multi-layered design offers a robust, scalable, and highly secure ingress solution.
+This multi-layered ingress architecture provides comprehensive security through Cloudflare tunnel encryption, Gateway TLS termination, and Kong API key authentication. The architecture successfully routes traffic from Cloudflare Edge through cloudflared tunnels to Traefik Gateway, then through Kong for API authentication, and finally to applications. The label-based namespace exposure control ensures scalable and secure routing management, while the NodePort Service provides simple external access. The enhanced security model with API key validation for sensitive endpoints demonstrates defense-in-depth architecture, making the system resilient against various attack vectors. With proper monitoring, API key management, and namespace controls, this architecture offers a robust, scalable, and highly secure ingress solution for production environments.
