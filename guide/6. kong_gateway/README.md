@@ -31,6 +31,7 @@ Located in `apps/infra/kong-gateway/`:
 | `chart/kustomization.yaml` | Chart-level kustomize (Helm chart + subdirectory resources) |
 | `chart/httproute-kong.yaml` | Traefik → Kong proxy HTTPRoute (wave: 3) |
 | `chart/httproute-kong-manager.yaml` | Traefik → Kong Manager GUI HTTPRoute (wave: 3) |
+| `chart/httproute-kong-admin.yaml` | Traefik → Kong Admin API HTTPRoute (wave: 3, restricted) |
 | `chart/plugins/key-auth-plugin.yaml` | KongPlugin CRD for key-auth |
 | `chart/consumers/default-user-consumer.yaml` | KongConsumer + credential Secret |
 | `chart/ingress/helloworld-api-ingress.yaml` | KIC Ingress: routes /helloworld → helloworld-api:5678 |
@@ -56,6 +57,21 @@ The Manager UI shows:
 - Kong Gateway status and configuration
 - Routes, Services, Plugins, and Consumers
 - Health metrics and monitoring (DB-less read-only mode)
+
+### Admin API (Direct Access)
+
+The Kong Admin API is available at **https://kong-admin.hoangvu75.space** for direct REST access:
+
+```bash
+# List all routes configured in Kong
+curl https://kong-admin.hoangvu75.space/routes
+
+# List all services
+curl https://kong-admin.hoangvu75.space/services
+
+# List consumers
+curl https://kong-admin.hoangvu75.space/consumers
+```
 
 ## Adding a New App Behind Kong
 

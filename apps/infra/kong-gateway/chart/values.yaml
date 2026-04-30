@@ -18,6 +18,8 @@ image:
 
 env:
   database: "off"
+  # Tells Kong Manager where to find the Admin API
+  admin_api_uri: "https://kong-admin.hoangvu75.space"
 
 # Proxy service (Traefik routes here)
 proxy:

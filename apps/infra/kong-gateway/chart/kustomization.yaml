@@ -12,6 +12,7 @@ helmCharts:
 resources:
   - httproute-kong.yaml
   - httproute-kong-manager.yaml
+  - httproute-kong-admin.yaml
   - plugins
   - consumers
   - ingress
