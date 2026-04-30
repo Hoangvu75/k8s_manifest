@@ -30,21 +30,13 @@ proxy:
   tls:
     enabled: false
 
-# Admin API — disable for production (can enable temporarily for testing)
+# Admin API — keep enabled for KIC to push config
 admin:
   enabled: true
   type: ClusterIP
   http:
     enabled: true
     servicePort: 8001
-
-# Manager GUI — Kong Admin Web UI
-manager:
-  enabled: true
-  type: ClusterIP
-  http:
-    enabled: true
-    servicePort: 8002
 
 enterprise:
   enabled: false
