@@ -34,7 +34,8 @@ Located in `apps/infra/kong-gateway/`:
 | `chart/plugins/oauth2-plugin.yaml` | KongPlugin CRD for OAuth2 (Client Credentials flow) |
 | `chart/consumers/default-user-consumer.yaml` | KongConsumer + key-auth credential Secret |
 | `chart/consumers/oauth2-client-consumer.yaml` | KongConsumer + OAuth2 credential Secret |
-| `chart/ingress/helloworld-api-ingress.yaml` | KIC Ingress: routes /helloworld → helloworld-api:5678 |
+| `chart/ingress/helloworld-api-ingress.yaml` | KIC Ingress: routes /helloworld → helloworld-api:5678 (key-auth) |
+| `chart/ingress/oauth2-token-ingress.yaml` | KIC Ingress: routes /auth → helloworld-api:5678 (oauth2 token endpoint) |
 | `chart/services/helloworld-api-service.yaml` | Cross-namespace ExternalName bridge (kong-gateway → helloworld-api) |
 
 ## Testing
@@ -51,33 +52,26 @@ curl -v -H "X-API-Key: dev-api-key-123" https://api.hoangvu75.space/helloworld
 
 ### OAuth2 Client Credentials Flow
 
-The OAuth2 token endpoint and the actual API endpoint are **different URLs**:
+The OAuth2 token endpoint and the API endpoint are **different routes** — `key-auth` and `oauth2` cannot be stacked on the same path, so the token endpoint uses a dedicated `/auth` path:
 
-| Endpoint | Purpose |
-|----------|---------|
-| `POST https://api.hoangvu75.space/helloworld/oauth2/token` | Exchange client credentials for an access token |
-| `https://api.hoangvu75.space/helloworld` | Actual API (requires `Authorization: Bearer <token>`) |
+| Endpoint | Purpose | Auth Plugin |
+|----------|---------|-------------|
+| `POST https://api.hoangvu75.space/auth/oauth2/token` | Exchange client credentials for an access token | oauth2 only |
+| `https://api.hoangvu75.space/helloworld` | Actual API (requires `X-API-Key` header) | key-auth |
 
 **Step 1** — Get an access token:
 
 ```bash
-curl -s -X POST https://api.hoangvu75.space/helloworld/oauth2/token \
+curl -s -X POST https://api.hoangvu75.space/auth/oauth2/token \
   -d "client_id=kong-oauth2-client" \
   -d "client_secret=changeme-oauth2-secret" \
   -d "grant_type=client_credentials" \
   -d "scope=read"
 ```
 
-**Step 2** — Use the token to call the API:
+**Step 2** — Use the token by creating an OAuth2-protected Ingress (see below).
 
-```bash
-TOKEN="<access_token_from_step_1>"
-curl -v -H "Authorization: Bearer $TOKEN" https://api.hoangvu75.space/helloworld
-```
-
-Both `key-auth` and `oauth2` are active on the same route — one API key/token is enough, you don't need both.
-
-> **Note**: The token endpoint path is `<base_path>/oauth2/token` — based on the Ingress path prefix. Since the OAuth2 plugin is applied to the `/helloworld` path, the token endpoint is at `/helloworld/oauth2/token`. If you see a 404, check the exact spelling: `oauth2/token` (not `oauth/token`).
+> **Note**: The `oauth2` plugin can only be applied to Ingresses without `key-auth`. To create an OAuth2-protected API route, create a new Ingress with `konghq.com/plugins: oauth2` (without `key-auth`) and point it to your backend service. Then access it with `Authorization: Bearer <token>`.
 
 > The Kong Gateway is managed via CRDs in `plugins/`, `consumers/`, `ingress/`, `services/` directories. No dashboard is needed — routes are configured through `Ingress` resources.
 
@@ -112,18 +106,13 @@ stringData:
 type: Opaque
 ```
 
-Then reference the OAuth2 plugin in your Ingress annotation:
+Then reference the OAuth2 plugin in your Ingress annotation (must be a separate Ingress from key-auth):
 ```yaml
 annotations:
   konghq.com/plugins: oauth2
 ```
 
-Multiple auth plugins can be stacked on the same Ingress:
-```yaml
-annotations:
-  konghq.com/plugins: key-auth, oauth2
-```
-With both plugins active, Kong accepts **either** API key or OAuth2 token.
+Keep `key-auth` and `oauth2` on **different** Ingresses — they cannot be stacked on the same path.
 
 ## Adding a New App Behind Kong
 

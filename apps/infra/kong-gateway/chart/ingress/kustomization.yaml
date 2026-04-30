@@ -1,2 +1,3 @@
 resources:
   - helloworld-api-ingress.yaml
+  - oauth2-token-ingress.yaml

@@ -134,7 +134,8 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 │   │   │       │   └── oauth2-client-consumer.yaml
 │   │   │       ├── ingress/              # KIC Ingress routes
 │   │   │       │   ├── kustomization.yaml
-│   │   │       │   └── hello-api-ingress.yaml
+│   │   │       │   ├── hello-api-ingress.yaml
+│   │   │       │   └── oauth2-token-ingress.yaml
 │   │   │       └── services/             # ExternalName cross-ns bridges
 │   │   │           ├── kustomization.yaml
 │   │   │           └── hello-api-service.yaml

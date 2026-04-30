@@ -1,9 +1,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: helloworld-api
+  name: oauth2-token
   annotations:
-    konghq.com/plugins: key-auth
+    konghq.com/plugins: oauth2
     konghq.com/strip-path: "false"
     argocd.argoproj.io/sync-wave: "3"
 spec:
@@ -11,7 +11,7 @@ spec:
   rules:
     - http:
         paths:
-          - path: /helloworld
+          - path: /auth
             pathType: Prefix
             backend:
               service:
