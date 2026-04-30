@@ -3,11 +3,9 @@
 
 fullnameOverride: "kong"
 
-# Kong Ingress Controller — image from GHCR to avoid Docker Hub rate limits
+# Kong Ingress Controller disabled — dbless config manages routes
 ingressController:
-  image:
-    repository: ghcr.io/hoangvu75/kubernetes-ingress-controller
-    tag: "3.3"
+  enabled: false
 
 image:
   repository: ghcr.io/hoangvu75/kong
@@ -17,7 +15,6 @@ image:
 
 env:
   database: "off"
-  kic: "off"
 
 # DB-less declarative config
 dblessConfig:
