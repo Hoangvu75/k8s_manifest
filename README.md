@@ -31,7 +31,7 @@ GitOps repo for Kubernetes cluster management with ArgoCD, Kustomize, and Helm.
            ▼           ▼                ▼
     ┌──────────┐ ┌──────────┐   ┌──────────────┐
     │ argocd   │ │ rancher  │   │  Kong Proxy  │
-    │ :80      │ │ :80      │   │  (kong ns)   │
+    │ :80      │ │ :80      │   │  (kong-gateway ns)   │
     └──────────┘ └──────────┘   └──────┬───────┘
                                        │ key-auth
                                        ▼
@@ -61,7 +61,7 @@ GitOps repo for Kubernetes cluster management with ArgoCD, Kustomize, and Helm.
 | `argocd.hoangvu75.space` | argocd-server:80 | argocd | — |
 | `rancher.hoangvu75.space` | rancher:80 | cattle-system | — |
 | `traefik.hoangvu75.space` | traefik:8080 | gateway-api | — |
-| `api.hoangvu75.space` | helloworld-api:5678 (via Kong) | helloworld-api / kong | API Key |
+| `api.hoangvu75.space` | helloworld-api:5678 (via Kong) | helloworld-api / kong-gateway | API Key |
 
 ## Workflow
 
@@ -118,7 +118,7 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 │   │   ├── cloudflared/         # Cloudflare tunnel connector
 │   │   ├── datadog/             # Monitoring agent
 │   │   ├── kong-gateway/           # Kong Gateway — API key authentication proxy
-│   │   │   ├── config.yaml      # discovery metadata (destNamespace: kong, wave: 2)
+│   │   │   ├── config.yaml      # discovery metadata (destNamespace: kong-gateway, wave: 2)
 │   │   │   ├── kustomization.yaml
 │   │   │   └── chart/
 │   │   │       ├── kustomization.yaml

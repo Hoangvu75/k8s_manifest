@@ -25,15 +25,15 @@ Located in `apps/infra/kong-gateway/`:
 
 | File | Purpose |
 |------|---------|
-| `config.yaml` | ApplicationSet discovery (destNamespace: kong, wave: 2) |
-| `kustomization.yaml` | Parent kustomize with `namespace: kong` |
+| `config.yaml` | ApplicationSet discovery (destNamespace: kong-gateway, wave: 2) |
+| `kustomization.yaml` | Parent kustomize with `namespace: kong-gateway` |
 | `chart/values.yaml` | Kong Helm chart values (DB-less, GHCR images, KIC v3.3) |
 | `chart/kustomization.yaml` | Chart-level kustomize (Helm chart + subdirectory resources) |
 | `chart/httproute-kong.yaml` | Traefik → Kong proxy HTTPRoute (wave: 3) |
 | `chart/plugins/key-auth-plugin.yaml` | KongPlugin CRD for key-auth |
 | `chart/consumers/default-user-consumer.yaml` | KongConsumer + credential Secret |
 | `chart/ingress/helloworld-api-ingress.yaml` | KIC Ingress: routes /helloworld → helloworld-api:5678 |
-| `chart/services/helloworld-api-service.yaml` | Cross-namespace ExternalName bridge (kong → helloworld-api) |
+| `chart/services/helloworld-api-service.yaml` | Cross-namespace ExternalName bridge (kong-gateway → helloworld-api) |
 
 ## Testing
 
@@ -79,7 +79,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: my-app-service     # Must be in kong namespace or use ExternalName
+                name: my-app-service     # Must be in kong-gateway namespace or use ExternalName
                 port:
                   number: 8080
 ```
@@ -91,7 +91,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: my-app-service
-  namespace: kong
+  namespace: kong-gateway
 spec:
   type: ExternalName
   externalName: my-app-service.my-app-ns.svc.cluster.local
@@ -137,5 +137,5 @@ type: Opaque
 | Credential not created | Consumer exists but no key-auth | Add explicit `credentials: [secret-name]` field to KongConsumer |
 | `ingressController.enabled: false` breaks ArgoCD build | Kustomize build fails | Keep KIC enabled but manage config via CRDs |
 | Docker Hub rate limits (429) | Image pull failures | Use GHCR images (`ghcr.io/hoangvu75/`) |
-| Namespace override by ArgoCD | `destNamespace: kong` forces all resources to kong ns | Use ExternalName services for cross-namespace backends |
+| Namespace override by ArgoCD | `destNamespace: kong-gateway` forces all resources to kong-gateway ns | Use ExternalName services for cross-namespace backends |
 | `KONG_KIC=on` hard-coded by Helm chart | env.kic: off is overridden | Cannot disable KIC via values — keep enabled and use CRDs |
