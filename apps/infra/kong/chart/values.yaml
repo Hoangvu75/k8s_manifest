@@ -7,7 +7,7 @@ image:
   repository: kong
   tag: "3.9.1-ubuntu"
   pullSecrets:
-    - name: registry-credentials
+    - registry-credentials
 
 env:
   database: "off"
