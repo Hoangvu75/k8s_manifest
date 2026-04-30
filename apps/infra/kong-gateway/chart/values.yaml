@@ -1,9 +1,6 @@
-# Kong Gateway — DB-less mode
-# Traffic: Cloudflare → Traefik → Kong (key-auth) → hello-api
 
 fullnameOverride: "kong"
 
-# Kong Ingress Controller — manages Kong config via Kubernetes CRDs
 ingressController:
   installCRDs: true
   image:
@@ -19,7 +16,6 @@ image:
 env:
   database: "off"
 
-# Proxy service (Traefik routes here)
 proxy:
   enabled: true
   type: ClusterIP
@@ -30,7 +26,6 @@ proxy:
   tls:
     enabled: false
 
-# Admin API — keep enabled for KIC to push config
 admin:
   enabled: true
   type: ClusterIP

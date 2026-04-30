@@ -1,6 +1,3 @@
-# Debug / cluster-check pod
-# Exec into this pod to run networking tools: curl, nc, telnet, dig, tcpdump, etc.
-# No Service needed — this is a jump pod, not serving traffic.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

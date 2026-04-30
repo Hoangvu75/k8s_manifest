@@ -1,4 +1,3 @@
-# Argo CD HTTPRoute — UI qua https://argocd.hoangvu75.space (cloudflared → gateway-api; Host = tên miền công khai)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

@@ -1,4 +1,3 @@
-# Kong Gateway — API Auth (api-key) proxy cho hello-api
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

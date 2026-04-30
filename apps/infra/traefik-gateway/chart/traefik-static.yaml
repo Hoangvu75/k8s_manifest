@@ -1,18 +1,12 @@
-# =========================================================================
-# Traefik v3 Static Configuration
-# =========================================================================
 
-# --- API & Dashboard ---
 api:
   insecure: true
 
-# --- Providers ---
 providers:
   kubernetesCRD:
     allowCrossNamespace: true
   kubernetesGateway: {}
 
-# --- EntryPoints ---
 entryPoints:
   web:
     address: ":80"
@@ -25,14 +19,12 @@ entryPoints:
   metrics:
     address: ":9082"
 
-# --- Prometheus Metrics ---
 metrics:
   prometheus:
     entryPoint: metrics
     addEntryPointsLabels: true
     addServicesLabels: true
 
-# --- Access Logs (JSON format, ingested by Datadog) ---
 accessLog:
   format: json
   filters:
@@ -40,12 +32,10 @@ accessLog:
   fields:
     defaultMode: keep
 
-# --- Distributed Tracing (OpenTelemetry via OTLP HTTP to Datadog APM) ---
 tracing:
   otlp:
     http:
       endpoint: http://datadog.datadog:4318/v1/traces
 
-# --- Log Level ---
 log:
   level: INFO

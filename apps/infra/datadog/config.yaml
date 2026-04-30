@@ -1,5 +1,3 @@
-# Argo CD: apps/infra/**/config.yaml
-# API key: app secrets sync Secret từ repo private (vd. datadog-secret.yaml) — tên Secret: datadog-key, key stringData: api-key.
 destNamespace: datadog
 annotations:
   argocd.argoproj.io/sync-wave: "2"

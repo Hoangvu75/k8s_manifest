@@ -1,4 +1,3 @@
-# Gateway API resources - requires CRDs to be installed first
 destNamespace: gateway-api
 syncPolicy:
   syncOptions:

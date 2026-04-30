@@ -29,7 +29,6 @@ datadog:
     socketEnabled: true
     portEnabled: true
 
-  # OTLP receiver for Traefik traces (accepts OpenTelemetry from Traefik)
   otlp:
     receiver:
       protocols:
@@ -38,7 +37,6 @@ datadog:
         grpc:
           enabled: true
 
-  # Prometheus scraping for Traefik metrics
   prometheusScrape:
     enabled: true
     serviceEndpoints: true

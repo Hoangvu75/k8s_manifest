@@ -1,5 +1,3 @@
-# Traefik - Gateway API implementation
-# Single container, no sidecar, no init containers
 ---
 apiVersion: v1
 kind: ServiceAccount
