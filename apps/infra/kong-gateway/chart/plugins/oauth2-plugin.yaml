@@ -16,3 +16,4 @@ config:
   enable_password_grant: false
   token_expiration: 7200
   hide_credentials: true
+  accept_http_if_already_terminated: true

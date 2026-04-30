@@ -22,5 +22,5 @@ stringData:
   client_id: kong-oauth2-client
   client_secret: changeme-oauth2-secret
   name: OAuth2 Client App
-  # redirect_uris removed - not needed for client_credentials grant
+  redirect_uris: http://localhost/
 type: Opaque
