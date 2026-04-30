@@ -14,7 +14,9 @@ metadata:
   labels:
     konghq.com/credential: key-auth
   annotations:
+    kubernetes.io/ingress.class: kong
     argocd.argoproj.io/sync-wave: "3"
 stringData:
   key: dev-api-key-123
+  kongCredType: key-auth
 type: Opaque
