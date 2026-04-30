@@ -4,7 +4,7 @@
 fullnameOverride: "kong"
 
 image:
-  repository: kong
+  repository: kong/kong
   tag: "3.9.1-ubuntu"
   pullSecrets:
     - registry-credentials
