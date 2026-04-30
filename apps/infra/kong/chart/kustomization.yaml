@@ -11,6 +11,7 @@ helmCharts:
 
 resources:
   - httproute-kong.yaml
+  - externalname-hello-api.yaml
   - kong-plugin-key-auth.yaml
   - kong-consumer.yaml
   - hello-api-ingress.yaml

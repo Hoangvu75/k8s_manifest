@@ -5,6 +5,7 @@ fullnameOverride: "kong"
 
 # Kong Ingress Controller — manages Kong config via Kubernetes CRDs
 ingressController:
+  installCRDs: true
   image:
     repository: ghcr.io/hoangvu75/kubernetes-ingress-controller
     tag: "3.3"
