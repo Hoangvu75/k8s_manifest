@@ -6,6 +6,8 @@ metadata:
     kubernetes.io/ingress.class: kong
     argocd.argoproj.io/sync-wave: "3"
 username: default-user
+credentials:
+  - default-user-key-auth
 ---
 apiVersion: v1
 kind: Secret
@@ -18,5 +20,4 @@ metadata:
     argocd.argoproj.io/sync-wave: "3"
 stringData:
   key: dev-api-key-123
-  kongCredType: key-auth
 type: Opaque
