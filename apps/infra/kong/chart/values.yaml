@@ -17,6 +17,7 @@ image:
 
 env:
   database: "off"
+  kic: "off"
 
 # DB-less declarative config
 dblessConfig:
