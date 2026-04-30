@@ -3,6 +3,10 @@
 
 fullnameOverride: "kong"
 
+# Disable Kong Ingress Controller — we use Traefik + Gateway API for routing
+ingressController:
+  enabled: false
+
 image:
   repository: ghcr.io/hoangvu75/kong
   tag: "3.9.1-ubuntu"
