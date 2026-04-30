@@ -38,5 +38,13 @@ admin:
     enabled: true
     servicePort: 8001
 
+# Manager GUI — Kong Admin Web UI
+manager:
+  enabled: true
+  type: ClusterIP
+  http:
+    enabled: true
+    servicePort: 8002
+
 enterprise:
   enabled: false

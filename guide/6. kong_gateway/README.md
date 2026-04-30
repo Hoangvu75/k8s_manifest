@@ -30,12 +30,15 @@ Located in `apps/infra/kong-gateway/`:
 | `chart/values.yaml` | Kong Helm chart values (DB-less, GHCR images, KIC v3.3) |
 | `chart/kustomization.yaml` | Chart-level kustomize (Helm chart + subdirectory resources) |
 | `chart/httproute-kong.yaml` | Traefik → Kong proxy HTTPRoute (wave: 3) |
+| `chart/httproute-kong-manager.yaml` | Traefik → Kong Manager GUI HTTPRoute (wave: 3) |
 | `chart/plugins/key-auth-plugin.yaml` | KongPlugin CRD for key-auth |
 | `chart/consumers/default-user-consumer.yaml` | KongConsumer + credential Secret |
 | `chart/ingress/helloworld-api-ingress.yaml` | KIC Ingress: routes /helloworld → helloworld-api:5678 |
 | `chart/services/helloworld-api-service.yaml` | Cross-namespace ExternalName bridge (kong-gateway → helloworld-api) |
 
 ## Testing
+
+### API Key Authentication
 
 ```bash
 # Without API key (should return 401)
@@ -44,6 +47,15 @@ curl -v https://api.hoangvu75.space/helloworld
 # With API key (should return 200)
 curl -v -H "X-API-Key: dev-api-key-123" https://api.hoangvu75.space/helloworld
 ```
+
+### Kong Manager Dashboard
+
+Open **https://kong.hoangvu75.space** in your browser.
+
+The Manager UI shows:
+- Kong Gateway status and configuration
+- Routes, Services, Plugins, and Consumers
+- Health metrics and monitoring (DB-less read-only mode)
 
 ## Adding a New App Behind Kong
 

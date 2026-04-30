@@ -61,6 +61,7 @@ GitOps repo for Kubernetes cluster management with ArgoCD, Kustomize, and Helm.
 | `argocd.hoangvu75.space` | argocd-server:80 | argocd | — |
 | `rancher.hoangvu75.space` | rancher:80 | cattle-system | — |
 | `traefik.hoangvu75.space` | traefik:8080 | gateway-api | — |
+| `kong.hoangvu75.space` | kong-manager:8002 | kong-gateway | — |
 | `api.hoangvu75.space` | helloworld-api:5678 (via Kong) | helloworld-api / kong-gateway | API Key |
 
 ## Workflow
@@ -183,7 +184,7 @@ Shared namespaces are defined in `cluster-resources/default/namespace.yaml` with
 | Traefik + Gateway | infra | Ingress controller via Gateway API (HTTP/HTTPS/TCP/UDP) with Prometheus metrics, access logs, and OpenTelemetry tracing to Datadog APM |
 | Cloudflared | infra | Cloudflare tunnel for external access |
 | Datadog | infra | Monitoring and observability agent |
-| Kong Gateway | infra | API key authentication layer between Traefik and applications (DB-less mode, KIC-managed) |
+| Kong Gateway | infra | API key authentication layer between Traefik and applications (DB-less mode, KIC-managed). Manager UI at `kong.hoangvu75.space` |
 | Rancher (incl. cert-manager) | infra | Cluster management UI + TLS cert automation |
 | ArgoCD Ingress | infra | Expose ArgoCD UI via HTTPRoute |
 | Hello API | applications | Demo API application (protected by Kong key-auth) |
