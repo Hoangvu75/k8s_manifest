@@ -12,15 +12,18 @@
 - [namespace.yaml](file://cluster-resources/default/namespace.yaml)
 - [traefik-static.yaml](file://apps/infra/gateway-api/chart/traefik-static.yaml)
 - [traefik.yaml](file://apps/infra/gateway-api/chart/traefik.yaml)
+- [README.md](file://guide/5. datadog_integration/README.md)
 </cite>
 
 ## Update Summary
 **Changes Made**
+- Added comprehensive Datadog Integration Guide covering Logs, Metrics, and Traces integration with Traefik
 - Updated OTLP receiver configuration documentation to reflect centralized Helm values.yaml configuration under datadog.otlp.receiver.protocols section
-- Removed references to environment variable-based OTLP configuration in favor of structured YAML configuration
-- Updated architecture diagrams to show new centralized OTLP configuration approach
 - Enhanced OpenTelemetry Protocol section with new configuration syntax and benefits
-- Updated dependency analysis to reflect improved OTLP receiver management
+- Added detailed configuration examples for Traefik access logs, Prometheus metrics, and OTLP tracing
+- Included troubleshooting procedures for Datadog Agent status verification
+- Updated architecture diagrams to show new centralized OTLP configuration approach
+- Enhanced dependency analysis to reflect improved OTLP receiver management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -36,6 +39,8 @@
 
 ## Introduction
 This document explains the Datadog monitoring agent deployment and configuration in this Kubernetes manifest repository. It covers installation via Helm, cluster agent setup, APM instrumentation, metric collection strategies, and integration with Kubernetes monitoring. The configuration now includes comprehensive OpenTelemetry Protocol (OTLP) support with centralized configuration through Helm values.yaml, expanded Prometheus scraping capabilities for Traefik metrics collection, and integration with Kubernetes monitoring. It also documents sync wave ordering and dependency management with other infrastructure components, and provides guidance for custom metrics, logs, traces, monitors, dashboards, notebooks, troubleshooting, performance impact mitigation, and cost optimization for large-scale deployments.
+
+**Updated**: Added comprehensive Datadog Integration Guide covering Logs, Metrics, and Traces integration with Traefik, including detailed configuration examples and troubleshooting procedures.
 
 ## Project Structure
 The Datadog stack is provisioned as a Helm-based Application managed by Argo CD. The deployment pipeline is orchestrated through Kustomize and ApplicationSets, ensuring predictable ordering across namespaces and components. The system now includes integrated Traefik gateway with OpenTelemetry tracing and Prometheus metrics scraping.
@@ -315,54 +320,188 @@ Recommendations:
 **Section sources**
 - [values.yaml:32-39](file://apps/infra/datadog/chart/values.yaml#L32-L39)
 
-### Distributed Tracing with Traefik Integration
-**New Section**: Traefik gateway provides distributed tracing capabilities integrated with Datadog APM via OpenTelemetry Protocol.
+### Comprehensive Datadog Integration with Traefik
 
-- **OTLP HTTP Tracing Configuration**:
-  - Endpoint: http://datadog.datadog:4318/v1/traces
-  - Automatic trace propagation through HTTP requests
-  - JSON access logs enriched with trace context
-  - Seamless integration with Datadog APM
+**New Section**: This section provides a complete guide to Datadog integration covering Logs, Metrics, and Traces from Traefik to Datadog.
 
-- **Trace Context Propagation**:
-  - Automatic extraction and injection of trace IDs
-  - Support for W3C TraceContext and baggage headers
-  - Cross-service trace correlation across microservices
-  - Enhanced observability for distributed applications
+#### Logs Integration (stdout collection)
+**Agent Configuration** (`values.yaml`):
+```yaml
+logs:
+  enabled: true
+  containerCollectAll: true
+```
 
-- **Dashboard Integration**:
-  - Real-time trace visualization in Datadog APM
-  - Service map generation from trace data
-  - Performance analytics and bottleneck identification
-  - Error rate tracking and latency analysis
+**Traefik Configuration** (`traefik-static.yaml`):
+```yaml
+accessLog:
+  format: json
+  filters:
+    statusCodes: ["200-499"]
+  fields:
+    defaultMode: keep
+```
+
+Every container's stdout is automatically collected (`containerCollectAll: true`). For Traefik specifically, the `accessLog` is enabled to produce **per-request JSON log entries** with:
+- Client IP and port
+- Request hostname and path
+- Backend service name
+- Response status code
+- Request duration
+- Bytes transferred
+
+**View in Datadog:**
+- [Log Explorer](https://us5.datadoghq.com/logs)
+- Filter: `kube_namespace:gateway-api kube_service:traefik`
+
+#### Metrics Integration (Prometheus scraping)
+**Agent Configuration** (`values.yaml`):
+```yaml
+prometheusScrape:
+  enabled: true
+  serviceEndpoints: true
+```
+
+**Traefik Configuration** (`traefik-static.yaml`):
+```yaml
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addServicesLabels: true
+```
+
+Traefik exposes Prometheus-formatted metrics on `:9082/metrics`. The Datadog Agent scrapes this endpoint using **autodiscovery annotations** on the Traefik pod:
+
+```yaml
+# traefik.yaml — pod template annotations
+ad.datadoghq.com/traefik.check_names: ["openmetrics"]
+ad.datadoghq.com/traefik.init_configs: ['{}']
+ad.datadoghq.com/traefik.instances: ['{"openmetrics_endpoint":"http://%%host%%:9082/metrics","namespace":"traefik","metrics":["^traefik_"]}']
+```
+
+> **Note:** Standard Prometheus annotations (`prometheus.io/scrape: "true"`) are also present but Datadog requires its own `ad.datadoghq.com/` annotations for autodiscovery.
+
+Available metrics (~16 total) include:
+
+| Metric Prefix | Description |
+|--------------|-------------|
+| `traefik_entrypoint_*` | Traffic entering each entryPoint (port 80, 443, 9000, 9001) |
+| `traefik_service_*` | Traffic forwarded to each backend service |
+| `traefik_router_*` | Traffic matched by each router rule |
+| `traefik_config_*` | Configuration reload health |
+| `traefik_tcp_*` / `traefik_udp_*` | Layer 4 connection counters |
+
+**View in Datadog:**
+- [Metrics Summary](https://us5.datadoghq.com/metric/summary?filter=traefik)
+
+#### Traces Integration (OTLP APM)
+**Agent Configuration** (`values.yaml`):
+```yaml
+otlp:
+  receiver:
+    protocols:
+      http:
+        enabled: true
+      grpc:
+        enabled: true
+```
+
+**Traefik Configuration** (`traefik-static.yaml`):
+```yaml
+tracing:
+  otlp:
+    http:
+      endpoint: http://datadog.datadog:4318/v1/traces
+```
+
+Traefik sends an OpenTelemetry trace span for every HTTP request it processes. The Datadog Agent's OTLP receiver accepts it on `:4318` and forwards to Datadog APM.
+
+**View in Datadog:**
+- [APM Traces](https://us5.datadoghq.com/apm/traces?query=service%3Atraefik)
+- Filter: `service:traefik`
+
+Each trace shows the full request journey through Traefik's pipeline:
+
+```
+GET /helloworld (45ms)
+├── Router (0.2ms)         ← hostname/path matching
+├── RequestHeaderModifier  ← X-Forwarded-Proto/Port
+└── Service (44ms)         ← backend hello-api
+```
 
 **Section sources**
+- [README.md:24-31](file://guide/5. datadog_integration/README.md#L24-L31)
+- [README.md:35-40](file://guide/5. datadog_integration/README.md#L35-L40)
+- [README.md:42-50](file://guide/5. datadog_integration/README.md#L42-L50)
+- [README.md:68-73](file://guide/5. datadog_integration/README.md#L68-L73)
+- [README.md:75-82](file://guide/5. datadog_integration/README.md#L75-L82)
+- [README.md:86-91](file://guide/5. datadog_integration/README.md#L86-L91)
+- [README.md:110-119](file://guide/5. datadog_integration/README.md#L110-L119)
+- [README.md:121-127](file://guide/5. datadog_integration/README.md#L121-L127)
+- [values.yaml:24-26](file://apps/infra/datadog/chart/values.yaml#L24-L26)
+- [values.yaml:41-44](file://apps/infra/datadog/chart/values.yaml#L41-L44)
+- [values.yaml:32-39](file://apps/infra/datadog/chart/values.yaml#L32-L39)
+- [traefik-static.yaml:36-41](file://apps/infra/gateway-api/chart/traefik-static.yaml#L36-L41)
+- [traefik-static.yaml:28-33](file://apps/infra/gateway-api/chart/traefik-static.yaml#L28-L33)
 - [traefik-static.yaml:43-47](file://apps/infra/gateway-api/chart/traefik-static.yaml#L43-L47)
+- [traefik.yaml:76-81](file://apps/infra/gateway-api/chart/traefik.yaml#L76-L81)
 
-### Prometheus Metrics Scraping Enhancement
-**New Section**: Enhanced Prometheus scraping capabilities for comprehensive metrics collection from Traefik and other services.
+### Additional Features
+#### Process Collection
+```yaml
+processAgent:
+  enabled: true
+  processCollection: true
+  containerCollection: true
+```
+Enables live process monitoring in Datadog.
 
-- **Traefik Metrics Configuration**:
-  - Prometheus endpoint exposed on port 9082
-  - Rich metrics including router, service, and connection statistics
-  - Entry point and service labels for granular filtering
-  - OpenMetrics format for compatibility with Prometheus ecosystem
-
-- **Service Discovery Integration**:
-  - Automatic scraping via prometheus.io annotations
-  - Support for multiple metrics endpoints per service
-  - Enhanced label propagation for Kubernetes context
-  - Integration with Datadog's Prometheus integration
-
-- **Metrics Coverage**:
-  - TCP/UDP connection metrics for Layer 4 routing
-  - HTTP request/response metrics for Layer 7 routing
-  - Performance indicators including latency and throughput
-  - Error rate and availability metrics
+#### Orchestrator Explorer
+```yaml
+orchestratorExplorer:
+  enabled: true
+kubeStateMetricsCore:
+  enabled: true
+```
+Enables Kubernetes resource view (pods, deployments, services) in the Datadog UI.
 
 **Section sources**
-- [traefik-static.yaml:28-34](file://apps/infra/gateway-api/chart/traefik-static.yaml#L28-L34)
-- [traefik.yaml:76-81](file://apps/infra/gateway-api/chart/traefik.yaml#L76-L81)
+- [values.yaml:46-49](file://apps/infra/datadog/chart/values.yaml#L46-L49)
+- [values.yaml:14-22](file://apps/infra/datadog/chart/values.yaml#L14-L22)
+
+### Troubleshooting Procedures
+**New Section**: Comprehensive troubleshooting procedures for Datadog Agent status verification and integration validation.
+
+#### Check Datadog Agent status
+```bash
+kubectl exec -n datadog daemonset/datadog -- agent status
+```
+
+#### Verify OTLP receiver is running
+```bash
+kubectl exec -n datadog daemonset/datadog -- agent status | grep -A 8 "OTLP"
+# Expected: Status: Enabled, Collector status: Running
+```
+
+#### Verify metrics scraping
+```bash
+kubectl exec -n datadog daemonset/datadog -- agent status | grep -A 15 "openmetrics"
+# Look for an Instance ID containing "traefik" or "gateway-api"
+```
+
+#### Verify Traefik metrics endpoint
+```bash
+kubectl exec -n cluster-check deploy/cluster-check -- curl -s http://traefik.gateway-api:9082/metrics | head -20
+```
+
+#### Check Agent connectivity to Datadog
+```bash
+kubectl exec -n datadog daemonset/datadog -- agent status | grep "diagnostics"
+```
+
+**Section sources**
+- [README.md:166-191](file://guide/5. datadog_integration/README.md#L166-L191)
 
 ### APM Instrumentation Configuration
 - APM socket and port enabled for trace ingestion.
@@ -493,6 +632,8 @@ Common issues and resolutions:
 ## Conclusion
 This repository provides a robust, declarative Datadog monitoring setup integrated with Argo CD and Helm, now enhanced with centralized OpenTelemetry Protocol configuration and expanded Prometheus scraping capabilities. The integration with Traefik gateway provides distributed tracing and metrics collection for modern cloud-native applications. By leveraging sync waves, pinned image tags, comprehensive feature toggles, and centralized OTLP configuration, it supports scalable Kubernetes observability with future-proof architecture. Operators can extend dashboards, monitors, and notebooks while maintaining operational consistency and cost efficiency, and leverage modern observability standards through centralized OTLP integration.
 
+**Updated**: The comprehensive Datadog Integration Guide now covers Logs, Metrics, and Traces integration with Traefik, including detailed configuration examples and troubleshooting procedures for a complete observability solution.
+
 ## Appendices
 
 ### Appendix A: Installation Checklist
@@ -540,3 +681,77 @@ This repository provides a robust, declarative Datadog monitoring setup integrat
 
 **Section sources**
 - [values.yaml:32-39](file://apps/infra/datadog/chart/values.yaml#L32-L39)
+
+### Appendix C: Datadog Integration Configuration Examples
+**New Section**: Complete configuration examples for comprehensive Datadog integration.
+
+#### Logs Configuration
+**Datadog Agent** (`values.yaml`):
+```yaml
+logs:
+  enabled: true
+  containerCollectAll: true
+```
+
+**Traefik** (`traefik-static.yaml`):
+```yaml
+accessLog:
+  format: json
+  filters:
+    statusCodes: ["200-499"]
+  fields:
+    defaultMode: keep
+```
+
+#### Metrics Configuration
+**Datadog Agent** (`values.yaml`):
+```yaml
+prometheusScrape:
+  enabled: true
+  serviceEndpoints: true
+```
+
+**Traefik** (`traefik-static.yaml`):
+```yaml
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addServicesLabels: true
+```
+
+**Traefik Pod Annotations** (`traefik.yaml`):
+```yaml
+ad.datadoghq.com/traefik.check_names: '["openmetrics"]'
+ad.datadoghq.com/traefik.init_configs: '[{}]'
+ad.datadoghq.com/traefik.instances: '[{"openmetrics_endpoint":"http://%%host%%:9082/metrics","namespace":"traefik","metrics":["^traefik_"]}]'
+```
+
+#### Traces Configuration
+**Datadog Agent** (`values.yaml`):
+```yaml
+otlp:
+  receiver:
+    protocols:
+      http:
+        enabled: true
+      grpc:
+        enabled: true
+```
+
+**Traefik** (`traefik-static.yaml`):
+```yaml
+tracing:
+  otlp:
+    http:
+      endpoint: http://datadog.datadog:4318/v1/traces
+```
+
+**Section sources**
+- [values.yaml:24-26](file://apps/infra/datadog/chart/values.yaml#L24-L26)
+- [values.yaml:41-44](file://apps/infra/datadog/chart/values.yaml#L41-L44)
+- [values.yaml:32-39](file://apps/infra/datadog/chart/values.yaml#L32-L39)
+- [traefik-static.yaml:36-41](file://apps/infra/gateway-api/chart/traefik-static.yaml#L36-L41)
+- [traefik-static.yaml:28-33](file://apps/infra/gateway-api/chart/traefik-static.yaml#L28-L33)
+- [traefik-static.yaml:43-47](file://apps/infra/gateway-api/chart/traefik-static.yaml#L43-L47)
+- [traefik.yaml:76-81](file://apps/infra/gateway-api/chart/traefik.yaml#L76-L81)
