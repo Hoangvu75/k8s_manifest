@@ -18,13 +18,6 @@ spec:
     kind: '*'
   sourceRepos:
   - '*'
-resourceCustomizations:
-  networking.k8s.io/Ingress:
-    health.lua: |
-      hs = {}
-      hs.status = "Healthy"
-      hs.message = "Kong-managed Ingress - health check skipped"
-      return hs
 
 ---
 apiVersion: argoproj.io/v1alpha1
