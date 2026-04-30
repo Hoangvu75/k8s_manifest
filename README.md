@@ -27,12 +27,18 @@ GitOps repo for Kubernetes cluster management with ArgoCD, Kustomize, and Helm.
               │  :443 HTTPS (TLS)   │
               └────────┬────────────┘
                        │ HTTPRoutes
-           ┌───────────┼───────────────┐
-           ▼           ▼               ▼
-    ┌──────────┐ ┌──────────┐   ┌──────────┐
-    │ argocd   │ │ rancher  │   │  ...     │
-    │ :80      │ │ :80      │   │          │
-    └──────────┘ └──────────┘   └──────────┘
+           ┌───────────┼────────────────┐
+           ▼           ▼                ▼
+    ┌──────────┐ ┌──────────┐   ┌──────────────┐
+    │ argocd   │ │ rancher  │   │  Kong Proxy  │
+    │ :80      │ │ :80      │   │  (kong ns)   │
+    └──────────┘ └──────────┘   └──────┬───────┘
+                                       │ key-auth
+                                       ▼
+                              ┌────────────────┐
+                              │   hello-api    │
+                              │  :5678         │
+                              └────────────────┘
 ```
 
 ### Traffic Path
@@ -44,15 +50,18 @@ GitOps repo for Kubernetes cluster management with ArgoCD, Kustomize, and Helm.
 | 3 | Traefik (NodePort) | Receives on 30080/30443/30900/30901/30082, acts as Gateway API controller |
 | 4 | shared-gateway | Gateway resource routes by hostname (Gateway API) |
 | 5 | HTTPRoute | Matches hostname, routes to backend Service |
-| 6 | Application | Final destination pod (argocd-server, rancher, etc.) |
+| 6a | Kong Gateway (api.*) | API key authentication via Kong Plugin, then routes to app |
+| 6b | Direct (other hosts) | Routes directly to backend Service (argocd, rancher, traefik) |
+| 7 | Application | Final destination pod (hello-api, argocd-server, rancher, etc.) |
 
 ### Hostnames
 
-| Hostname | Backend | Namespace |
-|----------|---------|-----------|
-| `argocd.hoangvu75.space` | argocd-server:80 | argocd |
-| `rancher.hoangvu75.space` | rancher:80 | cattle-system |
-| `traefik.hoangvu75.space` | traefik:8080 | gateway-api |
+| Hostname | Backend | Namespace | Auth |
+|----------|---------|-----------|------|
+| `argocd.hoangvu75.space` | argocd-server:80 | argocd | — |
+| `rancher.hoangvu75.space` | rancher:80 | cattle-system | — |
+| `traefik.hoangvu75.space` | traefik:8080 | gateway-api | — |
+| `api.hoangvu75.space` | hello-api:5678 (via Kong) | hello-api / kong | API Key |
 
 ## Workflow
 
@@ -81,8 +90,8 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 | `-1` | Namespaces |
 | `0` | ApplicationSets, Traefik Deployment |
 | `1` | Secrets from private repo |
-| `2` | Gateway, Datadog, and other mid-tier resources |
-| `3` | HTTPRoutes (last, after Gateway exists) |
+| `2` | Kong, Gateway, Datadog, and other mid-tier resources |
+| `3` | HTTPRoutes, KIC resources (Ingress, KongPlugin, KongConsumer) |
 
 ## Repo Structure
 
@@ -108,6 +117,17 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 │   │   ├── gateway-api/         # Traefik + Gateway + wildcard TLS
 │   │   ├── cloudflared/         # Cloudflare tunnel connector
 │   │   ├── datadog/             # Monitoring agent
+│   │   ├── kong/                # Kong Gateway — API key authentication proxy
+│   │   │   ├── config.yaml      # discovery metadata (destNamespace: kong, wave: 2)
+│   │   │   ├── kustomization.yaml
+│   │   │   └── chart/
+│   │   │       ├── kustomization.yaml
+│   │   │       ├── values.yaml           # DB-less KIC config
+│   │   │       ├── httproute-kong.yaml    # Traefik → Kong route
+│   │   │       ├── externalname-hello-api.yaml  # ExternalName svc
+│   │   │       ├── kong-plugin-key-auth.yaml    # key-auth plugin
+│   │   │       ├── kong-consumer.yaml           # consumer + credential
+│   │   │       └── hello-api-ingress.yaml       # KIC Ingress route
 │   │   ├── rancher/             # Rancher management UI (includes cert-manager)
 │   │   └── argocd-ingress/      # ArgoCD HTTPRoute exposure
 │   └── applications/            # User-facing application apps
@@ -155,9 +175,10 @@ Shared namespaces are defined in `cluster-resources/default/namespace.yaml` with
 | Traefik + Gateway | infra | Ingress controller via Gateway API (HTTP/HTTPS/TCP/UDP) with Prometheus metrics, access logs, and OpenTelemetry tracing to Datadog APM |
 | Cloudflared | infra | Cloudflare tunnel for external access |
 | Datadog | infra | Monitoring and observability agent |
+| Kong Gateway | infra | API key authentication layer between Traefik and applications (DB-less mode, KIC-managed) |
 | Rancher (incl. cert-manager) | infra | Cluster management UI + TLS cert automation |
 | ArgoCD Ingress | infra | Expose ArgoCD UI via HTTPRoute |
-| Hello API | applications | Demo API application |
+| Hello API | applications | Demo API application (protected by Kong key-auth) |
 | TCP Echo Demo | applications | TCP echo server via Traefik IngressRouteTCP (NodePort 30900) |
 | UDP Echo Demo | applications | UDP echo server via Traefik IngressRouteUDP (NodePort 30901) |
 | Cluster Check | applications | Debug jump pod with networking tools (curl, nc, telnet, dig) |
