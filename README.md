@@ -117,6 +117,8 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 │   │   ├── traefik-gateway/         # Traefik + Gateway + wildcard TLS
 │   │   ├── cloudflared/         # Cloudflare tunnel connector
 │   │   ├── datadog/             # Monitoring agent
+│   │   ├── arc-controller/      # GitHub Actions Runner Controller (scale-set mode)
+│   │   ├── arc-runner-set/      # Self-hosted runner scale set for the repo
 │   │   ├── kong-gateway/           # Kong Gateway — API key authentication proxy
 │   │   │   ├── config.yaml      # discovery metadata (destNamespace: kong-gateway, wave: 2)
 │   │   │   ├── kustomization.yaml
@@ -184,6 +186,8 @@ Shared namespaces are defined in `cluster-resources/default/namespace.yaml` with
 | Cloudflared | infra | Cloudflare tunnel for external access |
 | Datadog | infra | Monitoring and observability agent |
 | Kong Gateway | infra | API key authentication layer between Traefik and applications (DB-less mode, KIC-managed). Configured via CRDs in `plugins/`, `consumers/`, `ingress/`, `services/`. |
+| ARC Controller | infra | GitHub Actions Runner Controller (Autoscaling Runner Scale Sets mode) — manages `AutoscalingRunnerSet` CRs in `arc-runners` namespace |
+| ARC Runner Set | infra | Self-hosted GitHub Actions runner scale set (`runs-on: arc-runner-set`), scales 0..N ephemeral runners on demand |
 | Rancher (incl. cert-manager) | infra | Cluster management UI + TLS cert automation |
 | ArgoCD Ingress | infra | Expose ArgoCD UI via HTTPRoute |
 | Hello API | applications | Demo API application (protected by Kong key-auth) |

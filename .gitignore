@@ -1,1 +1,3 @@
 .ignore
+# Local helm chart cache populated by `kustomize build --enable-helm`
+apps/**/chart/charts/
