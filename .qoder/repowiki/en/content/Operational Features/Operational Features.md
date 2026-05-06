@@ -14,6 +14,8 @@
 - [projects/playground.yaml](file://projects/playground.yaml)
 - [apps/infra/gateway-api/config.yaml](file://apps/infra/gateway-api/config.yaml)
 - [apps/infra/datadog/config.yaml](file://apps/infra/datadog/config.yaml)
+- [apps/infra/arc-controller/config.yaml](file://apps/infra/arc-controller/config.yaml)
+- [apps/infra/arc-runner-set/config.yaml](file://apps/infra/arc-runner-set/config.yaml)
 - [apps/playground/argocd-ingress/config.yaml](file://apps/playground/argocd-ingress/config.yaml)
 </cite>
 
@@ -139,8 +141,8 @@ Sync waves enforce deterministic deployment order across the cluster:
 - Wave -1: Cluster-scoped resources (namespaces, cluster roles, etc.)
 - Wave 0: Core platform components (ApplicationSets, Traefik)
 - Wave 1: Secrets from private repository
-- Wave 2: Mid-tier resources (Gateway, Datadog)
-- Wave 3: HTTPRoutes (must run after Gateway exists)
+- Wave 2: Mid-tier resources (Gateway, Datadog, arc-controller)
+- Wave 3: HTTPRoutes and arc-runner-set (must run after Gateway/controller exists)
 
 Per-app overrides are supported via annotations in config.yaml. The system ensures dependencies resolve in the intended order.
 
@@ -149,8 +151,8 @@ flowchart TD
 WNeg2["Wave -2<br/>AppProjects"] --> WNeg1["Wave -1<br/>Namespaces"]
 WNeg1 --> W0["Wave 0<br/>ApplicationSets/Traefik"]
 W0 --> W1["Wave 1<br/>Secrets"]
-W1 --> W2["Wave 2<br/>Gateway/Datadog"]
-W2 --> W3["Wave 3<br/>HTTPRoutes"]
+W1 --> W2["Wave 2<br/>Gateway/Datadog/arc-controller"]
+W2 --> W3["Wave 3<br/>HTTPRoutes/arc-runner-set"]
 ```
 
 **Diagram sources**
@@ -160,6 +162,8 @@ W2 --> W3["Wave 3<br/>HTTPRoutes"]
 - [bootstrap/cluster-resources.yaml:4-5](file://bootstrap/cluster-resources.yaml#L4-L5)
 - [bootstrap/secrets.yaml:6-7](file://bootstrap/secrets.yaml#L6-L7)
 - [apps/infra/datadog/config.yaml:5](file://apps/infra/datadog/config.yaml#L5)
+- [apps/infra/arc-controller/config.yaml:3](file://apps/infra/arc-controller/config.yaml#L3)
+- [apps/infra/arc-runner-set/config.yaml:3](file://apps/infra/arc-runner-set/config.yaml#L3)
 - [apps/playground/argocd-ingress/config.yaml:3](file://apps/playground/argocd-ingress/config.yaml#L3)
 
 **Section sources**

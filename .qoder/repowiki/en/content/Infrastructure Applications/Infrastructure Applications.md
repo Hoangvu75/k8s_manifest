@@ -14,6 +14,10 @@
 - [values.yaml](file://apps/infra/datadog/chart/values.yaml)
 - [kustomization.yaml](file://apps/infra/datadog/chart/kustomization.yaml)
 - [config.yaml](file://apps/infra/datadog/config.yaml)
+- [arc-controller kustomization.yaml](file://apps/infra/arc-controller/chart/kustomization.yaml)
+- [arc-controller values.yaml](file://apps/infra/arc-controller/chart/values.yaml)
+- [arc-runner-set kustomization.yaml](file://apps/infra/arc-runner-set/chart/kustomization.yaml)
+- [arc-runner-set values.yaml](file://apps/infra/arc-runner-set/chart/values.yaml)
 - [root.yaml](file://bootstrap/root.yaml)
 - [infra.yaml](file://projects/infra.yaml)
 </cite>
@@ -35,15 +39,18 @@ This document describes the foundational infrastructure applications that power 
 - Gateway API controller setup with Traefik as the ingress controller, including GatewayClass, Gateway, and HTTPRoute definitions
 - Cloudflare Tunnel configuration for secure external access via the cloudflared pod
 - Datadog monitoring agent deployment for observability and metrics collection
+- GitHub Actions Runner Controller for self-hosted CI/CD runners on the cluster
 - Deployment order (sync waves) and interdependencies among infrastructure components
 - Networking considerations and integration patterns with the broader infrastructure
 - Troubleshooting tips and performance optimization strategies
 
 ## Project Structure
-The infrastructure stack is organized under apps/infra with three primary subsystems:
+The infrastructure stack is organized under apps/infra with five primary subsystems:
 - Gateway API (Traefik): Defines the GatewayClass, Gateway, and HTTPRoute for ingress routing
 - Cloudflared: Helm-based deployment of Cloudflare Tunnel client
 - Datadog: Helm-based monitoring and observability agent
+- ARC Controller: GitHub Actions Runner Controller (manages AutoscalingRunnerSet CRDs)
+- ARC Runner Set: Self-hosted runner scale set for CI/CD workloads
 
 ```mermaid
 graph TB
@@ -69,11 +76,23 @@ DD_VALUES["apps/infra/datadog/chart/values.yaml"]
 DD_K["apps/infra/datadog/chart/kustomization.yaml"]
 DD_CFG["apps/infra/datadog/config.yaml"]
 end
+subgraph "ARC Controller"
+ARC_K["apps/infra/arc-controller/chart/kustomization.yaml"]
+ARC_VAL["apps/infra/arc-controller/chart/values.yaml"]
+ARC_CFG["apps/infra/arc-controller/config.yaml"]
+end
+subgraph "ARC Runner Set"
+ARS_K["apps/infra/arc-runner-set/chart/kustomization.yaml"]
+ARS_VAL["apps/infra/arc-runner-set/chart/values.yaml"]
+ARS_CFG["apps/infra/arc-runner-set/config.yaml"]
+end
 end
 ROOT --> INFRA_PROJECT
 INFRA_PROJECT --> GK
 INFRA_PROJECT --> CF_K
 INFRA_PROJECT --> DD_K
+INFRA_PROJECT --> ARC_K
+INFRA_PROJECT --> ARS_K
 GK --> GWC
 GK --> GW
 GK --> HR
@@ -82,6 +101,10 @@ CF_K --> CF_VALUES
 CF_CFG --> CF_K
 DD_K --> DD_VALUES
 DD_CFG --> DD_K
+ARC_K --> ARC_VAL
+ARC_CFG --> ARC_K
+ARS_K --> ARS_VAL
+ARS_CFG --> ARS_K
 ```
 
 **Diagram sources**
@@ -106,10 +129,14 @@ DD_CFG --> DD_K
 - Traefik Gateway API controller: Provides GatewayClass, Gateway, and HTTPRoute resources to expose services via HTTP/HTTPS with TLS termination and optional dashboard route
 - Cloudflare Tunnel client: Runs cloudflared pods to securely proxy traffic to internal services
 - Datadog monitoring: Deploys the Datadog Agent and Cluster Agent with logs, APM, process, and orchestrator explorer enabled
+- ARC Controller: GitHub Actions Runner Controller that manages AutoscalingRunnerSet resources in the arc-runners namespace
+- ARC Runner Set: Self-hosted runner scale set for CI/CD, scaling 0..N runners with Docker-in-Docker mode
 
 Key deployment annotations and sync waves:
 - Gateway API resources use sync waves to ensure CRDs and controller install before applying GatewayClass, Gateway, and HTTPRoute
-- Cloudflared and Datadog are configured with sync wave annotations to deploy after the Gateway API stack is ready
+- Cloudflared and Datadog are configured with sync wave 2 to deploy after the Gateway API stack is ready
+- ARC Controller uses sync-wave 2 (deploys after namespaces and secrets)
+- ARC Runner Set uses sync-wave 3 (deploys after controller to ensure CRDs exist)
 
 **Section sources**
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
@@ -143,6 +170,13 @@ subgraph "Datadog"
 DD_AGENT["Datadog Agent DaemonSet"]
 DD_CLUSTER["Datadog Cluster Agent"]
 end
+subgraph "ARC Controller"
+ARC_CTRL["ARC Controller Deployment\nnamespace: arc-systems"]
+end
+subgraph "ARC Runner Set"
+ARC_RS["ARC Runner Scale Set\nnamespace: arc-runners"]
+ARC_POD["Ephemeral Runner Pods\n0..N (scale-to-zero)"]
+end
 ROOT --> APPSET
 APPSET --> GC
 APPSET --> G
@@ -151,8 +185,12 @@ APPSET --> T
 APPSET --> CF_DEPLOY
 APPSET --> DD_AGENT
 APPSET --> DD_CLUSTER
+APPSET --> ARC_CTRL
+APPSET --> ARC_RS
 G --> HR
 HR --> T
+ARC_CTRL --> ARC_RS
+ARC_RS --> ARC_POD
 ```
 
 **Diagram sources**
@@ -265,6 +303,54 @@ Values --> DatadogClusterAgent : "configures"
 - [kustomization.yaml:1-11](file://apps/infra/datadog/chart/kustomization.yaml#L1-L11)
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 
+### ARC Controller
+- Deploys the GitHub Actions Runner Controller (gha-runner-scale-set-controller) as a single replica
+- Watches only the `arc-runners` namespace via `flags.watchSingleNamespace`
+- Exposes metrics endpoint on port 8080 for monitoring
+- Configured with constrained resource requests/limits (100m/128Mi → 500m/512Mi)
+
+```mermaid
+classDiagram
+class ARCControllerValues {
++number replicaCount
++string image.repository
++string flags.watchSingleNamespace
++Resources resources
++Metrics metrics
+}
+class Metrics {
++string controllerManagerAddr
++string listenerAddr
++string listenerEndpoint
+}
+class Resources {
++CPU/Memory requests/limits
+}
+ARCControllerValues --> Metrics : "defines"
+ARCControllerValues --> Resources : "defines"
+```
+
+**Diagram sources**
+- [arc-controller values.yaml:1-21](file://apps/infra/arc-controller/chart/values.yaml#L1-L21)
+
+**Section sources**
+- [arc-controller kustomization.yaml:1-11](file://apps/infra/arc-controller/chart/kustomization.yaml#L1-L11)
+- [arc-controller values.yaml:1-21](file://apps/infra/arc-controller/chart/values.yaml#L1-L21)
+- [arc-controller config.yaml:1-4](file://apps/infra/arc-controller/config.yaml#L1-L4)
+
+### ARC Runner Scale Set
+- Deploys a self-hosted runner scale set (gha-runner-scale-set) registered against a GitHub repository
+- Uses GitHub PAT stored in `arc-github-config` Secret for authentication
+- Scales from 0 to 5 runners (minRunners=0, maxRunners=5) with scale-to-zero when idle
+- Uses Docker-in-Docker (dind) container mode for workflow compatibility
+- Runner image: `ghcr.io/actions/actions-runner:latest`
+- Default target repository: `https://github.com/Hoangvu75/k8s_manifest`
+
+**Section sources**
+- [arc-runner-set kustomization.yaml:1-11](file://apps/infra/arc-runner-set/chart/kustomization.yaml#L1-L11)
+- [arc-runner-set values.yaml:1-30](file://apps/infra/arc-runner-set/chart/values.yaml#L1-L30)
+- [arc-runner-set config.yaml:1-4](file://apps/infra/arc-runner-set/config.yaml#L1-L4)
+
 ## Dependency Analysis
 The deployment order is orchestrated via Argo CD sync waves and Kustomize/Helm configuration. The sequence ensures prerequisites are established before dependent resources.
 
@@ -273,11 +359,16 @@ graph LR
 A["AppProject 'infra'<br/>sync-wave: 0"] --> B["Gateway API<br/>sync-wave: 1..3"]
 A --> C["Cloudflared<br/>sync-wave: 2"]
 A --> D["Datadog<br/>sync-wave: 2"]
+A --> E["ARC Controller<br/>sync-wave: 2"]
+A --> F["ARC Runner Set<br/>sync-wave: 3"]
 B --> B1["GatewayClass 'traefik'<br/>sync-wave: 1"]
 B --> B2["Gateway 'shared-gateway'<br/>sync-wave: 2"]
 B --> B3["HTTPRoute 'traefik-dashboard'<br/>sync-wave: 3"]
 C --> C1["cloudflared Deployment"]
 D --> D1["Datadog Agents & Cluster Agent"]
+E --> E1["ARC Controller Deployment"]
+F --> F1["Runner Scale Set (0..N pods)"]
+E --> F
 ```
 
 **Diagram sources**
@@ -287,6 +378,10 @@ D --> D1["Datadog Agents & Cluster Agent"]
 - [httproute-traefik-dashboard.yaml:7-7](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L7-L7)
 - [config.yaml:3-3](file://apps/infra/cloudflared/config.yaml#L3-L3)
 - [config.yaml:5-5](file://apps/infra/datadog/config.yaml#L5-L5)
+- [arc-controller config.yaml:3-3](file://apps/infra/arc-controller/config.yaml#L3-L3)
+- [arc-runner-set config.yaml:3-3](file://apps/infra/arc-runner-set/config.yaml#L3-L3)
+- [arc-controller config.yaml:3-3](file://apps/infra/arc-controller/config.yaml#L3-L3)
+- [arc-runner-set config.yaml:3-3](file://apps/infra/arc-runner-set/config.yaml#L3-L3)
 
 **Section sources**
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
@@ -295,11 +390,15 @@ D --> D1["Datadog Agents & Cluster Agent"]
 - [httproute-traefik-dashboard.yaml:1-30](file://apps/infra/gateway-api/chart/httproute-traefik-dashboard.yaml#L1-L30)
 - [config.yaml:1-6](file://apps/infra/cloudflared/config.yaml#L1-L6)
 - [config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
+- [arc-controller config.yaml:1-4](file://apps/infra/arc-controller/config.yaml#L1-L4)
+- [arc-runner-set config.yaml:1-4](file://apps/infra/arc-runner-set/config.yaml#L1-L4)
 
 ## Performance Considerations
 - Traefik resource requests/limits are modest; monitor CPU/memory usage post-deployment and adjust as needed
 - Cloudflared replicas are set to two; ensure adequate CPU and memory headroom for tunnel operations
 - Datadog agents and Cluster Agent consume resources; scale replicas cautiously and tune log collection and APM sampling
+- ARC Controller runs as a single replica with modest resources; monitor and scale if needed
+- ARC Runner Set scales from 0 to maxRunners (default: 5); adjust maxRunners based on cluster capacity
 - Gateway API listeners expose HTTP/HTTPS; ensure DNS and certificate management align with traffic patterns to minimize retries
 
 [No sources needed since this section provides general guidance]
@@ -320,6 +419,12 @@ Common issues and resolutions:
   - Verify API key secret exists and matches the configured secret name
   - Review Cluster Agent logs for admission controller or RBAC issues
   - Temporarily disable auto-config for control-plane integrations if experiencing initialization failures
+- ARC Controller not starting
+  - Verify arc-controller chart version and CRD installation
+  - Check watchSingleNamespace flag targets arc-runners
+- ARC Runner Set not registering
+  - Confirm arc-github-config Secret exists in arc-runners namespace with valid github_token
+  - Verify githubConfigUrl points to a reachable repository
 
 **Section sources**
 - [gatewayclass.yaml:1-10](file://apps/infra/gateway-api/chart/gatewayclass.yaml#L1-L10)
@@ -330,7 +435,7 @@ Common issues and resolutions:
 - [values.yaml:1-98](file://apps/infra/datadog/chart/values.yaml#L1-L98)
 
 ## Conclusion
-The infrastructure stack combines Gateway API with Traefik for modern ingress, Cloudflare Tunnel for secure external access, and Datadog for comprehensive observability. The defined sync waves and configuration ensure a reliable rollout order and operational stability. Monitor resource usage and adjust configurations as your workload grows.
+The infrastructure stack combines Gateway API with Traefik for modern ingress, Cloudflare Tunnel for secure external access, Datadog for comprehensive observability, and GitHub Actions Runner Controller for self-hosted CI/CD runners. The defined sync waves and configuration ensure a reliable rollout order and operational stability. Monitor resource usage and adjust configurations as your workload grows.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
@@ -343,6 +448,8 @@ The infrastructure stack combines Gateway API with Traefik for modern ingress, C
   - Gateway: wave 2
   - HTTPRoute: wave 3
 - Cloudflared and Datadog: wave 2
+- ARC Controller: wave 2
+- ARC Runner Set: wave 3
 
 **Section sources**
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)

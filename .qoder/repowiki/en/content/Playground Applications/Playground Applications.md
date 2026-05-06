@@ -79,8 +79,8 @@ KONG["kong-gateway (namespace: kong)"]
 TRADEFIK["traefik-gateway (namespace: traefik)"]
 CLOUDFLARE["cloudflared (namespace: cloudflared)"]
 DATADOG["datadog (namespace: datadog)"]
-ARCCTRL["arc-controller (namespace: arc-system)"]
-ARCRUNSET["arc-runner-set (namespace: arc-system)"]
+ARCCTRL["arc-controller (namespace: arc-systems)"]
+ARCRUNSET["arc-runner-set (namespace: arc-runners)"]
 end
 Root --> AppsProj
 Root --> InfraProj
@@ -129,8 +129,8 @@ The consolidated structure separates concerns into two distinct categories:
 - traefik-gateway: Alternative gateway implementation
 - cloudflared: Cloudflare tunneling service
 - datadog: Observability and monitoring
-- arc-controller: Azure Arc controller
-- arc-runner-set: GitHub Actions runner set
+- arc-controller: GitHub Actions Runner Controller (manages runner scale sets)
+- arc-runner-set: GitHub Actions runner scale set (ephemeral CI runners)
 
 **Section sources**
 - [apps/applications/helloworld-api/chart/values.yaml:1-23](file://apps/applications/helloworld-api/chart/values.yaml#L1-L23)
@@ -263,8 +263,8 @@ The infrastructure category provides platform services and system components:
 - traefik-gateway: Alternative gateway implementation
 - cloudflared: Cloudflare tunneling service
 - datadog: Observability and monitoring
-- arc-controller: Azure Arc controller
-- arc-runner-set: GitHub Actions runner set
+- arc-controller: GitHub Actions Runner Controller
+- arc-runner-set: GitHub Actions runner scale set
 
 ```mermaid
 flowchart TD
@@ -275,8 +275,8 @@ KONG["kong-gateway<br/>namespace: kong"] --> KONGSVC["Kong Services"]
 TRADEFIK["traefik-gateway<br/>namespace: traefik"] --> TRAEFIKSVC["Traefik Services"]
 CLOUDFLARE["cloudflared<br/>namespace: cloudflared"] --> TUNNEL["Cloudflare Tunnel"]
 DATADOG["datadog<br/>namespace: datadog"] --> OBS["Observability"]
-ARCCTRL["arc-controller<br/>namespace: arc-system"] --> ARC["Azure Arc"]
-ARCRUNSET["arc-runner-set<br/>namespace: arc-system"] --> RUN["GitHub Runners"]
+ARCCTRL["arc-controller<br/>namespace: arc-systems"] --> ARC["ARC Controller"]
+ARCRUNSET["arc-runner-set<br/>namespace: arc-runners"] --> RUN["GitHub Runners"]
 end
 ```
 
@@ -354,8 +354,8 @@ KONG["kong-gateway<br/>namespace: kong"]
 TRADEFIK["traefik-gateway<br/>namespace: traefik"]
 CLOUDFLARE["cloudflared<br/>namespace: cloudflared"]
 DATADOG["datadog<br/>namespace: datadog"]
-ARCCTRL["arc-controller<br/>namespace: arc-system"]
-ARCRUNSET["arc-runner-set<br/>namespace: arc-system"]
+ARCCTRL["arc-controller<br/>namespace: arc-systems"]
+ARCRUNSET["arc-runner-set<br/>namespace: arc-runners"]
 end
 SharedGW["Gateway 'shared-gateway'"] --> ARGOHR
 SharedGW --> RANCHHR

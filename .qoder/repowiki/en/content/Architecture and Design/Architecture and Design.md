@@ -17,6 +17,8 @@
 - [cluster-resources/default/namespace.yaml](file://cluster-resources/default/namespace.yaml)
 - [apps/infra/cloudflared/config.yaml](file://apps/infra/cloudflared/config.yaml)
 - [apps/infra/datadog/config.yaml](file://apps/infra/datadog/config.yaml)
+- [apps/infra/arc-controller/config.yaml](file://apps/infra/arc-controller/config.yaml)
+- [apps/infra/arc-runner-set/config.yaml](file://apps/infra/arc-runner-set/config.yaml)
 - [apps/playground/argocd-ingress/config.yaml](file://apps/playground/argocd-ingress/config.yaml)
 - [apps/playground/rancher/config.yaml](file://apps/playground/rancher/config.yaml)
 - [apps/playground/cert-manager/config.yaml](file://apps/playground/cert-manager/config.yaml)
@@ -205,8 +207,9 @@ Applications are defined by config.yaml files discovered by ApplicationSets:
 - Shared namespaces are provisioned with sync-wave -1 to ensure availability before apps deploy.
 
 Examples:
-- Infra apps (cloudflared, datadog, cert-manager) use sync-wave 2.
-- Playground apps (argocd-ingress, rancher) use sync-wave 3.
+- Infra apps (cloudflared, datadog, arc-controller) use sync-wave 2.
+- Infra apps that depend on controllers (arc-runner-set) use sync-wave 3.
+- Playground apps (argocd-ingress, rancher, cert-manager) use sync-wave 3.
 - cluster-resources/default/namespace.yaml defines shared namespaces with sync-wave -1.
 
 **Section sources**
@@ -223,8 +226,8 @@ The system uses ArgoCD sync waves to guarantee safe, ordered reconciliation:
 - Wave -1: Namespaces are created to ensure destinations exist before app sync.
 - Wave 0: ApplicationSets and Traefik Deployment are created to provide discovery and ingress control.
 - Wave 1: Private secrets are synchronized from the dedicated private repository.
-- Wave 2: Mid-tier platform resources (Gateway, Datadog, cert-manager) are applied.
-- Wave 3: HTTPRoutes are applied last to ensure upstream Gateway resources exist.
+- Wave 2: Mid-tier platform resources (Gateway, Datadog, arc-controller) are applied.
+- Wave 3: HTTPRoutes and arc-runner-set are applied last to ensure upstream Gateway resources exist.
 
 ```mermaid
 flowchart TD
