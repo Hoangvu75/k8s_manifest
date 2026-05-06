@@ -3,7 +3,8 @@ https://github.com/Hoangvu75/k8s_manifest_secrets
 
 ### This private repo contains secrets env variable (K8s Secret resource files):
 
-**cloudflared-secret.yaml**
+**cloudflared-secret.yaml** (Cloudflare tunnel authentication)
+Used by `apps/infra/cloudflared` to establish a secure tunnel to Cloudflare CDN.
 ```yaml 
 apiVersion: v1
 kind: Secret
@@ -14,7 +15,8 @@ type: Opaque
 stringData:
   TUNNEL_TOKEN: "eyJhIjoiMjQ4ODk2...VExTldNeiJ9"
 ```
-**datadog-secret.yaml**
+**datadog-secret.yaml** (Datadog API key)
+Used by `apps/infra/datadog` to send cluster metrics and logs to Datadog.
 ```yaml 
 apiVersion: v1
 kind: Secret
@@ -25,7 +27,8 @@ type: Opaque
 stringData:
   api-key: "44d5...853"
 ```
-**wildcard-tls-secret.yaml**
+**wildcard-tls-secret.yaml** (Wildcard TLS certificate)
+Used by `apps/infra/gateway-api` for HTTPS termination on the shared Gateway (`*.hoangvu75.space`).
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -39,7 +42,8 @@ data:
   tls.crt: LS0tL...0tLQ0K
   tls.key: LS0tL...tLS0NCg==
 ```
-**registry-credentials.yaml**
+**registry-credentials.yaml** (Docker Hub + GHCR image pull credentials)
+Used by multiple apps as `imagePullSecrets` to pull images from private registries (see table below for the full list).
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -61,12 +65,8 @@ data:
 ---
 ...
 ```
-
 **arc-github-config.yaml** (GitHub Actions Runner Controller auth)
-
 Used by `apps/infra/arc-runner-set` to register runners with GitHub.
-
-Option A — **Personal Access Token (PAT)**: classic PAT with `repo` scope (or `admin:org` for org-level runners):
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -77,22 +77,3 @@ type: Opaque
 stringData:
   github_token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ```
-
-Option B — **GitHub App** (recommended for production):
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: arc-github-config
-  namespace: arc-runners
-type: Opaque
-stringData:
-  github_app_id: "123456"
-  github_app_installation_id: "78901234"
-  github_app_private_key: |
-    -----BEGIN RSA PRIVATE KEY-----
-    MIIEpAIBAAKCAQEA...
-    -----END RSA PRIVATE KEY-----
-```
-
-> Use **only one** of the two formats. See `guide/7. github_action_runner/README.md` for how to create the PAT or GitHub App.

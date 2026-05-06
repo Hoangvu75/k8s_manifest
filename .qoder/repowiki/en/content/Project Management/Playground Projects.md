@@ -2,24 +2,22 @@
 
 <cite>
 **Referenced Files in This Document**
-- [applications.yaml](file://projects/applications.yaml)
-- [infra.yaml](file://projects/infra.yaml)
-- [config.yaml](file://apps/applications/hello-api/config.yaml)
-- [kustomization.yaml](file://apps/applications/hello-api/kustomization.yaml)
-- [config.yaml](file://apps/infra/argocd-ingress/config.yaml)
-- [config.yaml](file://apps/infra/gateway-api/config.yaml)
-- [config.yaml](file://apps/infra/rancher/config.yaml)
-- [values-cert-manager.yaml](file://apps/infra/rancher/chart/values-cert-manager.yaml)
-- [tls-rancher-ca.yaml](file://apps/infra/rancher/chart/tls-rancher-ca.yaml)
+- [playground.yaml](file://projects/playground.yaml)
+- [config.yaml](file://apps/playground/cert-manager/config.yaml)
+- [kustomization.yaml](file://apps/playground/cert-manager/kustomization.yaml)
+- [values.yaml](file://apps/playground/cert-manager/chart/values.yaml)
+- [tls-rancher-ca.yaml](file://apps/playground/cert-manager/chart/tls-rancher-ca.yaml)
+- [config.yaml](file://apps/playground/argocd-ingress/config.yaml)
+- [kustomization.yaml](file://apps/playground/argocd-ingress/kustomization.yaml)
+- [values.yaml](file://apps/playground/argocd-ingress/chart/values.yaml)
+- [argocd-cmd-params-cm.yaml](file://apps/playground/argocd-ingress/chart/argocd-cmd-params-cm.yaml)
+- [config.yaml](file://apps/playground/rancher/config.yaml)
+- [kustomization.yaml](file://apps/playground/rancher/kustomization.yaml)
+- [values.yaml](file://apps/playground/rancher/chart/values.yaml)
+- [config.yaml](file://apps/playground/hello-api/config.yaml)
+- [kustomization.yaml](file://apps/playground/hello-api/kustomization.yaml)
+- [values.yaml](file://apps/playground/hello-api/chart/values.yaml)
 </cite>
-
-## Update Summary
-**Changes Made**
-- Complete restructuring of project organization from single playground project to separate applications and infrastructure projects
-- Cert-manager functionality moved from playground layer to infrastructure layer as part of Rancher deployment
-- Hello-api application reclassified from playground to applications project
-- Updated ApplicationSet configuration to support new project structure with dedicated infra and applications projects
-- Removed all playground-specific references and renamed to reflect new organizational model
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -33,161 +31,139 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
-This document explains the restructured project management and experimentation environment following the migration from the single playground project to separate applications and infrastructure project organization. The new structure maintains experimental capabilities while integrating core infrastructure components into appropriate project layers. The applications project now manages demonstration and experimental workloads, while the infrastructure project handles foundational services including certificate management, ingress exposure, and platform components.
-
-**Updated** The playground concept has been completely restructured - the previous playground.yaml file was removed and replaced with separate applications.yaml and infra.yaml project definitions. The playground functionality is now integrated into dedicated project layers rather than existing as a standalone experimental environment.
+This document explains the playground project management and experimentation environment. It focuses on how the playground ApplicationSet in the Argo CD project manifest defines non-production applications and experimental deployments, and how specific playground applications are configured and deployed. The playground environment supports development, testing, and demonstration workflows with relaxed synchronization policies and namespace isolation. Applications covered include cert-manager for certificate management, argocd-ingress for exposing Argo CD, Rancher management interface, and hello-api demo service.
 
 ## Project Structure
-The project organization has been restructured into two distinct layers:
-
-**Applications Project**: Manages demonstration and experimental applications including hello-api, with relaxed synchronization policies and namespace isolation.
-
-**Infrastructure Project**: Handles foundational services including cert-manager integration, ingress management, and platform components, with proper dependency ordering.
-
-Each project uses ApplicationSets to generate Argo CD Applications from Git repository files, with per-application configuration controlling deployment order and namespace isolation.
+The playground project is defined under the Argo CD project manifest and uses an ApplicationSet to generate Argo CD Applications from Git repository files. Each playground application is organized under apps/playground/<app-name> with its own Kustomization and optional Helm chart values. The ApplicationSet generator reads config.yaml files from each application to derive destination namespaces and annotations, while the template defines shared sync policy and kustomize build options.
 
 ```mermaid
 graph TB
-subgraph "Applications Project"
-AP["AppProject 'applications'"]
-AS["ApplicationSet 'applications'"]
-HA["hello-api"]
-end
-subgraph "Infrastructure Project"
-IP["AppProject 'infra'"]
-IS["ApplicationSet 'infra'"]
-AI["argocd-ingress"]
-GA["gateway-api"]
-R["rancher"]
+subgraph "Argo CD Project"
+P["AppProject 'playground'"]
+AS["ApplicationSet 'playground'"]
 end
 subgraph "Git Repo Generator"
-G["Git Generator<br/>apps/applications/**/config.yaml"]
-IG["Git Generator<br/>apps/infra/**/config.yaml"]
+G["Git Generator<br/>files: apps/playground/**/config.yaml"]
 end
-AP --> AS
-IP --> IS
+subgraph "Generated Apps"
+CM["cert-manager"]
+AI["argocd-ingress"]
+R["rancher"]
+HA["hello-api"]
+end
+P --> AS
 AS --> G
-IS --> IG
+G --> CM
+G --> AI
+G --> R
 G --> HA
-IG --> AI
-IG --> GA
-IG --> R
 ```
 
 **Diagram sources**
-- [applications.yaml:23-90](file://projects/applications.yaml#L23-L90)
-- [infra.yaml:23-90](file://projects/infra.yaml#L23-L90)
+- [playground.yaml:23-90](file://projects/playground.yaml#L23-L90)
 
 **Section sources**
-- [applications.yaml:1-90](file://projects/applications.yaml#L1-L90)
-- [infra.yaml:1-90](file://projects/infra.yaml#L1-L90)
+- [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
 
 ## Core Components
-The new project structure consists of two specialized ApplicationSets:
+- AppProject playground: Defines permissive resource whitelists and allows all repositories and clusters for the playground project. Includes sync annotations for ordering and pruning behavior.
+- ApplicationSet playground: Generates Argo CD Applications from Git using a Go template. It sets shared sync policy, kustomize build options, and per-application namespace overrides via config.yaml.
+- Per-application config.yaml: Provides destination namespace and sync wave annotations to control deployment order and namespace isolation.
 
-**Applications Project**:
-- AppProject 'applications': Defines permissive resource handling with CreateNamespace and SkipDryRunOnMissingResource sync options
-- ApplicationSet 'applications': Generates applications from apps/applications/**/config.yaml with automated sync and pruning
-- Focuses on demonstration and experimental workloads with relaxed policies
-
-**Infrastructure Project**:
-- AppProject 'infra': Manages foundational services with proper dependency ordering
-- ApplicationSet 'infra': Generates infrastructure components from apps/infra/**/config.yaml
-- Includes cert-manager integration, ingress management, and platform services
-
-Key characteristics maintained:
-- Automated sync with prune and self-heal enabled
-- Namespace isolation through per-application configuration
-- Sync wave ordering for dependency management
-- Helm support through Kustomize build options
+Key characteristics of playground deployments:
+- Relaxed sync policies: automated sync with prune and self-heal enabled, with retry backoff.
+- Namespace isolation: each application deploys into its own namespace as defined in config.yaml.
+- Sync wave ordering: annotations ensure a deterministic deployment sequence across cert-manager, argocd-ingress, rancher, and hello-api.
 
 **Section sources**
-- [applications.yaml:1-90](file://projects/applications.yaml#L1-L90)
-- [infra.yaml:1-90](file://projects/infra.yaml#L1-L90)
-- [config.yaml:1-4](file://apps/applications/hello-api/config.yaml#L1-L4)
-- [config.yaml:1-5](file://apps/infra/rancher/config.yaml#L1-L5)
+- [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [config.yaml:1-5](file://apps/playground/cert-manager/config.yaml#L1-L5)
+- [config.yaml:1-4](file://apps/playground/argocd-ingress/config.yaml#L1-L4)
+- [config.yaml:1-5](file://apps/playground/rancher/config.yaml#L1-L5)
+- [config.yaml:1-4](file://apps/playground/hello-api/config.yaml#L1-L4)
 
 ## Architecture Overview
-The restructured architecture separates concerns into dedicated project layers:
-
-**Applications Layer**: Contains hello-api as the primary demonstration service with HTTPRoute exposure and minimal resource requirements.
-
-**Infrastructure Layer**: Houses cert-manager integration within Rancher deployment, argocd-ingress for external access, gateway-api for traffic management, and supporting platform services.
+The playground ApplicationSet generates four primary applications:
+- cert-manager: Installs cert-manager and related CRDs, and creates a self-signed CA for Rancher.
+- argocd-ingress: Provides HTTPRoute and related resources to expose Argo CD UI externally.
+- rancher: Deploys Rancher with a managed hostname and disables the default ingress.
+- hello-api: A simple demo service exposed via HTTPRoute for testing and demonstrations.
 
 ```mermaid
 graph TB
-subgraph "Applications Project"
-AP["AppProject 'applications'"]
-AS["ApplicationSet 'applications'"]
+subgraph "Argo CD"
+AP["AppProject 'playground'"]
+AS["ApplicationSet 'playground'"]
+APP_CM["Application 'cert-manager'"]
+APP_AI["Application 'argocd-ingress'"]
+APP_R["Application 'rancher'"]
 APP_HA["Application 'hello-api'"]
+end
+subgraph "Kubernetes"
+NS_CM["Namespace 'cert-manager'"]
+NS_ARGO["Namespace 'argocd'"]
+NS_R["Namespace 'cattle-system'"]
 NS_HA["Namespace 'hello-api'"]
 end
-subgraph "Infrastructure Project"
-IP["AppProject 'infra'"]
-IS["ApplicationSet 'infra'"]
-APP_AI["Application 'argocd-ingress'"]
-APP_GA["Application 'gateway-api'"]
-APP_R["Application 'rancher'"]
-NS_ARGO["Namespace 'argocd'"]
-NS_GATEWAY["Namespace 'gateway-api'"]
-NS_R["Namespace 'cattle-system'"]
-end
 AP --> AS
+AS --> APP_CM
+AS --> APP_AI
+AS --> APP_R
 AS --> APP_HA
-IP --> IS
-IS --> APP_AI
-IS --> APP_GA
-IS --> APP_R
-APP_HA --> NS_HA
+APP_CM --> NS_CM
 APP_AI --> NS_ARGO
-APP_GA --> NS_GATEWAY
 APP_R --> NS_R
+APP_HA --> NS_HA
 ```
 
 **Diagram sources**
-- [applications.yaml:23-90](file://projects/applications.yaml#L23-L90)
-- [infra.yaml:23-90](file://projects/infra.yaml#L23-L90)
-- [kustomization.yaml](file://apps/applications/hello-api/kustomization.yaml)
-- [kustomization.yaml](file://apps/infra/rancher/kustomization.yaml)
+- [playground.yaml:23-90](file://projects/playground.yaml#L23-L90)
+- [kustomization.yaml](file://apps/playground/cert-manager/kustomization.yaml)
+- [kustomization.yaml](file://apps/playground/argocd-ingress/kustomization.yaml)
+- [kustomization.yaml](file://apps/playground/rancher/kustomization.yaml)
+- [kustomization.yaml](file://apps/playground/hello-api/kustomization.yaml)
 
 ## Detailed Component Analysis
 
-### hello-api (Applications Project)
+### cert-manager
 Purpose:
-- Lightweight demonstration service for testing and validation
-- Exposed via HTTPRoute for quick ingress verification
-- Minimal resource footprint suitable for experimental workloads
+- Installs cert-manager and CRDs.
+- Creates a self-signed CA Issuer and a Certificate resource in the cattle-system namespace for Rancher.
 
 Deployment details:
-- Located in apps/applications/hello-api with dedicated namespace configuration
-- Configured for sync wave 3 to deploy after infrastructure components
-- Uses Kustomization to set namespace and reference chart resources
+- Kustomization sets the namespace to cert-manager.
+- Values configure global leader election namespace and CRD installation.
+- Additional resources include a self-signed Issuer and a long-lived CA Certificate in cattle-system.
 
 ```mermaid
 flowchart TD
-Start(["Generate Application 'hello-api'"]) --> SetNS["Set namespace 'hello-api'"]
-SetNS --> ApplyConfig["Apply config.yaml<br/>sync wave 3"]
-ApplyConfig --> End(["Demo service ready"])
+Start(["Generate Application 'cert-manager'"]) --> SetNS["Set namespace 'cert-manager'"]
+SetNS --> ApplyValues["Apply chart values<br/>install CRDs, leaderElection namespace"]
+ApplyValues --> CreateIssuer["Create self-signed Issuer"]
+CreateIssuer --> CreateCert["Create CA Certificate in 'cattle-system'"]
+CreateCert --> End(["Ready"])
 ```
 
 **Diagram sources**
-- [kustomization.yaml](file://apps/applications/hello-api/kustomization.yaml)
-- [config.yaml](file://apps/applications/hello-api/config.yaml)
+- [kustomization.yaml](file://apps/playground/cert-manager/kustomization.yaml)
+- [values.yaml](file://apps/playground/cert-manager/chart/values.yaml)
+- [tls-rancher-ca.yaml](file://apps/playground/cert-manager/chart/tls-rancher-ca.yaml)
 
 **Section sources**
-- [kustomization.yaml](file://apps/applications/hello-api/kustomization.yaml)
-- [config.yaml](file://apps/applications/hello-api/config.yaml)
+- [kustomization.yaml](file://apps/playground/cert-manager/kustomization.yaml)
+- [values.yaml](file://apps/playground/cert-manager/chart/values.yaml)
+- [tls-rancher-ca.yaml](file://apps/playground/cert-manager/chart/tls-rancher-ca.yaml)
+- [config.yaml:1-5](file://apps/playground/cert-manager/config.yaml#L1-L5)
 
-### argocd-ingress (Infrastructure Project)
+### argocd-ingress
 Purpose:
-- Exposes Argo CD UI via HTTPRoute and Gateway API resources
-- Provides external access to Argo CD management interface
-- Integrates with Cloudflare tunnel for secure external connectivity
+- Exposes Argo CD UI via HTTPRoute and related Gateway API resources.
+- Disables default chart Service and Deployment to rely on HTTPRoute.
 
 Deployment details:
-- Located in apps/infra/argocd-ingress with argocd namespace
-- Configured for sync wave 3 to deploy after gateway-api
-- Uses HTTPRoute resources for modern ingress management
+- Kustomization sets the namespace to argocd.
+- Values disable default Service and Deployment to avoid conflicts with HTTPRoute.
+- Additional resources include HTTPRoute and other Gateway API manifests.
 
 ```mermaid
 sequenceDiagram
@@ -195,7 +171,7 @@ participant Git as "Git Repo"
 participant AS as "ApplicationSet"
 participant AC as "Argo CD"
 participant K8s as "Kubernetes"
-Git->>AS : Provide argocd-ingress config and chart
+Git->>AS : Provide config.yaml and chart resources
 AS->>AC : Create Application 'argocd-ingress'
 AC->>K8s : Apply HTTPRoute and Gateway API resources
 K8s-->>AC : Resources ready
@@ -203,142 +179,124 @@ AC-->>Git : Sync status
 ```
 
 **Diagram sources**
-- [infra.yaml:23-90](file://projects/infra.yaml#L23-L90)
-- [config.yaml](file://apps/infra/argocd-ingress/config.yaml)
+- [playground.yaml:23-90](file://projects/playground.yaml#L23-L90)
+- [kustomization.yaml](file://apps/playground/argocd-ingress/kustomization.yaml)
+- [values.yaml](file://apps/playground/argocd-ingress/chart/values.yaml)
+- [argocd-cmd-params-cm.yaml](file://apps/playground/argocd-ingress/chart/argocd-cmd-params-cm.yaml)
 
 **Section sources**
-- [config.yaml](file://apps/infra/argocd-ingress/config.yaml)
+- [kustomization.yaml](file://apps/playground/argocd-ingress/kustomization.yaml)
+- [values.yaml](file://apps/playground/argocd-ingress/chart/values.yaml)
+- [argocd-cmd-params-cm.yaml](file://apps/playground/argocd-ingress/chart/argocd-cmd-params-cm.yaml)
+- [config.yaml:1-4](file://apps/playground/argocd-ingress/config.yaml#L1-L4)
 
-### gateway-api (Infrastructure Project)
+### rancher
 Purpose:
-- Provides Gateway API implementation for modern traffic management
-- Requires CRDs to be installed before gateway resources
-- Enables advanced routing capabilities for Kubernetes services
+- Deploys Rancher with a managed hostname and a bootstrap admin password.
+- Disables the default ingress to rely on HTTPRoute.
 
 Deployment details:
-- Located in apps/infra/gateway-api with dedicated namespace
-- Includes GatewayClass, Gateway, and Traefik controller
-- Configured with CreateNamespace sync option for dependency handling
+- Kustomization sets the namespace to cattle-system.
+- Values configure hostname, bootstrap password, replicas, and disables default ingress.
 
 ```mermaid
 flowchart TD
-Start(["Generate Application 'gateway-api'"]) --> InstallCRDs["Install Gateway API CRDs"]
-InstallCRDs --> DeployController["Deploy Traefik Controller"]
-DeployController --> ConfigureGateway["Configure Gateway Resources"]
-ConfigureGateway --> End(["Gateway API Ready"])
+Start(["Generate Application 'rancher'"]) --> SetNS["Set namespace 'cattle-system'"]
+SetNS --> ApplyValues["Apply chart values<br/>hostname, bootstrapPassword, replicas, ingress disabled"]
+ApplyValues --> End(["Rancher ready"])
 ```
 
 **Diagram sources**
-- [config.yaml](file://apps/infra/gateway-api/config.yaml)
+- [kustomization.yaml](file://apps/playground/rancher/kustomization.yaml)
+- [values.yaml](file://apps/playground/rancher/chart/values.yaml)
 
 **Section sources**
-- [config.yaml](file://apps/infra/gateway-api/config.yaml)
+- [kustomization.yaml](file://apps/playground/rancher/kustomization.yaml)
+- [values.yaml](file://apps/playground/rancher/chart/values.yaml)
+- [config.yaml:1-5](file://apps/playground/rancher/config.yaml#L1-L5)
 
-### rancher (Infrastructure Project)
+### hello-api
 Purpose:
-- Deploys Rancher management platform with integrated certificate management
-- Includes embedded cert-manager for issuing TLS certificates
-- Provides centralized Kubernetes cluster management interface
+- A lightweight demo service for testing and demonstrations.
+- Exposed via HTTPRoute for quick validation of ingress and routing.
 
 Deployment details:
-- Located in apps/infra/rancher with cattle-system namespace
-- Integrates cert-manager configuration and custom CA issuance
-- Configured for sync wave 3 with proper dependency ordering
-
-**Updated** Cert-manager functionality has been integrated directly into the Rancher deployment rather than existing as a separate playground component. The certificate management is now handled through Rancher's built-in cert-manager configuration.
+- Kustomization sets the namespace to hello-api.
+- Values enable Deployment, set replica count, container image, port, args, and minimal resource requests/limits.
 
 ```mermaid
 flowchart TD
-Start(["Generate Application 'rancher'"]) --> DeployCM["Deploy cert-manager<br/>with CRD installation"]
-DeployCM --> CreateCA["Create Self-Signed CA<br/>for Rancher"]
-CreateCA --> DeployRancher["Deploy Rancher with<br/>TLS certificate management"]
-DeployRancher --> End(["Rancher Management Ready"])
+Start(["Generate Application 'hello-api'"]) --> SetNS["Set namespace 'hello-api'"]
+SetNS --> ApplyValues["Apply chart values<br/>deployment enabled, image, ports, args, resources"]
+ApplyValues --> End(["Demo service ready"])
 ```
 
 **Diagram sources**
-- [values-cert-manager.yaml](file://apps/infra/rancher/chart/values-cert-manager.yaml)
-- [tls-rancher-ca.yaml](file://apps/infra/rancher/chart/tls-rancher-ca.yaml)
+- [kustomization.yaml](file://apps/playground/hello-api/kustomization.yaml)
+- [values.yaml](file://apps/playground/hello-api/chart/values.yaml)
 
 **Section sources**
-- [config.yaml](file://apps/infra/rancher/config.yaml)
-- [values-cert-manager.yaml](file://apps/infra/rancher/chart/values-cert-manager.yaml)
-- [tls-rancher-ca.yaml](file://apps/infra/rancher/chart/tls-rancher-ca.yaml)
+- [kustomization.yaml](file://apps/playground/hello-api/kustomization.yaml)
+- [values.yaml](file://apps/playground/hello-api/chart/values.yaml)
+- [config.yaml:1-4](file://apps/playground/hello-api/config.yaml#L1-L4)
 
 ## Dependency Analysis
-The restructured deployment maintains dependency ordering through sync waves:
+The playground ApplicationSet orchestrates a strict deployment order using sync waves:
+- cert-manager: Wave 2
+- argocd-ingress: Wave 3
+- rancher: Wave 3
+- hello-api: Wave 3
 
-**Applications Project**:
-- hello-api: Wave 3 (deploys after infrastructure components)
-
-**Infrastructure Project**:
-- gateway-api: Wave 3 (provides traffic management foundation)
-- argocd-ingress: Wave 3 (exposes services after gateway-api)
-- rancher: Wave 3 (uses cert-manager and ingress infrastructure)
-
-**Updated** The dependency structure has been simplified - cert-manager is now embedded within Rancher deployment, eliminating the need for a separate cert-manager application. The hello-api application maintains its position as the final experimental component.
+This ensures that cert-manager is available before Rancher needs its CA, and that Argo CD is exposed before relying on its UI for management.
 
 ```mermaid
 graph LR
-GA["gateway-api<br/>Wave 3"] --> AI["argocd-ingress<br/>Wave 3"]
-GA --> R["rancher<br/>Wave 3"]
+CM["cert-manager<br/>Wave 2"] --> AI["argocd-ingress<br/>Wave 3"]
+CM --> R["rancher<br/>Wave 3"]
 AI --> R
-GA --> HA["hello-api<br/>Wave 3"]
+CM --> HA["hello-api<br/>Wave 3"]
 AI --> HA
 ```
 
 **Diagram sources**
-- [applications.yaml:23-90](file://projects/applications.yaml#L23-L90)
-- [infra.yaml:23-90](file://projects/infra.yaml#L23-L90)
-- [config.yaml](file://apps/applications/hello-api/config.yaml)
-- [config.yaml](file://apps/infra/argocd-ingress/config.yaml)
-- [config.yaml](file://apps/infra/gateway-api/config.yaml)
-- [config.yaml](file://apps/infra/rancher/config.yaml)
+- [playground.yaml:23-90](file://projects/playground.yaml#L23-L90)
+- [config.yaml:1-5](file://apps/playground/cert-manager/config.yaml#L1-L5)
+- [config.yaml:1-4](file://apps/playground/argocd-ingress/config.yaml#L1-L4)
+- [config.yaml:1-5](file://apps/playground/rancher/config.yaml#L1-L5)
+- [config.yaml:1-4](file://apps/playground/hello-api/config.yaml#L1-L4)
 
 **Section sources**
-- [applications.yaml:23-90](file://projects/applications.yaml#L23-L90)
-- [infra.yaml:23-90](file://projects/infra.yaml#L23-L90)
-- [config.yaml](file://apps/applications/hello-api/config.yaml)
-- [config.yaml](file://apps/infra/argocd-ingress/config.yaml)
-- [config.yaml](file://apps/infra/gateway-api/config.yaml)
-- [config.yaml](file://apps/infra/rancher/config.yaml)
+- [playground.yaml:23-90](file://projects/playground.yaml#L23-L90)
+- [config.yaml:1-5](file://apps/playground/cert-manager/config.yaml#L1-L5)
+- [config.yaml:1-4](file://apps/playground/argocd-ingress/config.yaml#L1-L4)
+- [config.yaml:1-5](file://apps/playground/rancher/config.yaml#L1-L5)
+- [config.yaml:1-4](file://apps/playground/hello-api/config.yaml#L1-L4)
 
 ## Performance Considerations
-- Automated sync with prune and self-heal reduces operational overhead for both infrastructure and applications
-- Retry backoff prevents excessive load during transient failures across both project layers
-- CreateNamespace and SkipDryRunOnMissingResource options streamline namespace-first deployments
-- Kustomize build with Helm support enables flexible chart customization without duplicating base manifests
-- Separate project organization improves isolation and reduces cross-project interference
+- Automated sync with prune and self-heal reduces manual intervention for experimental environments.
+- Retry backoff prevents excessive load during transient failures.
+- Minimal resource requests/limits for demo services keep the playground lightweight.
+- Kustomize build with Helm support enables flexible chart customization without duplicating base manifests.
 
 ## Troubleshooting Guide
 Common scenarios and checks:
-
-**Applications Project Issues**:
-- hello-api readiness: Verify Deployment and Service exist in hello-api namespace; test HTTPRoute routing
-- Namespace isolation: Confirm CreateNamespace sync option is working for new namespaces
-
-**Infrastructure Project Issues**:
-- Gateway API readiness: Check CRD installation and Traefik controller status
-- Certificate management: Verify cert-manager integration within Rancher deployment
-- Ingress exposure: Confirm HTTPRoute resources and Gateway API compatibility
-
-**Cross-Project Dependencies**:
-- Sync wave ordering: Use Argo CD sync waves to ensure proper dependency resolution
-- Resource conflicts: Monitor for namespace or resource conflicts between projects
-- External connectivity: Verify Cloudflare tunnel and DNS configuration for argocd-ingress
-
-**Updated** Troubleshooting procedures have been adapted to the new project structure, with separate focus areas for applications and infrastructure components.
+- cert-manager readiness: Verify Issuer and Certificate resources exist in the cattle-system namespace and that CRDs are installed.
+- Argo CD exposure: Confirm HTTPRoute exists and references the correct Gateway; check that Service/Deployment are disabled per chart values.
+- Rancher accessibility: Ensure hostname resolves and that the self-signed CA is trusted by clients; confirm ingress is disabled in chart values.
+- hello-api availability: Validate Deployment and Service exist in the hello-api namespace; test HTTPRoute routing.
 
 Operational tips:
-- Monitor sync status across both applications and infrastructure projects
-- Use project-specific ApplicationSets for targeted troubleshooting
-- Leverage sync waves to isolate dependency-related issues
-- Enable verbose logging for certificate management and ingress components
+- Use Argo CD sync waves to isolate dependencies and reduce race conditions.
+- Enable CreateNamespace and SkipDryRunOnMissingResource to simplify namespace-first deployments.
+- Monitor sync status and retries; adjust backoff settings if needed.
 
 **Section sources**
-- [applications.yaml:61-75](file://projects/applications.yaml#L61-L75)
-- [infra.yaml:61-75](file://projects/infra.yaml#L61-L75)
-- [config.yaml](file://apps/applications/hello-api/config.yaml)
-- [config.yaml](file://apps/infra/rancher/config.yaml)
+- [playground.yaml:61-75](file://projects/playground.yaml#L61-L75)
+- [values.yaml](file://apps/playground/cert-manager/chart/values.yaml)
+- [tls-rancher-ca.yaml](file://apps/playground/cert-manager/chart/tls-rancher-ca.yaml)
+- [values.yaml](file://apps/playground/argocd-ingress/chart/values.yaml)
+- [values.yaml](file://apps/playground/rancher/chart/values.yaml)
+- [values.yaml](file://apps/playground/hello-api/chart/values.yaml)
 
 ## Conclusion
-The restructured project organization provides improved separation of concerns while maintaining experimental capabilities. The applications project focuses on demonstration and experimental workloads with relaxed policies, while the infrastructure project manages foundational services with proper dependency ordering. The integration of cert-manager into the Rancher deployment eliminates redundant certificate management while maintaining the experimental nature of the overall environment. This new structure enables more maintainable and scalable management of both infrastructure and application workloads.
+The playground project provides a safe, isolated environment for experimentation and demonstrations. Its ApplicationSet-driven approach, combined with per-application namespace isolation and ordered sync waves, enables rapid iteration without impacting production infrastructure. The cert-manager, argocd-ingress, rancher, and hello-api applications collectively support development, testing, and demonstration workflows with minimal operational overhead.

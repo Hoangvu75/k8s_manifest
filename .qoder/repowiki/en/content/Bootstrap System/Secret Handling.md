@@ -10,18 +10,19 @@
 - [components/repo-url/kustomization.yaml](file://components/repo-url/kustomization.yaml)
 - [projects/kustomization.yaml](file://projects/kustomization.yaml)
 - [projects/infra.yaml](file://projects/infra.yaml)
+- [guide/argocd/README.md](file://guide/argocd/README.md)
 - [guide/argocd/argocd-repository-secrets.yaml](file://guide/argocd/argocd-repository-secrets.yaml)
-- [guide/k8s_manifest_secrets/argo_cd.md](file://guide/k8s_manifest_secrets/argo_cd.md)
+- [guide/k8s_manifest_secrets/README.md](file://guide/k8s_manifest_secrets/README.md)
 - [apps/infra/cloudflared/chart/values.yaml](file://apps/infra/cloudflared/chart/values.yaml)
 - [apps/infra/datadog/config.yaml](file://apps/infra/datadog/config.yaml)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Enhanced documentation structure and formatting improvements in k8s_manifest_secrets guide
-- Improved readability and organization of secret examples and explanations
-- Better separation of different secret types with clearer naming conventions
-- Updated formatting standards for YAML examples and code blocks
+- Updated reference to consolidated k8s_manifest_secrets guide (guide/k8s_manifest_secrets/README.md)
+- Enhanced documentation to reflect comprehensive secret management including cloudflared credentials, Datadog API keys, and wildcard TLS certificates
+- Added proper sync-wave annotations documentation for secret synchronization
+- Improved integration between bootstrap secrets and application-specific secrets management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -38,7 +39,7 @@
 ## Introduction
 This document explains the secret management system used during bootstrap and ongoing operations. It details how bootstrap/secrets.yaml coordinates with ArgoCD repository secrets to securely access private repositories, how secrets are created and named, and how bootstrap secrets relate to application-specific secrets. It also covers security implications, credential rotation, least-privilege access patterns, compliance and audit considerations, and practical operational guidance.
 
-**Updated** Enhanced documentation structure with improved formatting and organization for better readability and clarity.
+**Updated** Enhanced documentation structure with improved formatting and comprehensive coverage of the consolidated k8s_manifest_secrets guide that provides detailed documentation for managing Kubernetes secrets including cloudflared credentials, Datadog API keys, and wildcard TLS certificates with proper sync-wave annotations.
 
 ## Project Structure
 The secret management system spans three layers:
@@ -65,7 +66,7 @@ subgraph "ArgoCD Repository Secrets"
 RepoSecrets["guide/argocd/argocd-repository-secrets.yaml"]
 end
 subgraph "Private Secrets Repo"
-PrivDoc["guide/k8s_manifest_secrets/argo_cd.md"]
+PrivDoc["guide/k8s_manifest_secrets/README.md"]
 end
 BApp --> BRoot
 BApp --> BSecrets
@@ -86,7 +87,7 @@ AppDatadogCfg --> PrivDoc
 - [apps/infra/cloudflared/chart/values.yaml:1-40](file://apps/infra/cloudflared/chart/values.yaml#L1-L40)
 - [apps/infra/datadog/config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 - [guide/argocd/argocd-repository-secrets.yaml:1-30](file://guide/argocd/argocd-repository-secrets.yaml#L1-L30)
-- [guide/k8s_manifest_secrets/argo_cd.md:1-42](file://guide/k8s_manifest_secrets/argo_cd.md#L1-L42)
+- [guide/k8s_manifest_secrets/README.md:1-42](file://guide/k8s_manifest_secrets/README.md#L1-L42)
 
 **Section sources**
 - [README.md:57-118](file://README.md#L57-L118)
@@ -97,8 +98,9 @@ AppDatadogCfg --> PrivDoc
 - [components/repo-url/kustomization.yaml:1-13](file://components/repo-url/kustomization.yaml#L1-L13)
 - [projects/kustomization.yaml:1-31](file://projects/kustomization.yaml#L1-L31)
 - [projects/infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
+- [guide/argocd/README.md:1-34](file://guide/argocd/README.md#L1-L34)
 - [guide/argocd/argocd-repository-secrets.yaml:1-30](file://guide/argocd/argocd-repository-secrets.yaml#L1-L30)
-- [guide/k8s_manifest_secrets/argo_cd.md:1-42](file://guide/k8s_manifest_secrets/argo_cd.md#L1-L42)
+- [guide/k8s_manifest_secrets/README.md:1-42](file://guide/k8s_manifest_secrets/README.md#L1-L42)
 - [apps/infra/cloudflared/chart/values.yaml:1-40](file://apps/infra/cloudflared/chart/values.yaml#L1-L40)
 - [apps/infra/datadog/config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)
 
@@ -121,7 +123,7 @@ Key behaviors:
 - [components/repo-url/kustomization.yaml:4-13](file://components/repo-url/kustomization.yaml#L4-L13)
 - [projects/kustomization.yaml:11-31](file://projects/kustomization.yaml#L11-L31)
 - [guide/argocd/argocd-repository-secrets.yaml:5-29](file://guide/argocd/argocd-repository-secrets.yaml#L5-L29)
-- [guide/k8s_manifest_secrets/argo_cd.md:6-42](file://guide/k8s_manifest_secrets/argo_cd.md#L6-L42)
+- [guide/k8s_manifest_secrets/README.md:6-42](file://guide/k8s_manifest_secrets/README.md#L6-L42)
 - [README.md:76-85](file://README.md#L76-L85)
 
 ## Architecture Overview
@@ -155,7 +157,7 @@ Argo-->>Dev : "Cluster reflects desired state"
 - [bootstrap/root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [bootstrap/secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
 - [guide/argocd/argocd-repository-secrets.yaml:5-29](file://guide/argocd/argocd-repository-secrets.yaml#L5-L29)
-- [guide/k8s_manifest_secrets/argo_cd.md:6-42](file://guide/k8s_manifest_secrets/argo_cd.md#L6-L42)
+- [guide/k8s_manifest_secrets/README.md:6-42](file://guide/k8s_manifest_secrets/README.md#L6-L42)
 - [apps/infra/cloudflared/chart/values.yaml:19-21](file://apps/infra/cloudflared/chart/values.yaml#L19-L21)
 
 ## Detailed Component Analysis
@@ -217,6 +219,7 @@ RepositorySecret <.. ArgoCDRepoConfig : "used by"
 - [guide/argocd/argocd-repository-secrets.yaml:5-29](file://guide/argocd/argocd-repository-secrets.yaml#L5-L29)
 
 **Section sources**
+- [guide/argocd/README.md:18-22](file://guide/argocd/README.md#L18-L22)
 - [guide/argocd/argocd-repository-secrets.yaml:1-30](file://guide/argocd/argocd-repository-secrets.yaml#L1-L30)
 - [README.md:160-163](file://README.md#L160-L163)
 
@@ -228,8 +231,9 @@ Purpose:
 Naming conventions:
 - Secrets are named semantically (for example, application-specific names).
 - TLS secrets use the standard Kubernetes TLS type and include appropriate keys.
+- Proper sync-wave annotations ensure secrets are applied before dependent applications.
 
-**Updated** Enhanced documentation structure with improved formatting and clearer organization of secret examples.
+**Updated** Enhanced documentation structure with improved formatting and comprehensive coverage of the consolidated k8s_manifest_secrets guide that documents cloudflared credentials, Datadog API keys, and wildcard TLS certificates with proper sync-wave annotations.
 
 ```mermaid
 erDiagram
@@ -247,11 +251,11 @@ SECRET_MANIFEST ||--o{ APP_WORKLOAD : "mounted by"
 ```
 
 **Diagram sources**
-- [guide/k8s_manifest_secrets/argo_cd.md:10-42](file://guide/k8s_manifest_secrets/argo_cd.md#L10-L42)
+- [guide/k8s_manifest_secrets/README.md:10-42](file://guide/k8s_manifest_secrets/README.md#L10-L42)
 - [apps/infra/cloudflared/chart/values.yaml:19-21](file://apps/infra/cloudflared/chart/values.yaml#L19-L21)
 
 **Section sources**
-- [guide/k8s_manifest_secrets/argo_cd.md:6-42](file://guide/k8s_manifest_secrets/argo_cd.md#L6-L42)
+- [guide/k8s_manifest_secrets/README.md:6-42](file://guide/k8s_manifest_secrets/README.md#L6-L42)
 - [apps/infra/cloudflared/chart/values.yaml:17-21](file://apps/infra/cloudflared/chart/values.yaml#L17-L21)
 
 ### Relationship Between Bootstrap Secrets and Application-Specific Secrets
@@ -276,7 +280,7 @@ Argocd-->>App : "Mount secret into pod"
 **Diagram sources**
 - [bootstrap/secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
 - [guide/argocd/argocd-repository-secrets.yaml:5-29](file://guide/argocd/argocd-repository-secrets.yaml#L5-L29)
-- [guide/k8s_manifest_secrets/argo_cd.md:10-42](file://guide/k8s_manifest_secrets/argo_cd.md#L10-L42)
+- [guide/k8s_manifest_secrets/README.md:10-42](file://guide/k8s_manifest_secrets/README.md#L10-L42)
 - [apps/infra/cloudflared/chart/values.yaml:19-21](file://apps/infra/cloudflared/chart/values.yaml#L19-L21)
 
 **Section sources**
@@ -309,6 +313,7 @@ SecApp --> Apps["Applications"]
 - [components/repo-url/kustomization.yaml:4-13](file://components/repo-url/kustomization.yaml#L4-L13)
 - [bootstrap/kustomization.yaml:12-63](file://bootstrap/kustomization.yaml#L12-L63)
 - [projects/kustomization.yaml:11-31](file://projects/kustomization.yaml#L11-L31)
+- [guide/argocd/README.md:18-22](file://guide/argocd/README.md#L18-L22)
 - [guide/argocd/argocd-repository-secrets.yaml:5-29](file://guide/argocd/argocd-repository-secrets.yaml#L5-L29)
 
 ## Performance Considerations
@@ -337,6 +342,7 @@ Operational steps:
 - Inspect Application statuses and logs for detailed errors.
 
 **Section sources**
+- [guide/argocd/README.md:18-22](file://guide/argocd/README.md#L18-L22)
 - [guide/argocd/argocd-repository-secrets.yaml:1-30](file://guide/argocd/argocd-repository-secrets.yaml#L1-L30)
 - [bootstrap/kustomization.yaml:12-63](file://bootstrap/kustomization.yaml#L12-L63)
 - [projects/kustomization.yaml:11-31](file://projects/kustomization.yaml#L11-L31)
@@ -344,6 +350,8 @@ Operational steps:
 
 ## Conclusion
 The secret management system separates concerns cleanly: public bootstrap manifests, ArgoCD repository secrets, and a private secrets repository. This separation enables least-privilege access, secure credential handling, and auditable operations. By following the documented patterns—repository URL centralization, strict labeling of repository secrets, and wave-driven synchronization—you can maintain a robust and compliant secret lifecycle.
+
+**Updated** The consolidated k8s_manifest_secrets guide provides comprehensive documentation for managing Kubernetes secrets including cloudflared credentials, Datadog API keys, and wildcard TLS certificates with proper sync-wave annotations, ensuring proper coordination between bootstrap secrets and application-specific secrets.
 
 ## Appendices
 
@@ -356,6 +364,7 @@ The secret management system separates concerns cleanly: public bootstrap manife
   - After bootstrap, confirm that secrets from the private repository are present in the cluster and referenced by applications.
 
 **Section sources**
+- [guide/argocd/README.md:18-22](file://guide/argocd/README.md#L18-L22)
 - [guide/argocd/argocd-repository-secrets.yaml:18-29](file://guide/argocd/argocd-repository-secrets.yaml#L18-L29)
 - [bootstrap.yaml:15-18](file://bootstrap.yaml#L15-L18)
 - [README.md:68-74](file://README.md#L68-L74)
@@ -373,5 +382,20 @@ The secret management system separates concerns cleanly: public bootstrap manife
   - Maintain separation between public and private repositories to minimize exposure.
 
 **Section sources**
+- [guide/argocd/README.md:18-22](file://guide/argocd/README.md#L18-L22)
 - [guide/argocd/argocd-repository-secrets.yaml:1-3](file://guide/argocd/argocd-repository-secrets.yaml#L1-L3)
 - [README.md:160-163](file://README.md#L160-L163)
+
+### Comprehensive Secret Management
+The consolidated k8s_manifest_secrets guide provides detailed documentation for managing various types of Kubernetes secrets:
+
+- **Cloudflared Credentials**: Secure tunnel token management for Cloudflare tunnel connectivity
+- **Datadog API Keys**: Monitoring and observability credentials with proper namespace scoping
+- **Wildcard TLS Certificates**: SSL/TLS certificate management with sync-wave annotations for proper ordering
+
+Each secret type follows standardized naming conventions and includes appropriate Kubernetes Secret configurations with proper annotations for ArgoCD synchronization.
+
+**Section sources**
+- [guide/k8s_manifest_secrets/README.md:6-42](file://guide/k8s_manifest_secrets/README.md#L6-L42)
+- [apps/infra/cloudflared/chart/values.yaml:17-21](file://apps/infra/cloudflared/chart/values.yaml#L17-L21)
+- [apps/infra/datadog/config.yaml:1-6](file://apps/infra/datadog/config.yaml#L1-L6)

@@ -2,25 +2,27 @@
 
 <cite>
 **Referenced Files in This Document**
-- [argocd-cmd-params-cm.yaml](file://apps/playground/argocd-ingress/chart/argocd-cmd-params-cm.yaml)
+- [README.md](file://guide/argocd/README.md)
+- [argocd-repository-secrets.yaml](file://guide/argocd/argocd-repository-secrets.yaml)
 - [root.yaml](file://bootstrap/root.yaml)
 - [secrets.yaml](file://bootstrap/secrets.yaml)
-- [README.md](file://guide/argocd/README.md)
-- [README.md](file://guide/k8s_manifest_secrets/README.md)
-- [kustomization.yaml](file://projects/kustomization.yaml)
 - [infra.yaml](file://projects/infra.yaml)
 - [playground.yaml](file://projects/playground.yaml)
+- [kustomization.yaml](file://projects/kustomization.yaml)
+- [argocd-cmd-params-cm.yaml](file://apps/playground/argocd-ingress/chart/argocd-cmd-params-cm.yaml)
 - [cloudflared config.yaml](file://apps/infra/cloudflared/config.yaml)
 - [hello-api config.yaml](file://apps/playground/hello-api/config.yaml)
 - [rancher config.yaml](file://apps/playground/rancher/config.yaml)
+- [repo-url kustomization.yaml](file://components/repo-url/kustomization.yaml)
+- [README.md](file://guide/k8s_manifest_secrets/README.md)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated file references to reflect documentation consolidation: old argo_cd.md files renamed to README.md format
-- Updated guide references to point to new README.md locations
-- Maintained all existing content while updating file paths and references
-- Preserved all technical accuracy and configuration details
+- Updated installation guidance to reference consolidated ArgoCD installation guide (guide/argocd/README.md)
+- Added comprehensive repository secrets configuration documentation
+- Enhanced bootstrap deployment and cleanup procedures
+- Integrated consolidated installation steps with existing configuration patterns
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -34,16 +36,14 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
-This document explains advanced ArgoCD features and configuration patterns demonstrated in the repository. It focuses on automated rollout strategies via sync waves, advanced ApplicationSet patterns with Git generators and dynamic resource allocation, robust sync policies with retry mechanisms, automated dependency management, health assessment overrides, custom sync behaviors, and integration with external systems through plugins and webhooks. The content is derived from real manifests and guides within the repository.
-
-**Updated** The guide documentation has been consolidated and renamed from `argo_cd.md` to `README.md` format for better organization and discoverability, while maintaining all technical content and configuration patterns.
+This document explains advanced ArgoCD features and configuration patterns demonstrated in the repository. It focuses on automated rollout strategies via sync waves, advanced ApplicationSet patterns with Git generators and dynamic resource allocation, robust sync policies with retry mechanisms, automated dependency management, health assessment overrides, custom sync behaviors, and integration with external systems through plugins and webhooks. The content is derived from real manifests and guides within the repository, with updated installation procedures now consolidated in a single reference guide.
 
 ## Project Structure
 The repository organizes ArgoCD configuration across several layers:
 - Bootstrap layer defines foundational Applications and global settings.
 - Projects layer defines AppProjects and ApplicationSets per environment (infra, playground).
 - Apps layer contains per-application configurations and per-environment settings.
-- Guides provide installation steps and operational notes in consolidated README.md format.
+- Guides provide consolidated installation steps and operational notes.
 
 ```mermaid
 graph TB
@@ -72,9 +72,9 @@ PLAY --> RANCHER
 **Diagram sources**
 - [root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
-- [kustomization.yaml:1-22](file://projects/kustomization.yaml#L1-L22)
+- [kustomization.yaml:1-31](file://projects/kustomization.yaml#L1-L31)
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 - [cloudflared config.yaml:1-4](file://apps/infra/cloudflared/config.yaml#L1-L4)
 - [hello-api config.yaml:1-4](file://apps/playground/hello-api/config.yaml#L1-L4)
 - [rancher config.yaml:1-5](file://apps/playground/rancher/config.yaml#L1-L5)
@@ -82,9 +82,9 @@ PLAY --> RANCHER
 **Section sources**
 - [root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
-- [kustomization.yaml:1-22](file://projects/kustomization.yaml#L1-L22)
+- [kustomization.yaml:1-31](file://projects/kustomization.yaml#L1-L31)
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 
 ## Core Components
 - Root Application: Orchestrates top-level synchronization with automated policies, pruning, and self-healing. It also ignores differences for ApplicationSet and a ConfigMap to stabilize bootstrapping.
@@ -104,7 +104,7 @@ Key advanced features visible in these components:
 - [root.yaml:19-36](file://bootstrap/root.yaml#L19-L36)
 - [secrets.yaml:6-23](file://bootstrap/secrets.yaml#L6-L23)
 - [infra.yaml:33-85](file://projects/infra.yaml#L33-L85)
-- [playground.yaml:33-90](file://projects/playground.yaml#L33-L90)
+- [playground.yaml:33-85](file://projects/playground.yaml#L33-L85)
 - [cloudflared config.yaml:1-4](file://apps/infra/cloudflared/config.yaml#L1-L4)
 - [hello-api config.yaml:1-4](file://apps/playground/hello-api/config.yaml#L1-L4)
 - [rancher config.yaml:1-5](file://apps/playground/rancher/config.yaml#L1-L5)
@@ -131,7 +131,7 @@ PROJ --> APPS
 - [secrets.yaml:1-24](file://bootstrap/secrets.yaml#L1-L24)
 - [argocd-cmd-params-cm.yaml:1-13](file://apps/playground/argocd-ingress/chart/argocd-cmd-params-cm.yaml#L1-L13)
 - [infra.yaml:1-85](file://projects/infra.yaml#L1-L85)
-- [playground.yaml:1-90](file://projects/playground.yaml#L1-L90)
+- [playground.yaml:1-85](file://projects/playground.yaml#L1-L85)
 
 ## Detailed Component Analysis
 
@@ -185,7 +185,7 @@ Operational implications:
 - Streamlined creation of namespaces for ephemeral workloads.
 
 **Section sources**
-- [playground.yaml:33-90](file://projects/playground.yaml#L33-L90)
+- [playground.yaml:33-85](file://projects/playground.yaml#L33-L85)
 
 ### Per-Application Configurations and Sync Waves
 - apps/infra/cloudflared/config.yaml: Sets destination namespace and adds a sync wave to ensure late application after prerequisites.
@@ -210,7 +210,7 @@ Operational implications:
 - Reduces duplication and human error.
 
 **Section sources**
-- [kustomization.yaml:11-22](file://projects/kustomization.yaml#L11-L22)
+- [kustomization.yaml:11-31](file://projects/kustomization.yaml#L11-L31)
 
 ### Global Command Parameters
 - argocd-cmd-params-cm: Sets server insecure mode and assigns a sync wave to ensure it is applied after secrets.
@@ -223,18 +223,25 @@ Operational implications:
 **Section sources**
 - [argocd-cmd-params-cm.yaml:1-13](file://apps/playground/argocd-ingress/chart/argocd-cmd-params-cm.yaml#L1-L13)
 
-### Installation and Operational Guidance
-- Installation steps for ArgoCD, exposing the UI, applying repository secrets, and bootstrapping.
-- Notes on deleting bootstrap safely using finalizers.
+### Consolidated Installation and Operational Guidance
+**Updated** The installation process is now consolidated in a single reference guide that provides step-by-step instructions for ArgoCD setup, repository secrets configuration, bootstrap deployment, and cleanup operations.
 
-**Updated** The installation guide has been consolidated into README.md format for better organization and discoverability.
+Installation steps:
+1. Install ArgoCD using the official manifest with Kustomize build options for Helm support
+2. Expose ArgoCD UI and retrieve initial admin credentials
+3. Apply repository secrets for accessing private repositories
+4. Deploy bootstrap configuration using Kustomize
+5. Clean up bootstrap resources with proper finalizer handling
 
-Operational implications:
-- Standardized setup and teardown procedures.
-- Security posture improved by centralizing repository credentials.
+Security considerations:
+- Repository secrets are managed in a separate private repository (k8s_manifest_secrets)
+- Multiple repository credentials can be configured for different environments
+- Secret rotation and management follows best practices with separate credential storage
 
 **Section sources**
 - [README.md:1-34](file://guide/argocd/README.md#L1-L34)
+- [argocd-repository-secrets.yaml:1-30](file://guide/argocd/argocd-repository-secrets.yaml#L1-L30)
+- [README.md:1-42](file://guide/k8s_manifest_secrets/README.md#L1-L42)
 
 ## Architecture Overview
 
@@ -263,7 +270,7 @@ Argo-->>Admin : "Dashboard and notifications"
 **Diagram sources**
 - [root.yaml:1-37](file://bootstrap/root.yaml#L1-L37)
 - [infra.yaml:33-85](file://projects/infra.yaml#L33-L85)
-- [playground.yaml:33-90](file://projects/playground.yaml#L33-L90)
+- [playground.yaml:33-85](file://projects/playground.yaml#L33-L85)
 - [cloudflared config.yaml:1-4](file://apps/infra/cloudflared/config.yaml#L1-L4)
 - [hello-api config.yaml:1-4](file://apps/playground/hello-api/config.yaml#L1-L4)
 - [rancher config.yaml:1-5](file://apps/playground/rancher/config.yaml#L1-L5)
@@ -336,11 +343,11 @@ ApplicationSet --> TemplatePatch : "applies"
 
 **Diagram sources**
 - [infra.yaml:33-85](file://projects/infra.yaml#L33-L85)
-- [playground.yaml:33-90](file://projects/playground.yaml#L33-L90)
+- [playground.yaml:33-85](file://projects/playground.yaml#L33-L85)
 
 **Section sources**
 - [infra.yaml:33-85](file://projects/infra.yaml#L33-L85)
-- [playground.yaml:33-90](file://projects/playground.yaml#L33-L90)
+- [playground.yaml:33-85](file://projects/playground.yaml#L33-L85)
 
 ### Advanced Sync Policies, Retry Mechanisms, and Error Handling
 - Automated sync with prune and selfHeal enabled.
@@ -391,12 +398,12 @@ App-->>AS : "Sync State"
 **Diagram sources**
 - [root.yaml:19-36](file://bootstrap/root.yaml#L19-L36)
 - [infra.yaml:33-85](file://projects/infra.yaml#L33-L85)
-- [playground.yaml:33-90](file://projects/playground.yaml#L33-L90)
+- [playground.yaml:33-85](file://projects/playground.yaml#L33-L85)
 
 **Section sources**
 - [root.yaml:19-36](file://bootstrap/root.yaml#L19-L36)
 - [infra.yaml:33-85](file://projects/infra.yaml#L33-L85)
-- [playground.yaml:33-90](file://projects/playground.yaml#L33-L90)
+- [playground.yaml:33-85](file://projects/playground.yaml#L33-L85)
 
 ### Custom Sync Behaviors and Kustomize Build Options
 - Kustomize build options enable advanced templating and Helm support.
@@ -405,7 +412,7 @@ App-->>AS : "Sync State"
 **Section sources**
 - [infra.yaml:59-60](file://projects/infra.yaml#L59-L60)
 - [playground.yaml:59-74](file://projects/playground.yaml#L59-L74)
-- [kustomization.yaml:11-22](file://projects/kustomization.yaml#L11-L22)
+- [kustomization.yaml:11-31](file://projects/kustomization.yaml#L11-L31)
 
 ### Integration with External Systems
 - Plugins: Kustomize build options enable integration with external tools and Helm charts.
@@ -415,6 +422,25 @@ App-->>AS : "Sync State"
 **Section sources**
 - [argocd-cmd-params-cm.yaml:11-12](file://apps/playground/argocd-ingress/chart/argocd-cmd-params-cm.yaml#L11-L12)
 - [README.md:1-34](file://guide/argocd/README.md#L1-L34)
+
+### Repository Secrets Management
+**New** The repository implements a comprehensive secrets management strategy using a separate private repository (k8s_manifest_secrets) for storing sensitive configuration data.
+
+Key components:
+- Private repository containing Kubernetes Secret resources
+- Multiple repository credentials for different environments
+- Centralized secret rotation and management
+- Integration with ArgoCD's repository secret system
+
+Security benefits:
+- Separation of concerns between public and private configuration
+- Reduced risk of credential exposure in public repositories
+- Support for multiple environments with distinct credentials
+- Automated secret deployment through ArgoCD sync waves
+
+**Section sources**
+- [argocd-repository-secrets.yaml:1-30](file://guide/argocd/argocd-repository-secrets.yaml#L1-L30)
+- [README.md:1-42](file://guide/k8s_manifest_secrets/README.md#L1-L42)
 
 ## Dependency Analysis
 The following diagram shows how bootstrap, projects, and apps depend on each other and how sync waves influence execution order.
@@ -455,12 +481,15 @@ PLAY --> RANCHER["apps/playground/rancher/config.yaml<br/>Wave 3"]
 - Prefer bounded retry backoff to avoid thundering herds.
 - Limit dry-run operations where appropriate using SkipDryRunOnMissingResource to reduce API pressure.
 - Centralize repository URLs via Kustomize replacements to minimize repeated configuration churn.
+- Implement proper secret management to avoid unnecessary reconciliation cycles.
 
 ## Troubleshooting Guide
 - Bootstrap deletion: Remove finalizers before force-deleting the bootstrap Application to avoid orphaned resources.
 - Secrets availability: Ensure the secrets Application runs before dependent resources by verifying sync wave ordering.
 - Sync failures: Review automated policies and retry configuration; confirm Kustomize build options are compatible with target resources.
 - Ordering issues: Adjust sync wave annotations to ensure prerequisites are applied before dependents.
+- Installation issues: Follow the consolidated installation guide for proper ArgoCD setup and configuration.
+- Repository access: Verify repository secrets are correctly configured and accessible to ArgoCD.
 
 **Section sources**
 - [README.md:29-33](file://guide/argocd/README.md#L29-L33)
@@ -474,6 +503,7 @@ This repository demonstrates a production-ready ArgoCD setup emphasizing:
 - Scalable ApplicationSet generation with Git-based templates and dynamic overrides.
 - Robust sync policies with retries and configurable options.
 - Centralized repository configuration and Kustomize enhancements.
-These patterns provide a solid foundation for advanced deployment strategies, including blue-green, canary, and progressive delivery when combined with Git-based branching and tag-based release workflows.
+- Comprehensive installation procedures consolidated in a single reference guide.
+- Secure secrets management using separate private repositories.
 
-**Updated** The documentation has been consolidated into README.md format for improved organization and discoverability, while maintaining all technical accuracy and configuration patterns.
+These patterns provide a solid foundation for advanced deployment strategies, including blue-green, canary, and progressive delivery when combined with Git-based branching and tag-based release workflows. The consolidated installation guide ensures consistent setup procedures while the advanced configuration patterns support complex enterprise deployment scenarios.
