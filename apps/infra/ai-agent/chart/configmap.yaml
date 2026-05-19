@@ -1,0 +1,212 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-agent-scripts
+  namespace: ai-agent
+data:
+  entrypoint.sh: |
+    #!/bin/sh
+    set -e
+
+    echo "[ai-agent] Installing tools..."
+
+    apk add --no-cache curl bash git jq
+
+    # Install kubectl
+    KUBECTL_VERSION=$(curl -sL https://dl.k8s.io/release/stable.txt)
+    curl -sLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+    chmod +x kubectl
+    mv kubectl /usr/local/bin/kubectl
+
+    # Install helm
+    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    chmod +x get_helm.sh
+    ./get_helm.sh
+    rm -f get_helm.sh
+
+    # Install Python packages (openai required, aider-chat optional)
+    pip install --no-cache-dir openai 2>/dev/null || echo "[ai-agent] Warning: openai install failed"
+    pip install --no-cache-dir aider-chat 2>/dev/null || echo "[ai-agent] Warning: aider-chat install skipped (optional)"
+
+    # Setup k8s-ai assistant command
+    cp /scripts/k8s-ai.py /usr/local/bin/k8s-ai
+    chmod +x /usr/local/bin/k8s-ai
+
+    # Configure aider for DeepSeek (if installed)
+    cat > /root/.aider.conf.yml << 'AIDERCONF'
+    model: deepseek-chat
+    dark-mode: true
+    api-key: env:DEEPSEEK_API_KEY
+    AIDERCONF
+
+    # Setup bash aliases
+    cat > /root/.bashrc << 'EOF'
+    alias k='kubectl'
+    alias kg='kubectl get'
+    alias kd='kubectl describe'
+    alias kl='kubectl logs'
+    alias kgp='kubectl get pods'
+    alias kgn='kubectl get nodes'
+    alias kgs='kubectl get svc'
+    alias kga='kubectl get all --all-namespaces'
+    alias ai='k8s-ai'
+    alias pyrun='python3'
+    EOF
+
+    # Load bashrc for interactive shells
+    echo "source /root/.bashrc" >> /root/.profile
+
+    echo "[ai-agent] Setup complete. Ready for debugging."
+    echo "[ai-agent] Commands: k8s-ai (interactive), aider (AI coding), kubectl/helm (k8s tools)"
+    echo ""
+
+    # Keep container alive
+    sleep infinity
+
+  k8s-ai.py: |
+    #!/usr/bin/env python3
+    """
+    k8s-ai — Kubernetes AI Debug Assistant
+    Uses DeepSeek API (OpenAI-compatible) to help debug Kubernetes clusters.
+    """
+    import os
+    import sys
+    import json
+    import subprocess
+    from openai import OpenAI
+
+    DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+    DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+    MODEL = "deepseek-chat"
+
+    SYSTEM_PROMPT = """You are a Kubernetes expert AI assistant running inside a Kubernetes cluster.
+    Your role is to help debug, understand, and troubleshoot the cluster state.
+
+    Capabilities available to you:
+    - kubectl (full read-only access to all cluster resources)
+    - helm (chart management)
+    - git, curl, jq
+
+    When analyzing issues, consider:
+    - Pod status, logs, and resource usage
+    - Events across relevant namespaces
+    - Service/endpoint connectivity
+    - Network policies and ingress routes
+    - RBAC permissions
+    - Resource quotas and limits
+    - Common misconfigurations (image pull errors, probe failures, OOMKilled, CrashLoopBackOff)
+
+    Provide concise, actionable analysis and specific kubectl commands to run for deeper investigation."""
+
+    client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL)
+
+    def ask(question, context=""):
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        if context:
+            messages.append({"role": "user", "content": f"## Current Cluster Context\n{context}\n\n## Question\n{question}"})
+        else:
+            messages.append({"role": "user", "content": question})
+
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=messages,
+            temperature=0.3,
+            max_tokens=4096
+        )
+        return response.choices[0].message.content
+
+    def run_shell(cmd):
+        try:
+            result = subprocess.run(
+                ["sh", "-c", cmd],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            return {
+                "exit_code": result.returncode,
+                "stdout": result.stdout,
+                "stderr": result.stderr
+            }
+        except subprocess.TimeoutExpired:
+            return {"exit_code": -1, "stdout": "", "stderr": "Command timed out after 60s"}
+        except Exception as e:
+            return {"exit_code": -1, "stdout": "", "stderr": str(e)}
+
+    def interactive():
+        print("\033[1;36m╔══════════════════════════════════════════════════════╗")
+        print("║      k8s-ai — Kubernetes AI Debug Assistant      ║")
+        print("║          Powered by DeepSeek API                  ║")
+        print("╚══════════════════════════════════════════════════════╝\033[0m")
+        print()
+        print("Commands:")
+        print("  !<cmd>         — Run a shell command and include output for analysis")
+        print("  !raw:<cmd>     — Run command, return raw output (no AI analysis)")
+        print("  help           — Show this help")
+        print("  exit/quit      — Exit")
+        print()
+
+        while True:
+            try:
+                question = input("\033[1;33mk8s-ai>\033[0m ").strip()
+                if not question:
+                    continue
+                if question.lower() in ("exit", "quit"):
+                    break
+                if question.lower() == "help":
+                    print()
+                    print("Commands:")
+                    print("  !<cmd>         — Run a shell command and include output for analysis")
+                    print("  !raw:<cmd>     — Run command, return raw output (no AI analysis)")
+                    print("  help           — Show this help")
+                    print("  exit/quit      — Exit")
+                    print()
+                    continue
+
+                context = ""
+
+                if question.startswith("!raw:"):
+                    cmd = question[5:].strip()
+                    result = run_shell(cmd)
+                    print(f"\n\033[1;32m$ {cmd}\033[0m")
+                    if result["stdout"]:
+                        print(result["stdout"])
+                    if result["stderr"]:
+                        print(f"\033[1;31m{result['stderr']}\033[0m")
+                    print(f"Exit code: {result['exit_code']}")
+                    continue
+
+                if question.startswith("!"):
+                    cmd = question[1:].strip()
+                    print(f"\033[2mRunning: {cmd}...\033[0m")
+                    result = run_shell(cmd)
+                    context = (
+                        f"Command executed: {cmd}\n"
+                        f"Exit code: {result['exit_code']}\n"
+                        f"STDOUT:\n{result['stdout']}\n"
+                        f"STDERR:\n{result['stderr']}"
+                    )
+                    question = "Analyze the command output above — identify any errors, warnings, or issues and explain what they mean."
+
+                print("\n\033[1;35mAnalyzing...\033[0m")
+                answer = ask(question, context)
+                print(f"\n\033[1;37m{answer}\033[0m\n")
+
+            except KeyboardInterrupt:
+                print()
+                break
+            except Exception as e:
+                print(f"\n\033[1;31mError: {e}\033[0m\n")
+
+    if __name__ == "__main__":
+        if not DEEPSEEK_API_KEY:
+            print("ERROR: DEEPSEEK_API_KEY environment variable is not set.")
+            print("Set it via the 'ai-agent-secrets' secret in the ai-agent namespace.")
+            sys.exit(1)
+
+        if len(sys.argv) > 1:
+            question = " ".join(sys.argv[1:])
+            answer = ask(question)
+            print(answer)
+        else:
+            interactive()
