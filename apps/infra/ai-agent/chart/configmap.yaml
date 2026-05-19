@@ -73,10 +73,16 @@ data:
     """
     k8s-ai — Kubernetes AI Debug Assistant
     Uses DeepSeek API (OpenAI-compatible) to help debug Kubernetes clusters.
+
+    Features:
+    - Auto-run mode: AI can request commands via <<EXEC>> markers, script runs them
+      automatically and sends results back for a final analysis
+    - Manual mode: !<cmd> runs command and includes output for AI analysis
+    - Raw mode: !raw:<cmd> just runs the command
     """
     import os
     import sys
-    import json
+    import re
     import subprocess
     from openai import OpenAI
 
@@ -87,7 +93,15 @@ data:
     SYSTEM_PROMPT = """You are a Kubernetes expert AI assistant running inside a Kubernetes cluster.
     Your role is to help debug, understand, and troubleshoot the cluster state.
 
-    Capabilities available to you:
+    You can run kubectl commands to investigate.
+    To auto-run commands, output them inside <<EXEC>> and <<END_EXEC>> markers:
+    <<EXEC>>
+    kubectl get nodes -o wide
+    kubectl get pods -A --field-selector status.phase!=Running,status.phase!=Succeeded
+    <<END_EXEC>>
+    The system will execute them and send the output back to you for final analysis.
+
+    Capabilities:
     - kubectl (full read-only access to all cluster resources)
     - helm (chart management)
     - git, curl, jq
@@ -101,22 +115,21 @@ data:
     - Resource quotas and limits
     - Common misconfigurations (image pull errors, probe failures, OOMKilled, CrashLoopBackOff)
 
-    Provide concise, actionable analysis and specific kubectl commands to run for deeper investigation."""
+    Provide concise, actionable analysis."""
+
+    # System prompt for the second pass (after command output is collected)
+    ANALYZE_PROMPT = """You are a Kubernetes expert AI assistant analyzing cluster command output.
+    Review the command results below and provide a clear, concise analysis.
+    Identify errors, warnings, and issues. Suggest specific next steps for debugging."""
 
     client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL)
 
-    def ask(question, context=""):
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-        if context:
-            messages.append({"role": "user", "content": f"## Current Cluster Context\n{context}\n\n## Question\n{question}"})
-        else:
-            messages.append({"role": "user", "content": question})
-
+    def ask(messages, max_tokens=4096):
         response = client.chat.completions.create(
             model=MODEL,
             messages=messages,
             temperature=0.3,
-            max_tokens=4096
+            max_tokens=max_tokens
         )
         return response.choices[0].message.content
 
@@ -138,6 +151,31 @@ data:
         except Exception as e:
             return {"exit_code": -1, "stdout": "", "stderr": str(e)}
 
+    def parse_and_run_commands(text):
+        """Parse <<EXEC>>...<<END_EXEC>> blocks, execute commands, return combined output."""
+        blocks = re.findall(r'<<EXEC>>\s*\n?(.*?)<<END_EXEC>>', text, re.DOTALL)
+        if not blocks:
+            return None, text
+
+        all_output = []
+        for block in blocks:
+            commands = [c.strip() for c in block.strip().split('\n') if c.strip()]
+            for cmd in commands:
+                print(f"  \033[2m$ {cmd}\033[0m")
+                result = run_shell(cmd)
+                all_output.append(f"$ {cmd}")
+                if result["stdout"]:
+                    all_output.append(result["stdout"].rstrip())
+                if result["stderr"]:
+                    all_output.append(f"[stderr] {result['stderr'].rstrip()}")
+                all_output.append(f"[exit: {result['exit_code']}]")
+                all_output.append("")
+
+        # Strip the <<EXEC>> blocks from the original response for clarity
+        clean_response = re.sub(r'<<EXEC>>.*?<<END_EXEC>>', '', text, flags=re.DOTALL).strip()
+
+        return '\n'.join(all_output), clean_response
+
     def interactive():
         print("\033[1;36m╔══════════════════════════════════════════════════════╗")
         print("║      k8s-ai — Kubernetes AI Debug Assistant      ║")
@@ -145,10 +183,11 @@ data:
         print("╚══════════════════════════════════════════════════════╝\033[0m")
         print()
         print("Commands:")
-        print("  !<cmd>         — Run a shell command and include output for analysis")
-        print("  !raw:<cmd>     — Run command, return raw output (no AI analysis)")
-        print("  help           — Show this help")
-        print("  exit/quit      — Exit")
+        print("  <question>    — AI auto-runs commands to investigate, then answers")
+        print("  !<cmd>        — Run a shell command and include output for analysis")
+        print("  !raw:<cmd>    — Run command, return raw output (no AI analysis)")
+        print("  help          — Show this help")
+        print("  exit/quit     — Exit")
         print()
 
         while True:
@@ -161,14 +200,13 @@ data:
                 if question.lower() == "help":
                     print()
                     print("Commands:")
-                    print("  !<cmd>         — Run a shell command and include output for analysis")
-                    print("  !raw:<cmd>     — Run command, return raw output (no AI analysis)")
-                    print("  help           — Show this help")
-                    print("  exit/quit      — Exit")
+                    print("  <question>    — AI auto-runs commands to investigate, then answers")
+                    print("  !<cmd>        — Run a shell command and include output for analysis")
+                    print("  !raw:<cmd>    — Run command, return raw output (no AI analysis)")
+                    print("  help          — Show this help")
+                    print("  exit/quit     — Exit")
                     print()
                     continue
-
-                context = ""
 
                 if question.startswith("!raw:"):
                     cmd = question[5:].strip()
@@ -191,11 +229,39 @@ data:
                         f"STDOUT:\n{result['stdout']}\n"
                         f"STDERR:\n{result['stderr']}"
                     )
-                    question = "Analyze the command output above — identify any errors, warnings, or issues and explain what they mean."
+                    messages = [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": f"## Current Cluster Context\n{context}\n\n## Question\nAnalyze the command output above — identify any errors, warnings, or issues and explain what they mean."}
+                    ]
+                    print("\n\033[1;35mAnalyzing...\033[0m")
+                    answer = ask(messages)
+                    print(f"\n\033[1;37m{answer}\033[0m\n")
+                    continue
 
-                print("\n\033[1;35mAnalyzing...\033[0m")
-                answer = ask(question, context)
-                print(f"\n\033[1;37m{answer}\033[0m\n")
+                # --- AUTO-RUN MODE ---
+                # First pass: send question to AI, which may respond with <<EXEC>> blocks
+                print("\033[1;35mAsking AI what commands to run...\033[0m")
+                messages = [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": question}
+                ]
+                first_answer = ask(messages)
+
+                # Check if AI requested commands
+                cmd_output, clean_response = parse_and_run_commands(first_answer)
+
+                if cmd_output:
+                    # Second pass: send command output to AI for final analysis
+                    print("\n\033[1;35mAnalyzing results...\033[0m")
+                    messages = [
+                        {"role": "system", "content": ANALYZE_PROMPT},
+                        {"role": "user", "content": f"## Cluster Investigation\n\n### Question\n{question}\n\n### Command Output\n{cmd_output}\n\n### Initial Response\n{clean_response}\n\nPlease provide a complete analysis based on the actual command output above."}
+                    ]
+                    final_answer = ask(messages, max_tokens=4096)
+                    print(f"\n\033[1;37m{final_answer}\033[0m\n")
+                else:
+                    # AI answered directly without needing commands
+                    print(f"\n\033[1;37m{first_answer}\033[0m\n")
 
             except KeyboardInterrupt:
                 print()
@@ -211,7 +277,20 @@ data:
 
         if len(sys.argv) > 1:
             question = " ".join(sys.argv[1:])
-            answer = ask(question)
-            print(answer)
+            messages = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": question}
+            ]
+            first_answer = ask(messages)
+            cmd_output, clean_response = parse_and_run_commands(first_answer)
+            if cmd_output:
+                messages = [
+                    {"role": "system", "content": ANALYZE_PROMPT},
+                    {"role": "user", "content": f"## Cluster Investigation\n\n### Question\n{question}\n\n### Command Output\n{cmd_output}\n\n### Initial Response\n{clean_response}\n\nPlease provide a complete analysis based on the actual command output above."}
+                ]
+                final_answer = ask(messages)
+                print(final_answer)
+            else:
+                print(first_answer)
         else:
             interactive()
