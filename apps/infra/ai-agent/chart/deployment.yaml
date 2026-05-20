@@ -53,6 +53,8 @@ spec:
         app: ai-agent
     spec:
       serviceAccountName: ai-agent
+      imagePullSecrets:
+        - name: registry-credentials
       containers:
         - name: ai-agent
           image: ghcr.io/hoangvu75/ai-agent:latest
