@@ -74,17 +74,19 @@ spec:
             - name: ANTHROPIC_BASE_URL
               value: "https://api.deepseek.com/anthropic"
             - name: ANTHROPIC_MODEL
-              value: "deepseek-v4-pro"
+              value: "deepseek-v4-flash"
             - name: ANTHROPIC_DEFAULT_OPUS_MODEL
-              value: "deepseek-v4-pro"
+              value: "deepseek-v4-flash"
             - name: ANTHROPIC_DEFAULT_SONNET_MODEL
-              value: "deepseek-v4-pro"
+              value: "deepseek-v4-flash"
             - name: ANTHROPIC_DEFAULT_HAIKU_MODEL
               value: "deepseek-v4-flash"
             - name: CLAUDE_CODE_SUBAGENT_MODEL
               value: "deepseek-v4-flash"
             - name: CLAUDE_CODE_EFFORT_LEVEL
               value: "max"
+            - name: CLAUDE_CODE_DANGEROUS_SKIP_PERMISSIONS
+              value: "true"
             - name: KUBECONFIG
               value: /root/.kube/config
           resources:
