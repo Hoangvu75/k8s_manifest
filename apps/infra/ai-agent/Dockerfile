@@ -1,0 +1,59 @@
+# Build:   docker build -t ghcr.io/hoangvu75/ai-agent:latest .
+# Push:    docker push ghcr.io/hoangvu75/ai-agent:latest
+# Image:   ghcr.io/hoangvu75/ai-agent:latest
+
+FROM node:20-alpine
+
+# Install system tools
+RUN apk add --no-cache \
+    bash \
+    curl \
+    git \
+    jq \
+    openssl \
+    python3 \
+    py3-pip
+
+# Install kubectl
+RUN KUBECTL_VERSION=$(curl -sL https://dl.k8s.io/release/stable.txt || echo "v1.32.0") && \
+    curl -sLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
+    chmod +x kubectl && \
+    mv kubectl /usr/local/bin/kubectl
+
+# Install helm
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && \
+    chmod +x get_helm.sh && \
+    (./get_helm.sh || VERIFY_CHECKSUM=false ./get_helm.sh) && \
+    rm -f get_helm.sh
+
+# Install Claude Code CLI
+RUN npm install -g @anthropic-ai/claude-code
+
+# Install aider-chat (optional AI coding assistant)
+RUN pip install --no-cache-dir aider-chat
+
+# Configure aider
+RUN mkdir -p /root && \
+    echo "model: deepseek-chat" > /root/.aider.conf.yml && \
+    echo "dark-mode: true" >> /root/.aider.conf.yml && \
+    echo "api-key: env:DEEPSEEK_API_KEY" >> /root/.aider.conf.yml
+
+# Setup bash aliases and profile
+RUN echo "alias k='kubectl'" > /root/.bashrc && \
+    echo "alias kg='kubectl get'" >> /root/.bashrc && \
+    echo "alias kd='kubectl describe'" >> /root/.bashrc && \
+    echo "alias kl='kubectl logs'" >> /root/.bashrc && \
+    echo "alias kgp='kubectl get pods'" >> /root/.bashrc && \
+    echo "alias kgn='kubectl get nodes'" >> /root/.bashrc && \
+    echo "alias kgs='kubectl get svc'" >> /root/.bashrc && \
+    echo "alias kga='kubectl get all --all-namespaces'" >> /root/.bashrc && \
+    echo "alias ai='claude'" >> /root/.bashrc && \
+    echo "alias pyrun='python3'" >> /root/.bashrc && \
+    echo "source /root/.bashrc" >> /root/.profile && \
+    mkdir -p /root/.kube
+
+# Keep container alive
+CMD ["sleep", "infinity"]
+
+# docker build -t ghcr.io/hoangvu75/ai-agent:latest apps/infra/ai-agent/
+# docker push ghcr.io/hoangvu75/ai-agent:latest

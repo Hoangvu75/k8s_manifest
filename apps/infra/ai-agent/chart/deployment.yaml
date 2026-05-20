@@ -55,10 +55,7 @@ spec:
       serviceAccountName: ai-agent
       containers:
         - name: ai-agent
-          image: python:3.12-alpine
-          command:
-            - /bin/sh
-            - /scripts/entrypoint.sh
+          image: ghcr.io/hoangvu75/ai-agent:latest
           env:
             - name: DEEPSEEK_API_KEY
               valueFrom:
@@ -67,12 +64,27 @@ spec:
                   key: DEEPSEEK_API_KEY
             - name: DEEPSEEK_BASE_URL
               value: "https://api.deepseek.com/v1"
+            - name: ANTHROPIC_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ai-agent-secrets
+                  key: DEEPSEEK_API_KEY
+            - name: ANTHROPIC_BASE_URL
+              value: "https://api.deepseek.com/anthropic"
+            - name: ANTHROPIC_MODEL
+              value: "deepseek-v4-pro"
+            - name: ANTHROPIC_DEFAULT_OPUS_MODEL
+              value: "deepseek-v4-pro"
+            - name: ANTHROPIC_DEFAULT_SONNET_MODEL
+              value: "deepseek-v4-pro"
+            - name: ANTHROPIC_DEFAULT_HAIKU_MODEL
+              value: "deepseek-v4-flash"
+            - name: CLAUDE_CODE_SUBAGENT_MODEL
+              value: "deepseek-v4-flash"
+            - name: CLAUDE_CODE_EFFORT_LEVEL
+              value: "max"
             - name: KUBECONFIG
               value: /root/.kube/config
-          volumeMounts:
-            - name: scripts
-              mountPath: /scripts
-              readOnly: true
           resources:
             requests:
               cpu: 100m
@@ -80,8 +92,3 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
-      volumes:
-        - name: scripts
-          configMap:
-            name: ai-agent-scripts
-            defaultMode: 0755
