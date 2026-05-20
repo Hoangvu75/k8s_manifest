@@ -11,8 +11,7 @@ RUN apk add --no-cache \
     git \
     jq \
     openssl \
-    python3 \
-    py3-pip
+    python3
 
 # Install kubectl
 RUN KUBECTL_VERSION=$(curl -sL https://dl.k8s.io/release/stable.txt || echo "v1.32.0") && \
@@ -26,17 +25,8 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/s
     (./get_helm.sh || VERIFY_CHECKSUM=false ./get_helm.sh) && \
     rm -f get_helm.sh
 
-# Install Claude Code CLI
+# Install Claude Code CLI (full agentic AI assistant)
 RUN npm install -g @anthropic-ai/claude-code
-
-# Install aider-chat (optional AI coding assistant)
-RUN pip install --no-cache-dir aider-chat
-
-# Configure aider
-RUN mkdir -p /root && \
-    echo "model: deepseek-chat" > /root/.aider.conf.yml && \
-    echo "dark-mode: true" >> /root/.aider.conf.yml && \
-    echo "api-key: env:DEEPSEEK_API_KEY" >> /root/.aider.conf.yml
 
 # Setup bash aliases and profile
 RUN echo "alias k='kubectl'" > /root/.bashrc && \
