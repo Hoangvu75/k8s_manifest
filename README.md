@@ -140,7 +140,8 @@ kustomize build . ──► bootstrap.yaml ──► bootstrap/    ──► pro
 │   │   │           └── hello-api-service.yaml
 │   │   ├── rancher/             # Rancher management UI (includes cert-manager)
 │   │   ├── argocd-ingress/      # ArgoCD HTTPRoute exposure
-│   │   └── ai-agent/            # AI debug jump pod (kubectl + DeepSeek AI assistant)
+│   │   ├── ai-claude/           # AI agent — Anthropic Claude Code CLI (jump pod)
+│   │   └── ai-deepseek/         # AI agent — DeepSeek-powered Claude Code (jump pod)
 │   └── applications/            # User-facing application apps
 │       ├── helloworld-api/        # Hello API demo app
 │       ├── tcp-demo/            # TCP echo demo (Traefik TCP routing)
@@ -191,7 +192,8 @@ Shared namespaces are defined in `cluster-resources/default/namespace.yaml` with
 | ARC Runner Set | infra | Self-hosted GitHub Actions runner scale set (`runs-on: arc-runner-set`), scales 0..N ephemeral runners on demand |
 | Rancher (incl. cert-manager) | infra | Cluster management UI + TLS cert automation |
 | ArgoCD Ingress | infra | Expose ArgoCD UI via HTTPRoute |
-| AI Agent | infra | AI-powered debug jump pod with kubectl, helm, aider, and DeepSeek-based k8s assistant |
+| AI Agent (Claude) | infra | AI-powered debug jump pod with kubectl, helm, and Claude Code CLI (Anthropic API) |
+| AI Agent (DeepSeek) | infra | AI-powered debug jump pod with kubectl, helm, and Claude Code CLI (DeepSeek API backend) |
 | Hello API | applications | Demo API application (protected by Kong key-auth) |
 | TCP Echo Demo | applications | TCP echo server via Traefik IngressRouteTCP (NodePort 30900) |
 | UDP Echo Demo | applications | UDP echo server via Traefik IngressRouteUDP (NodePort 30901) |

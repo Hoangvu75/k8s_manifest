@@ -1,78 +1,65 @@
-# AI Agent — Claude Code CLI for Kubernetes Debugging
+# AI Agent — Kubernetes AI Debug Pods
 
-This guide describes the `ai-agent` — an AI-powered debug jump pod with **Claude Code CLI** (by Anthropic) configured to use DeepSeek's Anthropic-compatible API endpoint, giving you a powerful agentic assistant for troubleshooting and exploring the cluster.
+This guide describes the AI-powered debug jump pods in the `ai-agent` namespace. There are **two** deployments, each backed by a different AI provider:
 
-## Overview
+| Deployment | Image | AI Backend | Auth Method | Use Case |
+|-----------|-------|-----------|-------------|----------|
+| `ai-agent-deepseek` | `ghcr.io/hoangvu75/ai-agent-deepseek` | DeepSeek API via Anthropic-compatible endpoint | `DEEPSEEK_API_KEY` | Free/cheap cluster debugging |
+| `ai-agent-claude` | `ghcr.io/hoangvu75/ai-agent-claude` | Real Anthropic Claude API | `ANTHROPIC_API_KEY` (or OAuth) | Full Claude Code agentic capabilities |
 
-The `ai-agent` is a persistent pod in the `ai-agent` namespace that provides:
-
-| Feature | Description |
-|---------|-------------|
-| **Claude Code CLI** | Full agentic AI assistant — autonomously reads files, runs `kubectl`/`helm` commands, analyzes output, and debugs cluster issues |
-| **aider** | General-purpose AI coding assistant (optional, pre-configured for DeepSeek) |
-| **kubectl + helm** | Full Kubernetes CLI tooling for manual debugging |
-| **Read-only RBAC** | Cluster-wide read access to all resources (pods, events, nodes, logs, etc.) |
+Both provide:
+- **Claude Code CLI** — agentic AI assistant that autonomously runs `kubectl`/`helm`, reads logs, analyzes events
+- **kubectl + helm** — full Kubernetes CLI tooling
+- **Read-only RBAC** — cluster-wide read access (pods, events, nodes, logs, etc.)
 
 ## Architecture
 
+### ai-agent-deepseek
 ```
-Claude Code (agentic CLI)
-  ├── Runs kubectl commands autonomously
-  ├── Reads pod logs, describe output, events
-  ├── Analyzes cluster state and suggests fixes
-  └── Backed by DeepSeek API via Anthropic endpoint
-        └── ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
-
-Example workflow:
-  ┌─ You exec into pod ─────────────────────────────┐
-  │  claude                                          │
-  │                                                   │
-  │  > what's wrong with the cluster?                 │
-  │                                                   │
-  │  Claude Code reads /root/.kube/config            │
-  │  Claude Code runs: kubectl get nodes              │
-  │  Claude Code runs: kubectl get pods -A --sort-by  │
-  │  Claude Code analyzes output from ALL commands    │
-  │  Claude Code: "I see 3 issues: ..."              │
-  └───────────────────────────────────────────────────┘
+Claude Code CLI → DeepSeek Anthropic API (https://api.deepseek.com/anthropic)
+                   └── Uses deepseek-v4-flash model
+                   └── ANTHROPIC_AUTH_TOKEN = DEEPSEEK_API_KEY
 ```
 
-## Why Claude Code?
-
-Claude Code is a **full agentic CLI** built specifically for terminal environments. Unlike the custom `k8s-ai.py` assistant it replaces, Claude Code can:
-
-- **Read any file** in the environment (configs, logs, manifests)
-- **Run any command** autonomously (kubectl, helm, curl, jq, git)
-- **Chain multiple commands** together based on what it discovers
-- **Edit files** and suggest fixes
-- **Search code** and navigate the filesystem
-- **Maintain context** across a long conversation
-
-DeepSeek provides an Anthropic-compatible API endpoint (`https://api.deepseek.com/anthropic`), so Claude Code works seamlessly with DeepSeek's models.
+### ai-agent-claude
+```
+Claude Code CLI → Real Anthropic API (https://api.anthropic.com)
+                   └── Uses Claude models (Sonnet/Opus/Haiku)
+                   └── ANTHROPIC_API_KEY from your Anthropic account
+```
 
 ## Component Files
 
-Located in `apps/infra/ai-agent/`:
-
-| File | Purpose |
-|------|---------|
-| `config.yaml` | ApplicationSet discovery (destNamespace: ai-agent, wave: 2) |
-| `kustomization.yaml` | Parent kustomize with `namespace: ai-agent` |
-| `chart/kustomization.yaml` | Chart-level kustomize (deployment + configmap) |
-| `chart/deployment.yaml` | Deployment + ServiceAccount + ClusterRole (read-only) + ClusterRoleBinding |
-| `chart/configmap.yaml` | Entrypoint script (installs Claude Code, kubectl, helm, tools) |
+```
+apps/infra/ai-agent/
+├── deepseek/                              ← DeepSeek-powered deployment
+│   ├── config.yaml                        (destNamespace: ai-agent, wave: 2)
+│   ├── kustomization.yaml                 (namespace: ai-agent)
+│   ├── Dockerfile                         (node:20-alpine)
+│   └── chart/
+│       ├── kustomization.yaml
+│       └── deployment.yaml                (ai-agent-deepseek SA/CR/CRB)
+│
+├── claude/                                ← Real Anthropic Claude Code deployment
+│   ├── config.yaml                        (destNamespace: ai-agent, wave: 2)
+│   ├── kustomization.yaml                 (namespace: ai-agent)
+│   ├── Dockerfile                         (ubuntu:22.04)
+│   └── chart/
+│       ├── kustomization.yaml
+│       └── deployment.yaml                (ai-agent-claude SA/CR/CRB)
+```
 
 ## Getting Started
 
 ### 1. Prerequisites
 
-- The `ai-agent` namespace must exist (synced via `cluster-resources/default/namespace.yaml`, wave: -1)
-- The `registry-credentials` imagePullSecret must exist in the `ai-agent` namespace (for pulling `node:20-alpine`)
-- The `ai-agent-secrets` secret must exist in the `ai-agent` namespace with the DeepSeek API key
+- The `ai-agent` namespace exists (synced via `cluster-resources/default/namespace.yaml`, wave: -1)
+- `registry-credentials` imagePullSecret exists in `ai-agent` namespace
+- `ai-agent-secrets` secret exists in `ai-agent` namespace
 
-### 2. Set Up the DeepSeek API Key
+### 2. Set Up Secrets
 
-The pod needs a DeepSeek API key. Add this secret to the **private secrets repo** (`k8s_manifest_secrets`):
+The shared `ai-agent-secrets` secret holds API keys for both deployments:
 
 ```yaml
 # k8s_manifest_secrets/ai-agent-secrets.yaml
@@ -83,111 +70,98 @@ metadata:
   namespace: ai-agent
 type: Opaque
 stringData:
-  DEEPSEEK_API_KEY: sk-your-deepseek-api-key
+  DEEPSEEK_API_KEY: sk-your-deepseek-api-key     # for ai-agent-deepseek
+  ANTHROPIC_API_KEY: sk-ant-your-anthropic-api-key # for ai-agent-claude
 ```
 
-The `DEEPSEEK_API_KEY` is automatically mapped to `ANTHROPIC_AUTH_TOKEN` in the deployment. Commit and push — ArgoCD syncs it automatically.
+- **For `ai-agent-deepseek`**: Set `DEEPSEEK_API_KEY` — get one at https://platform.deepseek.com/
+- **For `ai-agent-claude`**: Set `ANTHROPIC_API_KEY` — get one at https://console.anthropic.com/
 
-### 3. Exec Into the Pod
+Commit and push to the private repo — ArgoCD syncs automatically.
+
+### 3. Build & Push Docker Images
 
 ```bash
-kubectl exec -it -n ai-agent deploy/ai-agent -- bash
+# DeepSeek image (Alpine-based)
+docker build -t ghcr.io/hoangvu75/ai-agent-deepseek:latest -f apps/infra/ai-agent/deepseek/Dockerfile apps/infra/ai-agent/deepseek/
+docker push ghcr.io/hoangvu75/ai-agent-deepseek:latest
+
+# Claude image (Ubuntu-based)
+docker build -t ghcr.io/hoangvu75/ai-agent-claude:latest -f apps/infra/ai-agent/claude/Dockerfile apps/infra/ai-agent/claude/
+docker push ghcr.io/hoangvu75/ai-agent-claude:latest
 ```
 
-The first startup installs Node.js dependencies, kubectl, helm, and tools. This takes about 30-60 seconds. Once you see:
+### 4. Exec Into a Pod
 
-```
-[ai-agent] Setup complete.
-[ai-agent] Just run: claude
-[ai-agent] Also available: aider, kubectl, helm, curl, jq
-```
+```bash
+# DeepSeek version
+kubectl exec -it -n ai-agent deploy/ai-agent-deepseek -- bash
 
-...you're ready.
+# Real Claude version
+kubectl exec -it -n ai-agent deploy/ai-agent-claude -- bash
+```
 
 ## Using Claude Code
 
-### Start the interactive session
+### Start interactive session
 
 ```bash
 claude
-# or claude --dangerous-skip-permissions
 ```
 
-This launches Claude Code in your terminal. It will automatically use the DeepSeek API (configured via environment variables).
+If you're using `ai-agent-claude` with `ANTHROPIC_API_KEY` set, no OAuth is needed. If you prefer OAuth (first-time browser login), auth manually:
+
+```bash
+claude
+# Follow the OAuth URL it prints → Authorize in browser → paste the code back
+```
 
 ### Debugging Examples
 
-**1. General cluster health check**
-
-```
+```bash
+# Check cluster health
 claude> check the cluster health and report any issues
-```
 
-Claude Code will autonomously:
-- Run `kubectl get nodes` to check node status
-- Run `kubectl get pods -A` to find problem pods
-- Run `kubectl get events -A --sort-by='.lastTimestamp'` to find recent issues
-- Analyze all results together and give you a comprehensive report
-
-**2. Investigate a specific problem pod**
-
-```
+# Investigate failing pods
 claude> find all CrashLoopBackOff pods and tell me why they're failing
+
+# Network debugging
+claude> show me all services and check which ones have endpoints
+
+# Read and analyze manifests
+claude> read all deployments in the kong-gateway namespace and check for issues
 ```
 
-Claude Code will:
-- Find all pods not in Running state
-- Run `kubectl describe pod` on each failing pod
-- Run `kubectl logs` on each to see error messages
-- Cross-reference events
-- Give you root cause analysis for each one
-
-**3. Network debugging**
-
-```
-claude> check if the gateway-api services are reachable and all ingress routes work
-```
-
-**4. Read and analyze manifests**
-
-```
-claude> read the deployment manifest and tell me if there are any configuration issues
-```
-
-### Non-interactive (one-shot)
+### One-shot mode
 
 ```bash
 claude -p "check cluster health and report issues"
 ```
 
-The `-p` flag sends a single prompt without starting an interactive session.
+## When to Use Which
 
-## Using aider
-
-`aider` is also available for general AI coding tasks:
-
-```bash
-aider --model deepseek-chat
-```
-
-Pre-configured via `~/.aider.conf.yml` with `api-key: env:DEEPSEEK_API_KEY`.
+| Situation | Recommended |
+|-----------|-------------|
+| Quick cluster diagnostic (free) | `ai-agent-deepseek` |
+| Complex debugging needing full Claude intelligence | `ai-agent-claude` |
+| Limited API budget | `ai-agent-deepseek` |
+| Working with sensitive manifests | `ai-agent-claude` (better reasoning) |
+| Testing / experimentation | `ai-agent-deepseek` |
 
 ## Available Tooling
 
-| Tool | Installed via | Use Case |
-|------|--------------|----------|
-| `claude` | npm (`@anthropic-ai/claude-code`) | Agentic AI debugging assistant |
-| `kubectl` | Binary download | Full cluster management |
-| `helm` | get-helm.sh | Helm chart inspection |
-| `aider` | pip | General AI coding assistant |
-| `git` | apk | Git operations |
-| `jq` | apk | JSON parsing |
-| `curl` | apk | HTTP requests |
-| `openssl` | apk | TLS cert inspection |
+| Tool | deepseek | claude | Use Case |
+|------|----------|--------|----------|
+| `claude` | ✅ | ✅ | Agentic AI debugging assistant |
+| `kubectl` | ✅ | ✅ | Full cluster management |
+| `helm` | ✅ | ✅ | Helm chart inspection |
+| `git` | ✅ | ✅ | Git operations |
+| `curl` | ✅ | ✅ | HTTP requests |
+| `jq` | ✅ | ❌ | JSON parsing |
+| `openssl` | ✅ | ❌ | TLS cert inspection |
+| `python3` | ✅ | ❌ | Python scripting |
 
-### Bash Aliases (pre-configured)
-
-Once inside the pod:
+### Bash Aliases (both)
 
 | Alias | Command |
 |-------|---------|
@@ -203,23 +177,25 @@ Once inside the pod:
 
 ## Environment Variables
 
-The following environment variables are pre-set in the deployment to connect Claude Code to DeepSeek:
+### ai-agent-deepseek
 
 | Variable | Value | Purpose |
 |----------|-------|---------|
-| `ANTHROPIC_AUTH_TOKEN` | _same as `DEEPSEEK_API_KEY`_ | Auth for DeepSeek Anthropic API |
+| `DEEPSEEK_API_KEY` | _from secret_ | DeepSeek API authentication |
+| `ANTHROPIC_AUTH_TOKEN` | _same as DEEPSEEK_API_KEY_ | Auth for DeepSeek Anthropic API |
 | `ANTHROPIC_BASE_URL` | `https://api.deepseek.com/anthropic` | DeepSeek's Claude-compatible endpoint |
-| `ANTHROPIC_MODEL` | `deepseek-v4-pro` | Main model |
-| `ANTHROPIC_DEFAULT_OPUS_MODEL` | `deepseek-v4-pro` | Heavy tasks (cluster analysis) |
-| `ANTHROPIC_DEFAULT_SONNET_MODEL` | `deepseek-v4-pro` | Standard tasks |
-| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | `deepseek-v4-flash` | Lightweight / fast tasks |
-| `CLAUDE_CODE_SUBAGENT_MODEL` | `deepseek-v4-flash` | Sub-agents (file search, etc.) |
+| `ANTHROPIC_MODEL` | `deepseek-v4-flash` | Main model |
 | `CLAUDE_CODE_EFFORT_LEVEL` | `max` | Maximum reasoning effort |
-| `DEEPSEEK_API_KEY` | _from secret_ | Fallback for aider / direct API |
+
+### ai-agent-claude
+
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `ANTHROPIC_API_KEY` | _from secret_ | Real Anthropic API authentication |
 
 ## RBAC Permissions
 
-The ai-agent uses a dedicated ServiceAccount with a ClusterRole granting **read-only** access:
+Each deployment has its own ServiceAccount with an identical read-only ClusterRole:
 
 | Resource | Verbs |
 |----------|-------|
@@ -227,15 +203,13 @@ The ai-agent uses a dedicated ServiceAccount with a ClusterRole granting **read-
 | Pod logs, pod status, node stats | `get`, `list`, `watch` |
 | Cluster health endpoints (`/healthz`, `/livez`, etc.) | `get` |
 
-No write or delete permissions are granted. The agent can observe but not modify the cluster.
+No write or delete permissions. The agents can observe but not modify the cluster.
 
 ## Troubleshooting
 
 | Issue | Symptom | Fix |
 |-------|---------|-----|
-| Missing API key | Claude Code auth error | Create `ai-agent-secrets` in private repo with `DEEPSEEK_API_KEY` |
-| Setup timed out | Pod in CrashLoopBackOff at startup | Check logs — `kubectl logs -n ai-agent deploy/ai-agent` |
-| Claude Code install failed | `claude: command not found` | Exec into pod and run: `npm install -g @anthropic-ai/claude-code` |
-| kubectl not found | `kubectl not found` | Run manually: `curl -sLO https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x kubectl && mv kubectl /usr/local/bin/kubectl` |
-| helm not found | `helm not found` | Run: `VERIFY_CHECKSUM=false ./get_helm.sh` |
-| Image pull failure | Pod stuck at `ImagePullBackOff` | Ensure `registry-credentials` exists in `ai-agent` namespace |
+| Missing DeepSeek API key | `ai-agent-deepseek` auth error | Add `DEEPSEEK_API_KEY` to `ai-agent-secrets` in private repo |
+| Missing Anthropic API key | `ai-agent-claude` auth error | Add `ANTHROPIC_API_KEY` to `ai-agent-secrets` in private repo |
+| Image pull failure | Pod stuck at `ImagePullBackOff` | Build & push the Docker image to GHCR first |
+| Claude Code CLI missing | `claude: command not found` | Rebuild Docker image with `npm install -g @anthropic-ai/claude-code` |

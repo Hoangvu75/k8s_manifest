@@ -1,0 +1,78 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-agent-claude
+  namespace: ai-agent
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ai-agent-claude
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log", "pods/status", "nodes/stats"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/api", "/api/*", "/apis", "/apis/*", "/healthz", "/livez", "/readyz", "/version"]
+    verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ai-agent-claude
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ai-agent-claude
+subjects:
+  - kind: ServiceAccount
+    name: ai-agent-claude
+    namespace: ai-agent
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-agent-claude
+  namespace: ai-agent
+  labels:
+    app: ai-agent-claude
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-agent-claude
+  template:
+    metadata:
+      labels:
+        app: ai-agent-claude
+    spec:
+      serviceAccountName: ai-agent-claude
+      imagePullSecrets:
+        - name: registry-credentials
+      containers:
+        - name: ai-agent
+          image: ghcr.io/hoangvu75/ai-agent-claude:latest
+          stdin: true
+          tty: true
+          env:
+            - name: KUBECONFIG
+              value: /root/.kube/config
+          volumeMounts:
+            - name: claude-session
+              mountPath: /root/.claude
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: claude-session
+          emptyDir: {}
