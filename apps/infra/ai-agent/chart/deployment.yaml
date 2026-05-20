@@ -85,8 +85,6 @@ spec:
               value: "deepseek-v4-flash"
             - name: CLAUDE_CODE_EFFORT_LEVEL
               value: "max"
-            - name: CLAUDE_CODE_DANGEROUS_SKIP_PERMISSIONS
-              value: "true"
             - name: KUBECONFIG
               value: /root/.kube/config
           resources:

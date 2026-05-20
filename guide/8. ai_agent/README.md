@@ -110,6 +110,7 @@ The first startup installs Node.js dependencies, kubectl, helm, and tools. This 
 
 ```bash
 claude
+# or claude --dangerous-skip-permissions
 ```
 
 This launches Claude Code in your terminal. It will automatically use the DeepSeek API (configured via environment variables).
