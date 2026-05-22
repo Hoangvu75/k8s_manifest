@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(kubectl *)",
+      "Bash(helm *)",
+      "Bash(k *)",
+      "Bash(kg *)",
+      "Bash(kd *)",
+      "Bash(kl *)",
+      "Bash(kgp *)",
+      "Bash(kgn *)",
+      "Bash(kgs *)",
+      "Bash(kga *)",
+      "Bash(nc -zv *)",
+      "Bash(nslookup *)",
+      "Bash(curl *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(jq *)"
+    ]
+  }
+}

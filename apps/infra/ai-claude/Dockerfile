@@ -1,13 +1,13 @@
 # ============================================================
 # ai-agent-claude — Real Anthropic Claude Code CLI
-# Build:   docker build -t ghcr.io/hoangvu75/ai-agent-claude:latest .
-# Push:    docker push ghcr.io/hoangvu75/ai-agent-claude:latest
+# Build:   docker build -t ghcr.io/kafihoangvu/ai-agent-claude:latest .
+# Push:    docker push ghcr.io/kafihoangvu/ai-agent-claude:latest
 # ============================================================
 FROM ubuntu:22.04
 
 # Install system packages + Node.js 20
 RUN apt update && apt upgrade -y && \
-    apt install -y curl git build-essential && \
+    apt install -y curl git build-essential netcat-openbsd dnsutils jq && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt install -y nodejs && \
     apt clean && rm -rf /var/lib/apt/lists/*
@@ -40,4 +40,14 @@ RUN echo "alias k='kubectl'" > /root/.bashrc && \
     echo "source /root/.bashrc" >> /root/.profile && \
     mkdir -p /root/.kube
 
-CMD ["sleep", "infinity"]
+# Bake in cluster knowledge — auto-loaded by Claude Code from /root/CLAUDE.md
+COPY CLAUDE.md /root/CLAUDE.md
+
+# Bake in default Claude settings and custom commands
+COPY .claude-defaults/ /root/.claude-defaults/
+
+# Startup script: seeds /root/.claude (emptyDir) with defaults on each pod start
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+CMD ["/usr/local/bin/docker-entrypoint.sh"]
