@@ -24,8 +24,8 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/s
     ./get_helm.sh && \
     rm -f get_helm.sh
 
-# Install Claude Code CLI
-RUN npm install -g @anthropic-ai/claude-code
+# Install Claude Code CLI + GitHub MCP server
+RUN npm install -g @anthropic-ai/claude-code @modelcontextprotocol/server-github
 
 # Setup bash aliases and profile
 RUN echo "alias k='kubectl'" > /root/.bashrc && \

@@ -63,6 +63,11 @@ spec:
           env:
             - name: KUBECONFIG
               value: /root/.kube/config
+            - name: GITHUB_PERSONAL_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ai-claude-github-pat
+                  key: token
           volumeMounts:
             - name: claude-session
               mountPath: /root/.claude

@@ -552,6 +552,35 @@ When something is broken, check in this order:
 
 ---
 
+## GitHub MCP
+
+The GitHub MCP server is pre-installed and configured. When active, you have direct access to Kafi's GitHub repositories without needing `curl` or `gh` CLI.
+
+**Available tools** (use naturally in conversation):
+
+| Tool | What you can do |
+|------|----------------|
+| `search_repositories` | Find repos in the Kafi org by name or topic |
+| `get_file_contents` | Read any file in any repo (source code, configs, Dockerfiles) |
+| `search_code` | Search for a string or pattern across all Kafi repos |
+| `list_commits` | See recent commits for a repo/branch |
+| `get_pull_request` | Read a PR's description, diff, and review comments |
+| `list_pull_requests` | List open/merged PRs for a repo |
+| `create_issue` | File a GitHub issue |
+| `search_issues` | Search issues and PRs across repos |
+
+**GitHub org**: `KafiSecurities` (or as configured in the PAT scope)
+
+**Example prompts:**
+- "Search for all files that reference `KAFKA_TOPIC_AUDIT_USER_EVENT` across Kafi repos"
+- "Show me the latest commits on the `main` branch of `ftl-rest-go`"
+- "Read the `values-configmap.yaml` for `ftl-aaa` in the `idp` repo"
+- "List open PRs in the `k-account` repo"
+
+**Note**: The MCP server requires `GITHUB_PERSONAL_ACCESS_TOKEN` to be set in the pod environment (injected via K8s Secret `ai-claude-github-pat`). If GitHub tools are unavailable, the secret may not be applied — check with `kubectl get secret ai-claude-github-pat -n maintenance`.
+
+---
+
 ## Custom Commands
 
 | Command | Usage |
