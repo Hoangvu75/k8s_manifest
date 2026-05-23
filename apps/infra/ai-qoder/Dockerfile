@@ -1,7 +1,7 @@
 # ============================================================
-# ai-agent-deepseek — Claude Code CLI powered by DeepSeek API
-# Build:   docker build -t ghcr.io/hoangvu75/ai-agent-deepseek:latest .
-# Push:    docker push ghcr.io/hoangvu75/ai-agent-deepseek:latest
+# ai-agent-qoder — Qoder CLI running inside the cluster
+# Build:   docker build -t ghcr.io/hoangvu75/ai-agent-qoder:latest .
+# Push:    docker push ghcr.io/hoangvu75/ai-agent-qoder:latest
 # ============================================================
 FROM node:20-alpine
 
@@ -26,8 +26,8 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/s
     (./get_helm.sh || VERIFY_CHECKSUM=false ./get_helm.sh) && \
     rm -f get_helm.sh
 
-# Install Claude Code CLI
-RUN npm install -g @anthropic-ai/claude-code
+# Install Qoder CLI
+RUN npm install -g @qoder-ai/qodercli
 
 # Setup bash aliases and profile
 RUN echo "alias k='kubectl'" > /root/.bashrc && \
@@ -38,9 +38,12 @@ RUN echo "alias k='kubectl'" > /root/.bashrc && \
     echo "alias kgn='kubectl get nodes'" >> /root/.bashrc && \
     echo "alias kgs='kubectl get svc'" >> /root/.bashrc && \
     echo "alias kga='kubectl get all --all-namespaces'" >> /root/.bashrc && \
-    echo "alias ai='claude'" >> /root/.bashrc && \
+    echo "alias ai='qodercli'" >> /root/.bashrc && \
     echo "alias pyrun='python3'" >> /root/.bashrc && \
     echo "source /root/.bashrc" >> /root/.profile && \
     mkdir -p /root/.kube
+
+# Bake in cluster knowledge — auto-loaded by Qoder CLI from ~/.qoder/AGENTS.md
+COPY AGENTS.md /root/.qoder/AGENTS.md
 
 CMD ["sleep", "infinity"]
