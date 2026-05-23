@@ -57,7 +57,7 @@ spec:
         - name: registry-credentials
       containers:
         - name: ai-agent
-          image: ghcr.io/hoangvu75/ai-agent-qoder:latest
+          image: ghcr.io/hoangvu75/ai-agent-qoder:202605231050
           stdin: true
           tty: true
           env:
