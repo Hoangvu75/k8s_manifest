@@ -1,0 +1,29 @@
+githubConfigUrl: "https://github.com/Hoangvu75/k8s_manifest"
+
+githubConfigSecret: arc-github-config
+
+minRunners: 0
+maxRunners: 5
+
+runnerScaleSetName: arc-runner-set
+
+controllerServiceAccount:
+  namespace: arc-systems
+  name: arc-gha-rs-controller
+
+containerMode:
+  type: "dind"
+
+template:
+  spec:
+    containers:
+      - name: runner
+        image: ghcr.io/actions/actions-runner:latest
+        command: ["/home/runner/run.sh"]
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 4Gi

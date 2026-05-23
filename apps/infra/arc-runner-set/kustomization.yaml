@@ -5,6 +5,3 @@ namespace: arc-runners
 
 resources:
   - chart
-
-components:
-  - ../../../components/repo-url
