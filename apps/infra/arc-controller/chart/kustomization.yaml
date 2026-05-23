@@ -8,4 +8,3 @@ helmCharts:
     namespace: arc-systems
     version: "0.14.1"
     valuesFile: values.yaml
-    includeCRDs: true

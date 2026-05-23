@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - autoscalinglisteners.actions.github.com.yaml
+  - autoscalingrunnersets.actions.github.com.yaml
+  - ephemeralrunners.actions.github.com.yaml
+  - ephemeralrunnersets.actions.github.com.yaml
+
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-1"
