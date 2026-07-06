@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# TODO: kiểm tra bản stable mới nhất tại https://github.com/istio/istio/releases
+#       và giữ CÙNG version cho cả 4 chart: base / istiod / cni / ztunnel.
+helmCharts:
+- name: base
+  repo: https://istio-release.storage.googleapis.com/charts
+  releaseName: istio-base
+  namespace: istio-system
+  version: "1.30.2"
+  valuesFile: values.yaml
+
+# CRD của Istio rất lớn -> client-side apply sẽ lỗi "metadata.annotations: Too long".
+# ServerSideApply=true bắt buộc để ArgoCD sync được. Áp cho toàn bộ resource của chart base.
+commonAnnotations:
+  argocd.argoproj.io/sync-options: ServerSideApply=true

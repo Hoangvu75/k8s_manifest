@@ -1,0 +1,4 @@
+destNamespace: istio-system
+annotations:
+  # istiod cần CRDs từ istio-base (wave 0). Wave 1. ArgoCD retry sẽ tự heal nếu base chưa xong.
+  argocd.argoproj.io/sync-wave: "1"

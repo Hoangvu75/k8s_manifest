@@ -1,0 +1,42 @@
+# Gateway ingress của Istio — CHẠY SONG SONG với shared-gateway (Traefik).
+# gatewayClassName: istio  -> istiod tự động deploy 1 Deployment + Service Envoy tên "istio-ingress-istio"
+# trong namespace gateway-api. Vì đặt tên KHÁC shared-gateway nên KHÔNG đụng gì tới Traefik.
+#
+# Service tạo ra mặc định là LoadBalancer. Homelab không có LB -> ép ClusterIP,
+# cloudflared (chạy in-cluster) trỏ thẳng vào DNS nội bộ của service này khi cutover.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: istio-ingress
+  namespace: gateway-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    # Điều khiển loại Service mà Istio tự sinh ra cho gateway này.
+    networking.istio.io/service-type: ClusterIP
+spec:
+  gatewayClassName: istio
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              routing.hoangvu75.space/expose: "true"
+    - name: https
+      port: 443
+      protocol: HTTPS
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              routing.hoangvu75.space/expose: "true"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          # Dùng lại đúng wildcard cert Traefik đang dùng (đã có sẵn trong ns gateway-api).
+          - name: wildcard-tls
+            kind: Secret

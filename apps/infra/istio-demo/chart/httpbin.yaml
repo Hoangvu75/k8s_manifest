@@ -1,0 +1,55 @@
+# Service "đích" để test. Nằm trong ns istio-demo (đã gắn label ambient) nên tự động
+# được ztunnel bảo vệ bằng mTLS — không cần khai báo gì thêm, không có sidecar.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: httpbin
+  namespace: istio-demo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin
+  namespace: istio-demo
+  labels:
+    app: httpbin
+  # Gắn service vào waypoint để bật được policy L7 (method/path). Bỏ dòng này -> chỉ có L4.
+  annotations:
+    istio.io/use-waypoint: waypoint
+spec:
+  selector:
+    app: httpbin
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpbin
+  namespace: istio-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpbin
+  template:
+    metadata:
+      labels:
+        app: httpbin
+    spec:
+      serviceAccountName: httpbin
+      containers:
+        - name: httpbin
+          image: ghcr.io/mccutchen/go-httpbin:v2.15.0
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

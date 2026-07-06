@@ -1,0 +1,4 @@
+destNamespace: gateway-api
+annotations:
+  # Ingress gateway của Istio. Cần istiod (tạo GatewayClass "istio") + wildcard-tls secret (wave 1). Wave 3.
+  argocd.argoproj.io/sync-wave: "3"

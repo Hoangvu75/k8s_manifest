@@ -1,0 +1,28 @@
+# Bài học bảo mật: chỉ cho phép định danh "demo-client" gọi httpbin, và chỉ method GET.
+#
+#  - from.source.principals: định danh mTLS (SPIFFE) — chỉ hoạt động vì ambient đã bật mTLS tự động.
+#  - to.operation.methods (L7): CẦN waypoint (đã tạo ở waypoint.yaml). Nếu bỏ waypoint đi thì
+#    chỉ còn luật L4 (theo principal) có tác dụng, phần method sẽ bị bỏ qua.
+#
+# Thử nghiệm:
+#   ALLOW : kubectl -n istio-demo exec deploy/demo-client -- curl -s -o /dev/null -w "%{http_code}\n" httpbin:8000/get   -> 200
+#   DENY  : kubectl -n istio-demo exec deploy/demo-client -- curl -s -o /dev/null -w "%{http_code}\n" -X POST httpbin:8000/post -> 403
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: httpbin-allow-client-get
+  namespace: istio-demo
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: httpbin
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/istio-demo/sa/demo-client"
+      to:
+        - operation:
+            methods: ["GET"]

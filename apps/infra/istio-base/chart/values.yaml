@@ -1,0 +1,2 @@
+# Tạo ValidatingWebhookConfiguration mặc định cho revision "default"
+defaultRevision: default

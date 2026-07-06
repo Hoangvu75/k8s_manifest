@@ -1,0 +1,4 @@
+destNamespace: istio-system
+annotations:
+  # base cài CRDs + cluster roles — phải xong trước istiod. Wave 0.
+  argocd.argoproj.io/sync-wave: "0"

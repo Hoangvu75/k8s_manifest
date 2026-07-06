@@ -112,3 +112,24 @@ metadata:
   name: ai-agent
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
+---
+# Istio control plane (istiod, istio-cni, ztunnel). Không cần expose ra ngoài.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+# Namespace demo để học Istio Ambient.
+#  - istio.io/dataplane-mode: ambient  -> mọi pod tự động vào mesh L4 (mTLS qua ztunnel), KHÔNG cần sidecar.
+#  - routing.hoangvu75.space/expose    -> cho phép Gateway (Traefik hiện tại / Istio sau này) nhận HTTPRoute từ ns này.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    istio.io/dataplane-mode: ambient
+    routing.hoangvu75.space/expose: "true"

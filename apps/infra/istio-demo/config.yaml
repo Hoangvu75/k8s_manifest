@@ -1,0 +1,4 @@
+destNamespace: istio-demo
+annotations:
+  # Demo học tập. Cần mesh + ingress sẵn sàng. Wave 4.
+  argocd.argoproj.io/sync-wave: "4"

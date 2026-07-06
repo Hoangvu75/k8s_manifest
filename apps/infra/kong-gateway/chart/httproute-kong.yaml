@@ -11,6 +11,7 @@ spec:
       namespace: gateway-api
   hostnames:
     - "api.hoangvu75.space"
+    - "traefik.gateway-api.svc.cluster.local"
   rules:
     - matches:
         - path:

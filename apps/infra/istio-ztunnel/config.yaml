@@ -1,0 +1,4 @@
+destNamespace: istio-system
+annotations:
+  # ztunnel: proxy L4 per-node (mTLS cho toàn mesh). Cần CNI sẵn sàng. Wave 2.
+  argocd.argoproj.io/sync-wave: "2"

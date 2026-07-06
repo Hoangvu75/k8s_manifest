@@ -1,0 +1,37 @@
+# Client "được phép" gọi httpbin. Định danh của nó (SA demo-client) là thứ mà
+# AuthorizationPolicy sẽ cho qua. Test lệnh:
+#   kubectl -n istio-demo exec deploy/demo-client -- curl -s httpbin:8000/get
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: demo-client
+  namespace: istio-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-client
+  namespace: istio-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-client
+  template:
+    metadata:
+      labels:
+        app: demo-client
+    spec:
+      serviceAccountName: demo-client
+      containers:
+        - name: curl
+          image: curlimages/curl:8.11.1
+          command: ["sleep", "infinity"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
