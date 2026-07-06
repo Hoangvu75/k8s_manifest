@@ -6,6 +6,4 @@ namespace: istio-demo
 resources:
   - httpbin.yaml
   - client.yaml
-  - waypoint.yaml
   - authorization-policy.yaml
-  - httproute.yaml

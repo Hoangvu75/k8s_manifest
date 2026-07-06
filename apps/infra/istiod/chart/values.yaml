@@ -1,23 +1,22 @@
-# profile: ambient  -> bật chế độ Ambient Mesh (ztunnel + waypoint), KHÔNG dùng sidecar.
-# Đây là công tắc quan trọng nhất cho hướng bạn chọn.
-profile: ambient
+# Sidecar mode (mặc định) — KHÔNG set profile: ambient.
+# Pod trong namespace có nhãn istio-injection=enabled sẽ được tiêm 1 Envoy sidecar (istio-proxy)
+# qua mutating webhook. Không dùng ztunnel/istio-cni (đã bỏ vì kernel WSL2 thiếu module CONNMARK
+# mà ambient cần). Sidecar dùng initContainer istio-init + interception REDIRECT (không cần CONNMARK).
 
 meshConfig:
-  # In access log ra stdout của ztunnel/waypoint -> dễ quan sát khi học.
+  # In access log của sidecar ra stdout -> dễ quan sát khi học.
   accessLogFile: /dev/stdout
 
   # --- Tracing sang Datadog (TÙY CHỌN) ---
-  # Bật khi Datadog Agent đã mở OTLP ingest (port 4317 gRPC). Chưa chắc chắn thì để nguyên comment
-  # để tránh làm hỏng lần sync đầu.
+  # Bật khi Datadog Agent đã mở OTLP ingest (port 4317 gRPC). Chưa chắc thì để nguyên comment.
   # extensionProviders:
   #   - name: datadog-otel
   #     opentelemetry:
   #       service: datadog.datadog.svc.cluster.local
   #       port: 4317
-  # Sau đó tạo 1 resource Telemetry (xem apps/infra/istio-demo) để kích hoạt provider này.
 
 pilot:
-  # Homelab -> để nhẹ. Chỉnh theo tài nguyên node của bạn.
+  # Homelab -> để nhẹ. Chỉnh theo tài nguyên node.
   resources:
     requests:
       cpu: 100m

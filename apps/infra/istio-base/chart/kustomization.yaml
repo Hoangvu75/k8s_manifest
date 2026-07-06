@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 # TODO: kiểm tra bản stable mới nhất tại https://github.com/istio/istio/releases
-#       và giữ CÙNG version cho cả 4 chart: base / istiod / cni / ztunnel.
+#       và giữ CÙNG version cho cả 2 chart: base / istiod.
 helmCharts:
 - name: base
   repo: https://istio-release.storage.googleapis.com/charts

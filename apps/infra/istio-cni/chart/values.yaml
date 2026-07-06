@@ -1,2 +1,0 @@
-# profile: ambient  -> istio-cni chạy ở chế độ ambient (redirect traffic vào ztunnel).
-profile: ambient

@@ -1,4 +1,0 @@
-destNamespace: istio-system
-annotations:
-  # istio-cni: node agent bắt/redirect traffic cho ambient. Cần sau istiod. Wave 1.
-  argocd.argoproj.io/sync-wave: "1"

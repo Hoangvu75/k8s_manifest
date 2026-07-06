@@ -1,13 +1,12 @@
 # === Bịt lỗ bypass Kong ===
 # Chỉ danh tính của Kong (ServiceAccount "kong" trong ns kong-gateway) mới được gọi helloworld-api.
-# Mọi nguồn khác (vd pod cluster-check gọi thẳng helloworld-api:5678) sẽ bị ztunnel CHẶN ở tầng L4.
+# Mọi nguồn khác (vd pod cluster-check gọi thẳng helloworld-api:5678) sẽ bị sidecar Envoy CHẶN (403).
 #
-# Điều kiện tiên quyết (đã set ở cluster-resources/default/namespace.yaml):
-#   - helloworld-api: nhãn istio.io/dataplane-mode: ambient  -> ztunnel enforce inbound cho pod này
-#   - kong-gateway:   nhãn istio.io/dataplane-mode: ambient  -> Kong có danh tính mTLS để được ALLOW
+# Điều kiện tiên quyết (đã set ở cluster-resources/default/namespace.yaml + CẦN restart pod để tiêm sidecar):
+#   - helloworld-api: istio-injection=enabled  -> sidecar enforce authz cho pod này
+#   - kong-gateway:   istio-injection=enabled  -> Kong có danh tính mTLS để được ALLOW
 #
-# Đây là luật theo IDENTITY (L4) nên ztunnel enforce trực tiếp, KHÔNG cần waypoint.
-# Vì là action ALLOW: chỉ nguồn khớp mới được qua, còn lại deny hết.
+# Luật theo IDENTITY (principal). Vì action ALLOW: chỉ nguồn khớp mới qua, còn lại deny hết.
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:

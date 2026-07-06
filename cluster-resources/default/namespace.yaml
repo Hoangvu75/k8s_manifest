@@ -48,8 +48,8 @@ metadata:
     argocd.argoproj.io/sync-wave: "-1"
   labels:
     routing.hoangvu75.space/expose: "true"
-    # Đưa vào Istio Ambient mesh (mTLS L4 tự động, không cần restart pod, không cần sidecar).
-    istio.io/dataplane-mode: ambient
+    # Bật tiêm sidecar Istio (cần restart pod để sidecar được tiêm).
+    istio-injection: enabled
 ---
 apiVersion: v1
 kind: Namespace
@@ -84,9 +84,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "-1"
   labels:
     routing.hoangvu75.space/expose: "true"
-    # Kong phải ở trong mesh thì traffic Kong->helloworld-api mới mang danh tính (SPIFFE)
-    # để AuthorizationPolicy nhận diện. PERMISSIVE nên Traefik (ngoài mesh) vẫn gọi Kong bình thường.
-    istio.io/dataplane-mode: ambient
+    # Kong phải trong mesh thì traffic Kong->helloworld-api mới mang danh tính (SPIFFE) để policy nhận diện.
+    # PERMISSIVE mTLS nên Traefik (ngoài mesh) vẫn gọi Kong bình thường. Cần restart pod Kong để tiêm sidecar.
+    istio-injection: enabled
 ---
 apiVersion: v1
 kind: Namespace
@@ -118,7 +118,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 ---
-# Istio control plane (istiod, istio-cni, ztunnel). Không cần expose ra ngoài.
+# Istio control plane (istiod). Sidecar mode -> không cần ztunnel/istio-cni. Không expose ra ngoài.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -126,9 +126,9 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 ---
-# Namespace demo để học Istio Ambient.
-#  - istio.io/dataplane-mode: ambient  -> mọi pod tự động vào mesh L4 (mTLS qua ztunnel), KHÔNG cần sidecar.
-#  - routing.hoangvu75.space/expose    -> cho phép Gateway (Traefik hiện tại / Istio sau này) nhận HTTPRoute từ ns này.
+# Namespace demo để học Istio (sidecar mode).
+#  - istio-injection: enabled  -> pod tạo mới được tiêm Envoy sidecar (pod cũ phải restart mới có).
+#  - routing.hoangvu75.space/expose -> cho phép Gateway nhận HTTPRoute từ ns này (nếu cần).
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -136,5 +136,5 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
   labels:
-    istio.io/dataplane-mode: ambient
+    istio-injection: enabled
     routing.hoangvu75.space/expose: "true"

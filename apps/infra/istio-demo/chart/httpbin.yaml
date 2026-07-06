@@ -1,5 +1,5 @@
-# Service "đích" để test. Nằm trong ns istio-demo (đã gắn label ambient) nên tự động
-# được ztunnel bảo vệ bằng mTLS — không cần khai báo gì thêm, không có sidecar.
+# Service "đích" để test. Pod trong ns istio-demo (istio-injection=enabled) được tiêm sidecar Envoy,
+# tự động có mTLS giữa các pod + enforce AuthorizationPolicy ngay tại sidecar (không cần waypoint).
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -14,9 +14,6 @@ metadata:
   namespace: istio-demo
   labels:
     app: httpbin
-    # Gắn service vào waypoint để bật policy L7 (method/path). PHẢI là label (không phải annotation).
-    # Bỏ dòng này -> chỉ còn L4 (identity) qua ztunnel, luật method sẽ không áp.
-    istio.io/use-waypoint: waypoint
 spec:
   selector:
     app: httpbin
