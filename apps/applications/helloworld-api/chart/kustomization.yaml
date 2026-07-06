@@ -10,3 +10,6 @@ helmCharts:
   valuesFile: values.yaml
   additionalValuesFiles:
     - values-service.yaml
+
+resources:
+  - authorization-policy.yaml

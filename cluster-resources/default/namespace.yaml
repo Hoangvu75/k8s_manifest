@@ -48,6 +48,8 @@ metadata:
     argocd.argoproj.io/sync-wave: "-1"
   labels:
     routing.hoangvu75.space/expose: "true"
+    # Đưa vào Istio Ambient mesh (mTLS L4 tự động, không cần restart pod, không cần sidecar).
+    istio.io/dataplane-mode: ambient
 ---
 apiVersion: v1
 kind: Namespace
@@ -82,6 +84,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "-1"
   labels:
     routing.hoangvu75.space/expose: "true"
+    # Kong phải ở trong mesh thì traffic Kong->helloworld-api mới mang danh tính (SPIFFE)
+    # để AuthorizationPolicy nhận diện. PERMISSIVE nên Traefik (ngoài mesh) vẫn gọi Kong bình thường.
+    istio.io/dataplane-mode: ambient
 ---
 apiVersion: v1
 kind: Namespace
