@@ -18,7 +18,9 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "3"
 spec:
-  host: helloworld-api.kong-gateway.svc.cluster.local
+  # Kong resolve ExternalName rồi nối tới HOST THẬT -> DR phải đặt trên host thật này (không phải tên ExternalName).
+  # Vì ExternalName khiến Istio coi host này là "external" nên auto-mTLS không tự áp -> ISTIO_MUTUAL ép lại mTLS.
+  host: helloworld-api.helloworld-api.svc.cluster.local
   trafficPolicy:
     tls:
       mode: ISTIO_MUTUAL
