@@ -14,8 +14,8 @@ metadata:
   namespace: istio-demo
   labels:
     app: httpbin
-  # Gắn service vào waypoint để bật được policy L7 (method/path). Bỏ dòng này -> chỉ có L4.
-  annotations:
+    # Gắn service vào waypoint để bật policy L7 (method/path). PHẢI là label (không phải annotation).
+    # Bỏ dòng này -> chỉ còn L4 (identity) qua ztunnel, luật method sẽ không áp.
     istio.io/use-waypoint: waypoint
 spec:
   selector:
