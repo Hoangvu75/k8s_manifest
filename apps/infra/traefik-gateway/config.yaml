@@ -1,4 +1,5 @@
 destNamespace: gateway-api
-syncPolicy:
-  syncOptions:
-    - CreateNamespace=true
+annotations:
+  # Sync SAU istiod (wave 1) để injector webhook sẵn sàng trước -> Traefik pod chắc chắn được tiêm sidecar.
+  # Tránh lỗi khi rebuild cluster: Traefik lên trước istiod -> không có sidecar -> Traefik->Kong (STRICT) bị chặn.
+  argocd.argoproj.io/sync-wave: "2"

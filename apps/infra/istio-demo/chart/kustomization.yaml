@@ -7,3 +7,4 @@ resources:
   - httpbin.yaml
   - client.yaml
   - authorization-policy.yaml
+  - default-deny.yaml

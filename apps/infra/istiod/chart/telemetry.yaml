@@ -1,0 +1,16 @@
+# Bật distributed tracing cho TOÀN MESH -> gửi span sang Datadog qua provider "datadog-otel"
+# (khai trong istiod values meshConfig.extensionProviders). Đặt ở istio-system (root) = mesh-wide.
+# Đây là mảnh còn thiếu để có trace liền mạch: Traefik (đã export OTLP) -> mesh (giờ cũng export).
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: mesh-default
+  namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  tracing:
+    - providers:
+        - name: datadog-otel
+      # 10% cho production (đỡ tốn). Tăng lên 100 khi đang học/debug để thấy MỌI trace.
+      randomSamplingPercentage: 10

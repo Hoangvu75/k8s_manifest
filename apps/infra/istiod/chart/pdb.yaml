@@ -1,0 +1,13 @@
+# HA: giữ tối thiểu 1 istiod khi node bị drain/nâng cấp (có tác dụng khi replicaCount >= 2).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: istiod
+  namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      istio: pilot

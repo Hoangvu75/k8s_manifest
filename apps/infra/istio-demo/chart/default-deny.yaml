@@ -1,0 +1,13 @@
+# Zero-trust: DEFAULT-DENY cho toàn namespace istio-demo.
+# spec:{} = policy ALLOW không có rule -> không request nào khớp -> deny tất cả.
+# httpbin đã có allow-client-get (ALLOW cho demo-client GET) nên vẫn hoạt động; nhưng bất kỳ pod MỚI
+# nào thêm vào ns này sẽ bị deny mặc định tới khi khai AuthorizationPolicy ALLOW tường minh.
+# Đây là mẫu chuẩn production: khoá mặc định, mở có chủ đích.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: default-deny-all
+  namespace: istio-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec: {}

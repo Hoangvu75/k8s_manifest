@@ -11,3 +11,5 @@ helmCharts:
 
 resources:
   - peer-authentication.yaml
+  - telemetry.yaml
+  - pdb.yaml

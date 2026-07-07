@@ -1,23 +1,49 @@
-# Sidecar mode (mặc định) — KHÔNG set profile: ambient.
-# Pod trong namespace có nhãn istio-injection=enabled sẽ được tiêm 1 Envoy sidecar (istio-proxy)
-# qua mutating webhook. Không dùng ztunnel/istio-cni (đã bỏ vì kernel WSL2 thiếu module CONNMARK
-# mà ambient cần). Sidecar dùng initContainer istio-init + interception REDIRECT (không cần CONNMARK).
+# Sidecar mode (mặc định). Pod trong ns có nhãn istio-injection=enabled được tiêm Envoy sidecar.
+# Không dùng ambient/ztunnel/istio-cni (kernel WSL2 thiếu CONNMARK). Interception REDIRECT.
 
 meshConfig:
-  # In access log của sidecar ra stdout -> dễ quan sát khi học.
+  # Access log sidecar ra stdout (Datadog thu qua file log trên node).
   accessLogFile: /dev/stdout
 
-  # --- Tracing sang Datadog (TÙY CHỌN) ---
-  # Bật khi Datadog Agent đã mở OTLP ingest (port 4317 gRPC). Chưa chắc thì để nguyên comment.
-  # extensionProviders:
-  #   - name: datadog-otel
-  #     opentelemetry:
-  #       service: datadog.datadog.svc.cluster.local
-  #       port: 4317
+  # App container chỉ start SAU khi sidecar Envoy sẵn sàng -> không có traffic đi khi mTLS chưa lên
+  # (an toàn khi rollout/khởi động). Áp cho mọi pod mesh.
+  defaultConfig:
+    holdApplicationUntilProxyStarts: true
 
+  # Provider tracing: gửi span OTLP/gRPC tới Datadog Agent (đã bật otlp.receiver.grpc ở apps/infra/datadog).
+  # Kích hoạt bằng resource Telemetry (telemetry.yaml).
+  extensionProviders:
+    - name: datadog-otel
+      opentelemetry:
+        service: datadog.datadog.svc.cluster.local
+        port: 4317
+
+# --- Control plane HA ---
 pilot:
-  # Homelab -> để nhẹ. Chỉnh theo tài nguyên node.
+  replicaCount: 2                 # 2 istiod: không còn SPOF cho injection webhook + xDS
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      memory: 512Mi              # có memory limit (chống OOM); KHÔNG đặt CPU limit -> tránh throttling control plane
+  # Anti-affinity MỀM: chạy được trên 1 node hiện tại (2 pod cùng node), tự tách node khi lên multi-node.
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app: istiod
+
+# --- Tài nguyên sidecar (tiêm vào MỌI pod mesh) — đặt tường minh thay vì để mặc định ---
+global:
+  proxy:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 256Mi
