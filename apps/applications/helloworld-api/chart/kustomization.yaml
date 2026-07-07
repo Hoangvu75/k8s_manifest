@@ -11,5 +11,7 @@ helmCharts:
   additionalValuesFiles:
     - values-service.yaml
 
-resources:
-  - authorization-policy.yaml
+# TẠM BỎ AuthorizationPolicy để test STRICT-mesh mà không có authz.
+# Bật lại: thêm dòng dưới trở lại (file authorization-policy.yaml vẫn còn trên đĩa).
+# resources:
+#   - authorization-policy.yaml
