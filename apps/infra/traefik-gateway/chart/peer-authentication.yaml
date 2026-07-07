@@ -1,0 +1,17 @@
+# NGOẠI LỆ edge cho STRICT toàn mesh (xem apps/infra/istiod/chart/peer-authentication.yaml).
+# Traefik nhận traffic từ cloudflared (NGOÀI mesh, plaintext) qua NodePort. Nếu để STRICT thì
+# cloudflared -> Traefik bị chặn -> SẬP toàn bộ site public.
+# PERMISSIVE: Traefik vẫn nhận plaintext từ cloudflared, đồng thời Traefik->Kong (nội bộ) vẫn là mТLS
+# (vì Traefik đã có sidecar và Kong yêu cầu mTLS).
+#
+# Muốn đóng luôn "cửa" này (full zero-trust): phải đưa cloudflared vào mesh rồi mới bỏ ngoại lệ PERMISSIVE.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: gateway-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  mtls:
+    mode: PERMISSIVE

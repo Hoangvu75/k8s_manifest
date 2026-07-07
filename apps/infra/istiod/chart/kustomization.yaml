@@ -8,3 +8,6 @@ helmCharts:
   namespace: istio-system
   version: "1.30.2"   # phải trùng version với istio-base
   valuesFile: values.yaml
+
+resources:
+  - peer-authentication.yaml

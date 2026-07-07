@@ -1,5 +1,3 @@
-# cluster-resources/<cluster>/namespace.yaml — quy hoạch tạo namespace (giống công ty). Sync-wave -1 để tạo trước app.
-# Project: Playground
 ---
 apiVersion: v1
 kind: Namespace
@@ -9,6 +7,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "-1"
   labels:
     routing.hoangvu75.space/expose: "true"
+    istio-injection: enabled
 ---
 apiVersion: v1
 kind: Namespace

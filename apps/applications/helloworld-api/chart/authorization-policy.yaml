@@ -1,12 +1,3 @@
-# === Bịt lỗ bypass Kong ===
-# Chỉ danh tính của Kong (ServiceAccount "kong" trong ns kong-gateway) mới được gọi helloworld-api.
-# Mọi nguồn khác (vd pod cluster-check gọi thẳng helloworld-api:5678) sẽ bị sidecar Envoy CHẶN (403).
-#
-# Điều kiện tiên quyết (đã set ở cluster-resources/default/namespace.yaml + CẦN restart pod để tiêm sidecar):
-#   - helloworld-api: istio-injection=enabled  -> sidecar enforce authz cho pod này
-#   - kong-gateway:   istio-injection=enabled  -> Kong có danh tính mTLS để được ALLOW
-#
-# Luật theo IDENTITY (principal). Vì action ALLOW: chỉ nguồn khớp mới qua, còn lại deny hết.
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:

@@ -1,10 +1,6 @@
 service:
   enabled: true
   ports:
-    # name: tcp-* -> Istio route port này ở L4/TCP (theo IP đích), KHÔNG theo Host header.
-    # Cần vậy vì Kong giữ Host gốc "traefik.gateway-api..." không khớp route L7 của helloworld
-    # -> traffic rơi vào PassthroughCluster (plaintext). Route L4 theo IP thì luôn vào cluster đúng -> mТLS.
-    # AuthorizationPolicy của helloworld là L4 (theo danh tính) nên không cần L7; key-auth L7 do Kong lo.
     - name: tcp-web
       port: 5678
       targetPort: 5678
