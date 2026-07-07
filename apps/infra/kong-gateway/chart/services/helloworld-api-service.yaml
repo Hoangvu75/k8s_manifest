@@ -6,6 +6,10 @@ metadata:
   namespace: kong-gateway
   annotations:
     argocd.argoproj.io/sync-wave: "3"
+    # Bắt Kong gửi Host = FQDN thật khi proxy upstream (mặc định Kong giữ Host gốc "traefik.gateway-api...").
+    # Nhờ vậy sidecar Kong route theo :authority khớp service helloworld-api -> đi vào cluster ĐÚNG (không
+    # rơi vào PassthroughCluster) -> áp được mTLS + danh tính sa/kong -> AuthorizationPolicy cho qua.
+    konghq.com/host-header: "helloworld-api.helloworld-api.svc.cluster.local"
 spec:
   type: ExternalName
   externalName: helloworld-api.helloworld-api.svc.cluster.local
