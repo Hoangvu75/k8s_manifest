@@ -20,6 +20,7 @@ meshConfig:
         port: 4318
         http:
           path: "/v1/traces"
+          timeout: 5s          # BẮT BUỘC: thiếu -> Envoy reject listener -> sidecar không ready -> pod kẹt
 
 # --- Control plane HA ---
 pilot:
