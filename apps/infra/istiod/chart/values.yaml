@@ -10,13 +10,16 @@ meshConfig:
   defaultConfig:
     holdApplicationUntilProxyStarts: true
 
-  # Provider tracing: gửi span OTLP/gRPC tới Datadog Agent (đã bật otlp.receiver.grpc ở apps/infra/datadog).
-  # Kích hoạt bằng resource Telemetry (telemetry.yaml).
+  # Provider tracing: gửi span OTLP/HTTP tới Datadog Agent — cổng 4318 (giống Traefik).
+  # KHÔNG dùng gRPC(4317): port 4317 không được Istio nhận là gRPC/HTTP2 -> export gRPC lỗi (rq_error).
+  # OTLP/HTTP chạy trên HTTP/1.1 nên không vướng vấn đề đó. Kích hoạt bằng resource Telemetry (telemetry.yaml).
   extensionProviders:
     - name: datadog-otel
       opentelemetry:
         service: datadog.datadog.svc.cluster.local
-        port: 4317
+        port: 4318
+        http:
+          path: "/v1/traces"
 
 # --- Control plane HA ---
 pilot:
