@@ -1,3 +1,0 @@
-destNamespace: ai-agent
-annotations:
-  argocd.argoproj.io/sync-wave: "2"

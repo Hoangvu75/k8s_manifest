@@ -47,26 +47,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "-1"
   labels:
     routing.hoangvu75.space/expose: "true"
-    # Bật tiêm sidecar Istio (cần restart pod để sidecar được tiêm).
     istio-injection: enabled
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: tcp-demo
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
-  labels:
-    routing.hoangvu75.space/expose: "true"
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: udp-demo
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
-  labels:
-    routing.hoangvu75.space/expose: "true"
 ---
 apiVersion: v1
 kind: Namespace
@@ -83,8 +64,6 @@ metadata:
     argocd.argoproj.io/sync-wave: "-1"
   labels:
     routing.hoangvu75.space/expose: "true"
-    # Kong phải trong mesh thì traffic Kong->helloworld-api mới mang danh tính (SPIFFE) để policy nhận diện.
-    # PERMISSIVE mTLS nên Traefik (ngoài mesh) vẫn gọi Kong bình thường. Cần restart pod Kong để tiêm sidecar.
     istio-injection: enabled
 ---
 apiVersion: v1
@@ -99,35 +78,10 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: arc-systems
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: arc-runners
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ai-agent
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
----
-# Istio control plane (istiod). Sidecar mode -> không cần ztunnel/istio-cni. Không expose ra ngoài.
-apiVersion: v1
-kind: Namespace
-metadata:
   name: istio-system
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 ---
-# Namespace demo để học Istio (sidecar mode).
-#  - istio-injection: enabled  -> pod tạo mới được tiêm Envoy sidecar (pod cũ phải restart mới có).
-#  - routing.hoangvu75.space/expose -> cho phép Gateway nhận HTTPRoute từ ns này (nếu cần).
 apiVersion: v1
 kind: Namespace
 metadata:

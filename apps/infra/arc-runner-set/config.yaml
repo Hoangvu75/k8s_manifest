@@ -1,3 +1,0 @@
-destNamespace: arc-runners
-annotations:
-  argocd.argoproj.io/sync-wave: "3"

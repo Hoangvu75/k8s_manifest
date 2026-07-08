@@ -1,3 +1,0 @@
-destNamespace: arc-systems
-annotations:
-  argocd.argoproj.io/sync-wave: "2"

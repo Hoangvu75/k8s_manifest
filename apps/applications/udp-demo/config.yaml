@@ -1,3 +1,0 @@
-destNamespace: udp-demo
-annotations:
-  argocd.argoproj.io/sync-wave: "3"
